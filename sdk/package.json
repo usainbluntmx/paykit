@@ -1,0 +1,23 @@
+{
+  "name": "@paykit/sdk",
+  "version": "0.1.0",
+  "description": "PayKit SDK - Autonomous AI Agent Payments on Solana",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node src/index.js"
+  },
+  "keywords": [
+    "solana",
+    "payments",
+    "ai-agents",
+    "web3"
+  ],
+  "author": "Zero Two Labs",
+  "license": "MIT",
+  "dependencies": {
+    "@coral-xyz/anchor": "0.31.1",
+    "@solana/web3.js": "^1.98.0",
+    "bs58": "^6.0.0",
+    "dotenv": "^16.0.0"
+  }
+}
