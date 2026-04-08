@@ -1,4 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;600;700;900&display=swap');
 @import "tailwindcss";
+
+:root {
+  --green: #00ff88;
+  --green-dim: #00cc6a;
+  --green-glow: rgba(0, 255, 136, 0.15);
+  --red: #ff3c5a;
+  --amber: #ffb800;
+  --bg: #080c0a;
+  --bg-card: #0d1410;
+  --bg-card-hover: #111a15;
+  --border: rgba(0, 255, 136, 0.12);
+  --border-bright: rgba(0, 255, 136, 0.35);
+  --text-primary: #e8f5ee;
+  --text-dim: #4a7a5a;
+  --text-muted: #2a4a35;
+}
 
 * {
   box-sizing: border-box;
@@ -6,19 +23,156 @@
   padding: 0;
 }
 
-body {
-  background-color: #0a0a0a;
-  color: #ffffff;
-  font-family: monospace;
+html {
+  background: var(--bg);
 }
 
-@layer utilities {
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+body {
+  background: var(--bg);
+  background-image:
+    linear-gradient(rgba(0, 255, 136, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 136, 0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+  color: var(--text-primary);
+  font-family: 'Share Tech Mono', monospace;
+  min-height: 100vh;
+}
+
+/* Scanline overlay */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.03) 2px,
+      rgba(0, 0, 0, 0.03) 4px);
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Corner decoration */
+.card-corner::before,
+.card-corner::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-color: var(--green);
+  border-style: solid;
+  opacity: 0.6;
+}
+
+.card-corner::before {
+  top: -1px;
+  left: -1px;
+  border-width: 1px 0 0 1px;
+}
+
+.card-corner::after {
+  bottom: -1px;
+  right: -1px;
+  border-width: 0 1px 1px 0;
+}
+
+/* Pulse animation */
+@keyframes pulse-green {
+
+  0%,
+  100% {
+    opacity: 1;
   }
 
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
+  50% {
+    opacity: 0.4;
   }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scan {
+  0% {
+    transform: translateY(-100%);
+  }
+
+  100% {
+    transform: translateY(100vh);
+  }
+}
+
+.animate-pulse-green {
+  animation: pulse-green 2s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in-up 0.4s ease forwards;
+}
+
+/* Input styles */
+input,
+select {
+  background: rgba(0, 255, 136, 0.03) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--green) !important;
+  font-family: 'Share Tech Mono', monospace !important;
+  transition: border-color 0.2s, box-shadow 0.2s !important;
+}
+
+input::placeholder {
+  color: var(--text-dim) !important;
+}
+
+input:focus,
+select:focus {
+  border-color: var(--border-bright) !important;
+  box-shadow: 0 0 0 1px var(--green-glow), 0 0 12px var(--green-glow) !important;
+  outline: none !important;
+}
+
+select option {
+  background: #0d1410;
+  color: var(--green);
+}
+
+/* Wallet adapter override */
+.wallet-adapter-button {
+  font-family: 'Share Tech Mono', monospace !important;
+  font-size: 13px !important;
+  background: transparent !important;
+  border: 1px solid var(--border-bright) !important;
+  color: var(--green) !important;
+  border-radius: 4px !important;
+  transition: all 0.2s !important;
+  padding: 8px 16px !important;
+  height: auto !important;
+}
+
+.wallet-adapter-button:hover {
+  background: var(--green-glow) !important;
+  box-shadow: 0 0 16px var(--green-glow) !important;
+}
+
+.wallet-adapter-modal-wrapper {
+  background: #0d1410 !important;
+  border: 1px solid var(--border-bright) !important;
+  font-family: 'Share Tech Mono', monospace !important;
+}
+
+.wallet-adapter-modal-title {
+  color: var(--green) !important;
+  font-family: 'Orbitron', monospace !important;
 }

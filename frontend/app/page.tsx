@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
-import { PublicKey, Transaction } from "@solana/web3.js";
+import { PublicKey } from "@solana/web3.js";
 import { Program, AnchorProvider, BN } from "@coral-xyz/anchor";
-
 import dynamic from "next/dynamic";
 
 const WalletMultiButton = dynamic(
@@ -44,21 +43,24 @@ export default function Home() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState("🔌 Conecta tu wallet para comenzar");
+  const [status, setStatus] = useState("AWAITING CONNECTION");
+  const [statusType, setStatusType] = useState<"idle" | "ok" | "error" | "loading">("idle");
   const [agentName, setAgentName] = useState("");
   const [spendLimit, setSpendLimit] = useState("1");
   const [paymentMemo, setPaymentMemo] = useState("");
   const [selectedAgent, setSelectedAgent] = useState("");
   const [paymentAmount, setPaymentAmount] = useState("0.001");
   const [program, setProgram] = useState<Program | null>(null);
+  const [mounted, setMounted] = useState(false);
 
-  // ─── Init Program ───────────────────────────────────────────────────────────
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (!wallet.connected || !wallet.publicKey) {
       setProgram(null);
       setAgents([]);
-      setStatus("🔌 Conecta tu wallet para comenzar");
+      setStatus("AWAITING CONNECTION");
+      setStatusType("idle");
       return;
     }
     initProgram();
@@ -66,6 +68,8 @@ export default function Home() {
 
   async function initProgram() {
     try {
+      setStatus("INITIALIZING...");
+      setStatusType("loading");
       const idlRes = await fetch("/idl/paykit.json");
       const idl = await idlRes.json();
       const provider = new AnchorProvider(connection, wallet as any, {
@@ -73,14 +77,14 @@ export default function Home() {
       });
       const prog = new Program(idl, provider);
       setProgram(prog);
-      setStatus("✅ Wallet conectada — PayKit listo");
+      setStatus("SYSTEM ONLINE");
+      setStatusType("ok");
       await fetchAgents(prog);
     } catch (e: any) {
-      setStatus(`❌ Error: ${e.message}`);
+      setStatus(`ERR: ${e.message}`);
+      setStatusType("error");
     }
   }
-
-  // ─── Get Agent PDA ──────────────────────────────────────────────────────────
 
   function getAgentPDA(ownerPubkey: PublicKey, name: string): PublicKey {
     const [pda] = PublicKey.findProgramAddressSync(
@@ -90,12 +94,11 @@ export default function Home() {
     return pda;
   }
 
-  // ─── Register Agent ─────────────────────────────────────────────────────────
-
   async function handleRegisterAgent() {
     if (!program || !wallet.publicKey || !agentName) return;
     setLoading(true);
-    setStatus("⏳ Registrando agente...");
+    setStatus("REGISTERING AGENT...");
+    setStatusType("loading");
     try {
       const agentPDA = getAgentPDA(wallet.publicKey, agentName);
       const limitLamports = parseFloat(spendLimit) * 1_000_000_000;
@@ -107,228 +110,362 @@ export default function Home() {
           systemProgram: PublicKey.default,
         })
         .rpc();
-      setStatus(`✅ Agente "${agentName}" registrado`);
+      setStatus(`AGENT "${agentName.toUpperCase()}" REGISTERED`);
+      setStatusType("ok");
       setAgentName("");
       await fetchAgents(program);
     } catch (e: any) {
-      setStatus(`❌ ${e.message}`);
+      setStatus(`ERR: ${e.message.slice(0, 60)}`);
+      setStatusType("error");
     }
     setLoading(false);
   }
 
-  // ─── Record Payment ─────────────────────────────────────────────────────────
-
   async function handleRecordPayment() {
     if (!program || !wallet.publicKey || !selectedAgent || !paymentMemo) return;
     setLoading(true);
-    setStatus("⏳ Registrando pago...");
+    setStatus("BROADCASTING PAYMENT...");
+    setStatusType("loading");
     try {
       const agentPDA = getAgentPDA(wallet.publicKey, selectedAgent);
       const amountLamports = parseFloat(paymentAmount) * 1_000_000_000;
       const tx = await program.methods
         .recordPayment(new BN(amountLamports), wallet.publicKey, paymentMemo)
-        .accounts({
-          agent: agentPDA,
-          owner: wallet.publicKey,
-        })
+        .accounts({ agent: agentPDA, owner: wallet.publicKey })
         .rpc();
-      setPayments((prev) => [
-        {
-          agent: selectedAgent,
-          amount: parseFloat(paymentAmount),
-          memo: paymentMemo,
-          tx: tx.slice(0, 16) + "...",
-        },
-        ...prev,
-      ]);
-      setStatus("✅ Pago registrado onchain");
+      setPayments((prev) => [{
+        agent: selectedAgent,
+        amount: parseFloat(paymentAmount),
+        memo: paymentMemo,
+        tx: tx.slice(0, 20) + "...",
+      }, ...prev]);
+      setStatus("PAYMENT CONFIRMED ONCHAIN");
+      setStatusType("ok");
       setPaymentMemo("");
       await fetchAgents(program);
     } catch (e: any) {
-      setStatus(`❌ ${e.message}`);
+      setStatus(`ERR: ${e.message.slice(0, 60)}`);
+      setStatusType("error");
     }
     setLoading(false);
   }
-
-  // ─── Fetch Agents ───────────────────────────────────────────────────────────
 
   async function fetchAgents(prog?: Program) {
     const p = prog || program;
     if (!p || !wallet.publicKey) return;
     try {
-      const all = await (p.account as any).agentAccount.all([
-        {
-          memcmp: {
-            offset: 8,
-            bytes: wallet.publicKey.toBase58(),
-          },
-        },
-      ]);
-      setAgents(
-        all.map((a: any) => ({
-          pda: a.publicKey.toBase58(),
-          name: a.account.name,
-          owner: a.account.owner.toBase58(),
-          spendLimit: a.account.spendLimit.toNumber(),
-          totalSpent: a.account.totalSpent.toNumber(),
-          paymentCount: a.account.paymentCount.toNumber(),
-          isActive: a.account.isActive,
-        }))
-      );
+      const all = await (p.account as any).agentAccount.all([{
+        memcmp: { offset: 8, bytes: wallet.publicKey.toBase58() },
+      }]);
+      setAgents(all.map((a: any) => ({
+        pda: a.publicKey.toBase58(),
+        name: a.account.name,
+        owner: a.account.owner.toBase58(),
+        spendLimit: a.account.spendLimit.toNumber(),
+        totalSpent: a.account.totalSpent.toNumber(),
+        paymentCount: a.account.paymentCount.toNumber(),
+        isActive: a.account.isActive,
+      })));
     } catch (e) {
       console.error(e);
     }
   }
 
-  // ─── UI ─────────────────────────────────────────────────────────────────────
+  const statusColor = {
+    idle: "#4a7a5a",
+    ok: "#00ff88",
+    error: "#ff3c5a",
+    loading: "#ffb800",
+  }[statusType];
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] text-white p-8">
+    <main style={{ minHeight: "100vh", padding: "32px", maxWidth: "1200px", margin: "0 auto" }}>
 
       {/* Header */}
-      <div className="flex justify-between items-start mb-10">
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight mb-1">⚡ PayKit</h1>
-          <p className="text-gray-400 text-sm">
-            Autonomous AI Agent Payments on Solana
-          </p>
-          <div className="mt-3 text-xs text-yellow-400 font-mono">{status}</div>
+      <div style={{ marginBottom: "40px", animation: "fade-in-up 0.5s ease forwards" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "6px" }}>
+              <span style={{
+                fontFamily: "'Orbitron', monospace",
+                fontSize: "28px",
+                fontWeight: 900,
+                color: "#00ff88",
+                letterSpacing: "0.05em",
+                textShadow: "0 0 20px rgba(0,255,136,0.4)",
+              }}>
+                PAYKIT
+              </span>
+              <span style={{
+                fontSize: "10px",
+                color: "#00ff88",
+                border: "1px solid rgba(0,255,136,0.3)",
+                padding: "2px 8px",
+                borderRadius: "2px",
+                letterSpacing: "0.15em",
+              }}>
+                v0.1.0 DEVNET
+              </span>
+            </div>
+            <p style={{ color: "#4a7a5a", fontSize: "12px", letterSpacing: "0.1em" }}>
+              AUTONOMOUS AI AGENT PAYMENT PROTOCOL · SOLANA
+            </p>
+          </div>
+          {mounted && <WalletMultiButton />}
         </div>
-        <WalletMultiButton style={{
-          backgroundColor: "#ffffff",
-          color: "#000000",
-          borderRadius: "8px",
-          fontSize: "14px",
-          fontWeight: "600",
-          fontFamily: "monospace",
-        }} />
+
+        {/* Status bar */}
+        <div style={{
+          marginTop: "20px",
+          padding: "10px 16px",
+          background: "rgba(0,255,136,0.03)",
+          border: "1px solid rgba(0,255,136,0.1)",
+          borderLeft: `3px solid ${statusColor}`,
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          borderRadius: "2px",
+        }}>
+          <span style={{
+            width: "6px", height: "6px",
+            borderRadius: "50%",
+            background: statusColor,
+            boxShadow: `0 0 8px ${statusColor}`,
+            animation: statusType === "loading" ? "pulse-green 1s infinite" : "none",
+            flexShrink: 0,
+          }} />
+          <span style={{ fontSize: "11px", color: statusColor, letterSpacing: "0.1em" }}>
+            {status}
+          </span>
+        </div>
       </div>
 
-      {/* Content */}
+      {/* Not connected */}
       {!wallet.connected ? (
-        <div className="flex flex-col items-center justify-center h-64 border border-gray-800 rounded-xl">
-          <p className="text-gray-500 font-mono text-sm mb-4">
-            Conecta tu wallet para interactuar con PayKit
-          </p>
-          <WalletMultiButton style={{
-            backgroundColor: "#ffffff",
-            color: "#000000",
-            borderRadius: "8px",
-            fontSize: "14px",
-            fontWeight: "600",
-            fontFamily: "monospace",
-          }} />
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "50vh",
+          gap: "24px",
+          border: "1px solid rgba(0,255,136,0.08)",
+          borderRadius: "4px",
+          background: "rgba(0,255,136,0.01)",
+        }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={{
+              fontFamily: "'Orbitron', monospace",
+              fontSize: "14px",
+              color: "#2a4a35",
+              letterSpacing: "0.2em",
+              marginBottom: "8px",
+            }}>
+              NO WALLET DETECTED
+            </div>
+            <div style={{ fontSize: "11px", color: "#2a4a35" }}>
+              Connect your Phantom wallet to access the protocol
+            </div>
+          </div>
+          {mounted && <WalletMultiButton />}
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
 
           {/* Register Agent */}
-          <div className="border border-gray-800 rounded-xl p-6">
-            <h2 className="text-lg font-semibold mb-4">🤖 Registrar Agente</h2>
-            <div className="space-y-3">
+          <div className="card-corner" style={{
+            position: "relative",
+            background: "var(--bg-card)",
+            border: "1px solid var(--border)",
+            borderRadius: "4px",
+            padding: "24px",
+            animation: "fade-in-up 0.4s ease forwards",
+          }}>
+            <div style={{
+              fontFamily: "'Orbitron', monospace",
+              fontSize: "11px",
+              color: "#00ff88",
+              letterSpacing: "0.2em",
+              marginBottom: "20px",
+              opacity: 0.7,
+            }}>
+              // REGISTER AGENT
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               <input
-                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-sm font-mono focus:outline-none focus:border-gray-500"
-                placeholder="Nombre del agente (ej: agent-001)"
+                style={{ width: "100%", padding: "10px 14px", borderRadius: "3px", fontSize: "13px" }}
+                placeholder="agent-id (max 32 chars)"
                 value={agentName}
                 onChange={(e) => setAgentName(e.target.value)}
               />
-              <div className="flex gap-2 items-center">
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                 <input
-                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-sm font-mono focus:outline-none focus:border-gray-500"
-                  placeholder="Spend limit"
+                  style={{ flex: 1, padding: "10px 14px", borderRadius: "3px", fontSize: "13px" }}
+                  placeholder="spend limit"
                   type="number"
                   value={spendLimit}
                   onChange={(e) => setSpendLimit(e.target.value)}
                 />
-                <span className="text-gray-500 text-sm">SOL</span>
+                <span style={{ color: "#4a7a5a", fontSize: "12px", whiteSpace: "nowrap" }}>SOL</span>
               </div>
               <button
                 onClick={handleRegisterAgent}
                 disabled={loading || !agentName}
-                className="w-full bg-white text-black font-semibold py-2 rounded-lg text-sm hover:bg-gray-200 disabled:opacity-40 transition"
+                style={{
+                  width: "100%",
+                  padding: "11px",
+                  background: loading || !agentName ? "transparent" : "rgba(0,255,136,0.08)",
+                  border: "1px solid",
+                  borderColor: loading || !agentName ? "rgba(0,255,136,0.1)" : "rgba(0,255,136,0.4)",
+                  color: loading || !agentName ? "#2a4a35" : "#00ff88",
+                  fontFamily: "'Share Tech Mono', monospace",
+                  fontSize: "12px",
+                  letterSpacing: "0.15em",
+                  borderRadius: "3px",
+                  cursor: loading || !agentName ? "not-allowed" : "pointer",
+                  transition: "all 0.2s",
+                }}
               >
-                {loading ? "Procesando..." : "Registrar Agente"}
+                {loading ? "PROCESSING..." : "DEPLOY AGENT"}
               </button>
             </div>
           </div>
 
           {/* Record Payment */}
-          <div className="border border-gray-800 rounded-xl p-6">
-            <h2 className="text-lg font-semibold mb-4">💸 Registrar Pago</h2>
-            <div className="space-y-3">
+          <div className="card-corner" style={{
+            position: "relative",
+            background: "var(--bg-card)",
+            border: "1px solid var(--border)",
+            borderRadius: "4px",
+            padding: "24px",
+            animation: "fade-in-up 0.5s ease forwards",
+          }}>
+            <div style={{
+              fontFamily: "'Orbitron', monospace",
+              fontSize: "11px",
+              color: "#00ff88",
+              letterSpacing: "0.2em",
+              marginBottom: "20px",
+              opacity: 0.7,
+            }}>
+              // RECORD PAYMENT
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               <select
-                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-sm font-mono focus:outline-none focus:border-gray-500"
+                style={{ width: "100%", padding: "10px 14px", borderRadius: "3px", fontSize: "13px" }}
                 value={selectedAgent}
                 onChange={(e) => setSelectedAgent(e.target.value)}
               >
-                <option value="">Selecciona un agente</option>
+                <option value="">select agent</option>
                 {agents.map((a) => (
-                  <option key={a.pda} value={a.name}>
-                    {a.name}
-                  </option>
+                  <option key={a.pda} value={a.name}>{a.name}</option>
                 ))}
               </select>
-              <div className="flex gap-2 items-center">
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                 <input
-                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-sm font-mono focus:outline-none focus:border-gray-500"
-                  placeholder="Monto"
+                  style={{ flex: 1, padding: "10px 14px", borderRadius: "3px", fontSize: "13px" }}
+                  placeholder="amount"
                   type="number"
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
                 />
-                <span className="text-gray-500 text-sm">SOL</span>
+                <span style={{ color: "#4a7a5a", fontSize: "12px" }}>SOL</span>
               </div>
               <input
-                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-sm font-mono focus:outline-none focus:border-gray-500"
-                placeholder="Memo (ej: API call payment)"
+                style={{ width: "100%", padding: "10px 14px", borderRadius: "3px", fontSize: "13px" }}
+                placeholder="memo"
                 value={paymentMemo}
                 onChange={(e) => setPaymentMemo(e.target.value)}
               />
               <button
                 onClick={handleRecordPayment}
                 disabled={loading || !selectedAgent || !paymentMemo}
-                className="w-full bg-white text-black font-semibold py-2 rounded-lg text-sm hover:bg-gray-200 disabled:opacity-40 transition"
+                style={{
+                  width: "100%",
+                  padding: "11px",
+                  background: loading || !selectedAgent || !paymentMemo ? "transparent" : "rgba(0,255,136,0.08)",
+                  border: "1px solid",
+                  borderColor: loading || !selectedAgent || !paymentMemo ? "rgba(0,255,136,0.1)" : "rgba(0,255,136,0.4)",
+                  color: loading || !selectedAgent || !paymentMemo ? "#2a4a35" : "#00ff88",
+                  fontFamily: "'Share Tech Mono', monospace",
+                  fontSize: "12px",
+                  letterSpacing: "0.15em",
+                  borderRadius: "3px",
+                  cursor: loading || !selectedAgent || !paymentMemo ? "not-allowed" : "pointer",
+                  transition: "all 0.2s",
+                }}
               >
-                {loading ? "Procesando..." : "Registrar Pago"}
+                {loading ? "BROADCASTING..." : "SEND PAYMENT"}
               </button>
             </div>
           </div>
 
           {/* Agents List */}
-          <div className="border border-gray-800 rounded-xl p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">🗂 Agentes Registrados</h2>
+          <div className="card-corner" style={{
+            position: "relative",
+            background: "var(--bg-card)",
+            border: "1px solid var(--border)",
+            borderRadius: "4px",
+            padding: "24px",
+            animation: "fade-in-up 0.6s ease forwards",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+              <div style={{
+                fontFamily: "'Orbitron', monospace",
+                fontSize: "11px",
+                color: "#00ff88",
+                letterSpacing: "0.2em",
+                opacity: 0.7,
+              }}>
+                // REGISTERED AGENTS
+              </div>
               <button
                 onClick={() => fetchAgents()}
-                className="text-xs text-gray-400 hover:text-white transition"
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#4a7a5a",
+                  fontSize: "11px",
+                  cursor: "pointer",
+                  letterSpacing: "0.1em",
+                  fontFamily: "'Share Tech Mono', monospace",
+                }}
               >
-                Actualizar
+                REFRESH
               </button>
             </div>
             {agents.length === 0 ? (
-              <p className="text-gray-600 text-sm font-mono">
-                No hay agentes registrados aún.
-              </p>
+              <div style={{ color: "#2a4a35", fontSize: "12px", textAlign: "center", padding: "24px 0" }}>
+                NO AGENTS DEPLOYED
+              </div>
             ) : (
-              <div className="space-y-3">
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 {agents.map((a) => (
-                  <div
-                    key={a.pda}
-                    className="bg-gray-900 rounded-lg p-4 font-mono text-xs space-y-1"
-                  >
-                    <div className="flex justify-between">
-                      <span className="text-white font-semibold">{a.name}</span>
-                      <span className={a.isActive ? "text-green-400" : "text-red-400"}>
-                        {a.isActive ? "● activo" : "● inactivo"}
+                  <div key={a.pda} style={{
+                    padding: "14px",
+                    background: "rgba(0,255,136,0.02)",
+                    border: "1px solid rgba(0,255,136,0.08)",
+                    borderRadius: "3px",
+                    fontSize: "12px",
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                      <span style={{ color: "#00ff88", fontWeight: 600 }}>{a.name}</span>
+                      <span style={{
+                        color: a.isActive ? "#00ff88" : "#ff3c5a",
+                        fontSize: "10px",
+                        animation: a.isActive ? "pulse-green 2s infinite" : "none",
+                      }}>
+                        ● {a.isActive ? "ACTIVE" : "INACTIVE"}
                       </span>
                     </div>
-                    <div className="text-gray-500">
-                      PDA: {a.pda.slice(0, 16)}...
+                    <div style={{ color: "#4a7a5a", marginBottom: "6px", fontSize: "11px" }}>
+                      {a.pda.slice(0, 20)}...
                     </div>
-                    <div className="flex justify-between text-gray-400">
-                      <span>Limit: {(a.spendLimit / 1e9).toFixed(2)} SOL</span>
-                      <span>Gastado: {(a.totalSpent / 1e9).toFixed(4)} SOL</span>
-                      <span>Pagos: {a.paymentCount}</span>
+                    <div style={{ display: "flex", gap: "16px", color: "#4a7a5a", fontSize: "11px" }}>
+                      <span>LIMIT <span style={{ color: "#00cc6a" }}>{(a.spendLimit / 1e9).toFixed(2)} SOL</span></span>
+                      <span>SPENT <span style={{ color: "#00cc6a" }}>{(a.totalSpent / 1e9).toFixed(4)} SOL</span></span>
+                      <span>TXS <span style={{ color: "#00cc6a" }}>{a.paymentCount}</span></span>
                     </div>
                   </div>
                 ))}
@@ -337,25 +474,49 @@ export default function Home() {
           </div>
 
           {/* Payments List */}
-          <div className="border border-gray-800 rounded-xl p-6">
-            <h2 className="text-lg font-semibold mb-4">📋 Pagos Recientes</h2>
+          <div className="card-corner" style={{
+            position: "relative",
+            background: "var(--bg-card)",
+            border: "1px solid var(--border)",
+            borderRadius: "4px",
+            padding: "24px",
+            animation: "fade-in-up 0.7s ease forwards",
+          }}>
+            <div style={{
+              fontFamily: "'Orbitron', monospace",
+              fontSize: "11px",
+              color: "#00ff88",
+              letterSpacing: "0.2em",
+              marginBottom: "20px",
+              opacity: 0.7,
+            }}>
+              // PAYMENT LOG
+            </div>
             {payments.length === 0 ? (
-              <p className="text-gray-600 text-sm font-mono">
-                No hay pagos registrados aún.
-              </p>
+              <div style={{ color: "#2a4a35", fontSize: "12px", textAlign: "center", padding: "24px 0" }}>
+                NO PAYMENTS RECORDED
+              </div>
             ) : (
-              <div className="space-y-3">
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 {payments.map((p, i) => (
-                  <div
-                    key={i}
-                    className="bg-gray-900 rounded-lg p-4 font-mono text-xs space-y-1"
-                  >
-                    <div className="flex justify-between">
-                      <span className="text-white font-semibold">{p.memo}</span>
-                      <span className="text-green-400">{p.amount} SOL</span>
+                  <div key={i} style={{
+                    padding: "14px",
+                    background: "rgba(0,255,136,0.02)",
+                    border: "1px solid rgba(0,255,136,0.08)",
+                    borderRadius: "3px",
+                    fontSize: "12px",
+                    animation: "fade-in-up 0.3s ease forwards",
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                      <span style={{ color: "#e8f5ee" }}>{p.memo}</span>
+                      <span style={{ color: "#00ff88" }}>+{p.amount} SOL</span>
                     </div>
-                    <div className="text-gray-500">Agente: {p.agent}</div>
-                    <div className="text-gray-600">TX: {p.tx}</div>
+                    <div style={{ color: "#4a7a5a", fontSize: "11px", marginBottom: "4px" }}>
+                      AGENT: {p.agent}
+                    </div>
+                    <div style={{ color: "#2a4a35", fontSize: "11px" }}>
+                      TX: {p.tx}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -366,9 +527,20 @@ export default function Home() {
       )}
 
       {/* Footer */}
-      <div className="mt-12 text-center text-gray-700 text-xs font-mono">
-        PayKit · Zero Two Labs · Solana Devnet ·{" "}
-        {PROGRAM_ID.toBase58().slice(0, 16)}...
+      <div style={{
+        marginTop: "48px",
+        paddingTop: "16px",
+        borderTop: "1px solid rgba(0,255,136,0.06)",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+      }}>
+        <span style={{ color: "#2a4a35", fontSize: "11px", letterSpacing: "0.1em" }}>
+          PAYKIT · ZERO TWO LABS · 2026
+        </span>
+        <span style={{ color: "#2a4a35", fontSize: "11px", fontFamily: "'Share Tech Mono', monospace" }}>
+          {PROGRAM_ID.toBase58().slice(0, 20)}...
+        </span>
       </div>
 
     </main>
