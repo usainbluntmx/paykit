@@ -52,6 +52,11 @@ export default function Home() {
   const [paymentAmount, setPaymentAmount] = useState("0.001");
   const [program, setProgram] = useState<Program | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [a2aSender, setA2aSender] = useState("");
+  const [a2aReceiver, setA2aReceiver] = useState("");
+  const [a2aService, setA2aService] = useState("");
+  const [a2aAmount, setA2aAmount] = useState("0.001");
+  const [a2aLog, setA2aLog] = useState<{ time: string; sender: string; receiver: string; service: string; amount: string; tx: string }[]>([]);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -80,6 +85,7 @@ export default function Home() {
       setStatus("SYSTEM ONLINE");
       setStatusType("ok");
       await fetchAgents(prog);
+      await fetchPaymentHistory(prog);
     } catch (e: any) {
       setStatus(`ERR: ${e.message}`);
       setStatusType("error");
@@ -143,6 +149,7 @@ export default function Home() {
       setStatusType("ok");
       setPaymentMemo("");
       await fetchAgents(program);
+      await fetchPaymentHistory(program);
     } catch (e: any) {
       setStatus(`ERR: ${e.message.slice(0, 60)}`);
       setStatusType("error");
@@ -169,6 +176,108 @@ export default function Home() {
     } catch (e) {
       console.error(e);
     }
+  }
+
+  async function fetchPaymentHistory(prog?: Program) {
+    const p = prog || program;
+    if (!p || !wallet.publicKey) return;
+    try {
+      const signatures = await connection.getSignaturesForAddress(
+        PROGRAM_ID,
+        { limit: 50 }
+      );
+
+      const history: Payment[] = [];
+
+      for (const sig of signatures) {
+        const tx = await connection.getParsedTransaction(sig.signature, {
+          commitment: "confirmed",
+          maxSupportedTransactionVersion: 0,
+        });
+
+        if (!tx?.meta?.logMessages) continue;
+
+        const logs = tx.meta.logMessages;
+        const time = new Date((tx.blockTime || 0) * 1000);
+        const timeStr = `${time.getHours().toString().padStart(2, "0")}:${time.getMinutes().toString().padStart(2, "0")}:${time.getSeconds().toString().padStart(2, "0")}`;
+
+        const isA2A = logs.some(l => l.includes("Instruction: AgentToAgentPayment"));
+        const isRecord = logs.some(l => l.includes("Instruction: RecordPayment"));
+        const isRegister = logs.some(l => l.includes("Instruction: RegisterAgent"));
+
+        if (isA2A) {
+          history.push({
+            agent: "agent-to-agent",
+            amount: 0,
+            memo: "agent-to-agent payment",
+            tx: `[${timeStr}] ${sig.signature.slice(0, 16)}...`,
+          });
+        } else if (isRecord) {
+          history.push({
+            agent: "manual payment",
+            amount: 0,
+            memo: "recorded payment",
+            tx: `[${timeStr}] ${sig.signature.slice(0, 16)}...`,
+          });
+        } else if (isRegister) {
+          history.push({
+            agent: "system",
+            amount: 0,
+            memo: "agent registered",
+            tx: `[${timeStr}] ${sig.signature.slice(0, 16)}...`,
+          });
+        }
+      }
+
+      setPayments(history);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  async function handleAgentToAgent() {
+    if (!program || !wallet.publicKey || !a2aSender || !a2aReceiver || !a2aService) return;
+    setLoading(true);
+    setStatus("EXECUTING AGENT-TO-AGENT PAYMENT...");
+    setStatusType("loading");
+    try {
+      const senderAgent = agents.find(a => a.name === a2aSender)!;
+      const receiverAgent = agents.find(a => a.name === a2aReceiver)!;
+      const senderPDA = new PublicKey(senderAgent.pda);
+      const receiverPDA = new PublicKey(receiverAgent.pda);
+      const amountLamports = parseFloat(a2aAmount) * 1_000_000_000;
+
+      const tx = await program.methods
+        .agentToAgentPayment(new BN(amountLamports), a2aService)
+        .accounts({
+          senderAgent: senderPDA,
+          receiverAgent: receiverPDA,
+          owner: wallet.publicKey,
+        })
+        .rpc();
+
+      const now = new Date();
+      const time = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`;
+
+      setA2aLog(prev => [{
+        time,
+        sender: a2aSender,
+        receiver: a2aReceiver,
+        service: a2aService,
+        amount: a2aAmount,
+        tx: tx.slice(0, 16) + "...",
+      }, ...prev]);
+
+      setStatus(`AGENT PAYMENT CONFIRMED · ${a2aSender} → ${a2aReceiver}`);
+      setStatusType("ok");
+      setA2aService("");
+      await fetchAgents(program);
+      await fetchPaymentHistory(program);
+    } catch (e: any) {
+      setStatus(`ERR: ${e.message.slice(0, 60)}`);
+      setStatusType("error");
+    }
+    setLoading(false);
   }
 
   const statusColor = {
@@ -525,6 +634,148 @@ export default function Home() {
 
         </div>
       )}
+
+      {/* Agent to Agent Demo */}
+      <div className="card-corner" style={{
+        position: "relative",
+        gridColumn: "1 / -1",
+        background: "var(--bg-card)",
+        border: "1px solid rgba(0,255,136,0.2)",
+        borderRadius: "4px",
+        padding: "24px",
+        animation: "fade-in-up 0.8s ease forwards",
+      }}>
+        <div style={{
+          fontFamily: "'Orbitron', monospace",
+          fontSize: "11px",
+          color: "#00ff88",
+          letterSpacing: "0.2em",
+          marginBottom: "20px",
+          opacity: 0.7,
+        }}>
+              // AGENT-TO-AGENT DEMO
+        </div>
+
+        {agents.length < 2 ? (
+          <div style={{ color: "#2a4a35", fontSize: "12px", textAlign: "center", padding: "16px 0" }}>
+            DEPLOY AT LEAST 2 AGENTS TO ENABLE AGENT-TO-AGENT PAYMENTS
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ color: "#4a7a5a", fontSize: "10px", marginBottom: "6px", letterSpacing: "0.1em" }}>SENDER AGENT</div>
+                <select
+                  style={{ width: "100%", padding: "10px 14px", borderRadius: "3px", fontSize: "13px" }}
+                  value={a2aSender}
+                  onChange={(e) => setA2aSender(e.target.value)}
+                >
+                  <option value="">select sender</option>
+                  {agents.filter(a => a.name !== a2aReceiver).map((a) => (
+                    <option key={a.pda} value={a.name}>{a.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{
+                color: "#00ff88",
+                fontSize: "20px",
+                opacity: a2aSender && a2aReceiver ? 1 : 0.2,
+                transition: "opacity 0.3s",
+                paddingTop: "20px",
+              }}>→</div>
+
+              <div style={{ flex: 1 }}>
+                <div style={{ color: "#4a7a5a", fontSize: "10px", marginBottom: "6px", letterSpacing: "0.1em" }}>RECEIVER AGENT</div>
+                <select
+                  style={{ width: "100%", padding: "10px 14px", borderRadius: "3px", fontSize: "13px" }}
+                  value={a2aReceiver}
+                  onChange={(e) => setA2aReceiver(e.target.value)}
+                >
+                  <option value="">select receiver</option>
+                  {agents.filter(a => a.name !== a2aSender).map((a) => (
+                    <option key={a.pda} value={a.name}>{a.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: "12px" }}>
+              <input
+                style={{ flex: 1, padding: "10px 14px", borderRadius: "3px", fontSize: "13px" }}
+                placeholder="service description"
+                value={a2aService}
+                onChange={(e) => setA2aService(e.target.value)}
+              />
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <input
+                  style={{ width: "100px", padding: "10px 14px", borderRadius: "3px", fontSize: "13px" }}
+                  placeholder="amount"
+                  type="number"
+                  value={a2aAmount}
+                  onChange={(e) => setA2aAmount(e.target.value)}
+                />
+                <span style={{ color: "#4a7a5a", fontSize: "12px" }}>SOL</span>
+              </div>
+            </div>
+
+            <button
+              onClick={handleAgentToAgent}
+              disabled={loading || !a2aSender || !a2aReceiver || !a2aService}
+              style={{
+                width: "100%",
+                padding: "12px",
+                background: loading || !a2aSender || !a2aReceiver || !a2aService
+                  ? "transparent"
+                  : "rgba(0,255,136,0.08)",
+                border: "1px solid",
+                borderColor: loading || !a2aSender || !a2aReceiver || !a2aService
+                  ? "rgba(0,255,136,0.1)"
+                  : "rgba(0,255,136,0.4)",
+                color: loading || !a2aSender || !a2aReceiver || !a2aService
+                  ? "#2a4a35"
+                  : "#00ff88",
+                fontFamily: "'Share Tech Mono', monospace",
+                fontSize: "12px",
+                letterSpacing: "0.15em",
+                borderRadius: "3px",
+                cursor: loading || !a2aSender || !a2aReceiver || !a2aService ? "not-allowed" : "pointer",
+                transition: "all 0.2s",
+              }}
+            >
+              {loading ? "EXECUTING..." : "EXECUTE AGENT-TO-AGENT PAYMENT"}
+            </button>
+
+            {/* A2A Log */}
+            {a2aLog.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "8px" }}>
+                {a2aLog.map((entry, i) => (
+                  <div key={i} style={{
+                    padding: "10px 14px",
+                    background: "rgba(0,255,136,0.02)",
+                    border: "1px solid rgba(0,255,136,0.06)",
+                    borderRadius: "3px",
+                    fontSize: "11px",
+                    color: "#4a7a5a",
+                    animation: "fade-in-up 0.3s ease forwards",
+                  }}>
+                    <span style={{ color: "#00ff88" }}>[{entry.time}]</span>{" "}
+                    <span style={{ color: "#00cc6a" }}>{entry.sender}</span>
+                    {" → "}
+                    <span style={{ color: "#00cc6a" }}>{entry.receiver}</span>
+                    {" · "}
+                    {entry.service}
+                    {" · "}
+                    <span style={{ color: "#00ff88" }}>{entry.amount} SOL</span>
+                    {" · TX: "}
+                    {entry.tx}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Footer */}
       <div style={{

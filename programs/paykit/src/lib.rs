@@ -82,6 +82,38 @@ pub mod paykit {
 
         Ok(())
     }
+
+    pub fn agent_to_agent_payment(
+    ctx: Context<AgentToAgentPayment>,
+    amount: u64,
+    service: String,
+) -> Result<()> {
+    require!(service.len() <= 64, PaykitError::MemoTooLong);
+    require!(amount > 0, PaykitError::InvalidAmount);
+
+    let sender = &mut ctx.accounts.sender_agent;
+    let receiver = &mut ctx.accounts.receiver_agent;
+
+    require!(sender.is_active, PaykitError::AgentInactive);
+    require!(receiver.is_active, PaykitError::AgentInactive);
+    require!(
+        sender.total_spent.checked_add(amount).unwrap() <= sender.spend_limit,
+        PaykitError::SpendLimitExceeded
+    );
+
+    sender.total_spent = sender.total_spent.checked_add(amount).unwrap();
+    sender.payment_count = sender.payment_count.checked_add(1).unwrap();
+    receiver.payment_count = receiver.payment_count.checked_add(1).unwrap();
+
+    emit!(AgentPaymentSent {
+        sender: sender.key(),
+        receiver: receiver.key(),
+        amount,
+        service: service.clone(),
+    });
+
+    Ok(())
+}
 }
 
 #[account]
@@ -165,6 +197,34 @@ pub struct PaymentRecorded {
     pub amount: u64,
     pub memo: String,
     pub payment_count: u64,
+}
+
+#[derive(Accounts)]
+pub struct AgentToAgentPayment<'info> {
+    #[account(
+        mut,
+        seeds = [b"agent", sender_agent.owner.as_ref(), sender_agent.name.as_bytes()],
+        bump = sender_agent.bump,
+        has_one = owner
+    )]
+    pub sender_agent: Account<'info, AgentAccount>,
+
+    #[account(
+        mut,
+        seeds = [b"agent", receiver_agent.owner.as_ref(), receiver_agent.name.as_bytes()],
+        bump = receiver_agent.bump,
+    )]
+    pub receiver_agent: Account<'info, AgentAccount>,
+
+    pub owner: Signer<'info>,
+}
+
+#[event]
+pub struct AgentPaymentSent {
+    pub sender: Pubkey,
+    pub receiver: Pubkey,
+    pub amount: u64,
+    pub service: String,
 }
 
 #[error_code]
