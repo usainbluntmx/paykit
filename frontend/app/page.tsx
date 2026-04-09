@@ -5,6 +5,12 @@ import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { Program, AnchorProvider, BN } from "@coral-xyz/anchor";
 import dynamic from "next/dynamic";
+import {
+  getAssociatedTokenAddress,
+  createTransferInstruction,
+  TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
+import { Transaction } from "@solana/web3.js";
 
 const WalletMultiButton = dynamic(
   async () => (await import("@solana/wallet-adapter-react-ui")).WalletMultiButton,
@@ -14,6 +20,7 @@ const WalletMultiButton = dynamic(
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const PROGRAM_ID = new PublicKey("F27DrerUQGnkmVhqkEy9m46zDkni2m37Df4ogxkoDhUF");
+const USDC_MINT = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -57,6 +64,11 @@ export default function Home() {
   const [a2aService, setA2aService] = useState("");
   const [a2aAmount, setA2aAmount] = useState("0.001");
   const [a2aLog, setA2aLog] = useState<{ time: string; sender: string; receiver: string; service: string; amount: string; tx: string }[]>([]);
+  const [usdcBalance, setUsdcBalance] = useState<number>(0);
+  const [usdcRecipient, setUsdcRecipient] = useState("");
+  const [usdcAmount, setUsdcAmount] = useState("1");
+  const [usdcMemo, setUsdcMemo] = useState("");
+  const [usdcAgent, setUsdcAgent] = useState("");
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -86,6 +98,7 @@ export default function Home() {
       setStatusType("ok");
       await fetchAgents(prog);
       await fetchPaymentHistory(prog);
+      await fetchUsdcBalance();
     } catch (e: any) {
       setStatus(`ERR: ${e.message}`);
       setStatusType("error");
@@ -271,6 +284,75 @@ export default function Home() {
       setStatus(`AGENT PAYMENT CONFIRMED · ${a2aSender} → ${a2aReceiver}`);
       setStatusType("ok");
       setA2aService("");
+      await fetchAgents(program);
+      await fetchPaymentHistory(program);
+    } catch (e: any) {
+      setStatus(`ERR: ${e.message.slice(0, 60)}`);
+      setStatusType("error");
+    }
+    setLoading(false);
+  }
+
+  async function fetchUsdcBalance() {
+    if (!wallet.publicKey) return;
+    try {
+      const ata = await getAssociatedTokenAddress(USDC_MINT, wallet.publicKey);
+      const balance = await connection.getTokenAccountBalance(ata);
+      setUsdcBalance(balance.value.uiAmount || 0);
+    } catch (e) {
+      setUsdcBalance(0);
+    }
+  }
+
+  async function handleUsdcPayment() {
+    if (!program || !wallet.publicKey || !usdcRecipient || !usdcAgent || !usdcMemo) return;
+    setLoading(true);
+    setStatus("PREPARING USDC TRANSFER...");
+    setStatusType("loading");
+    try {
+      const recipientPubkey = new PublicKey(usdcRecipient);
+      const amountUSDC = parseFloat(usdcAmount);
+      const amountLamports = Math.floor(amountUSDC * 1_000_000);
+
+      const senderATA = await getAssociatedTokenAddress(USDC_MINT, wallet.publicKey);
+      const recipientATA = await getAssociatedTokenAddress(USDC_MINT, recipientPubkey);
+
+      const agentPDA = getAgentPDA(wallet.publicKey, usdcAgent);
+
+      const transferIx = createTransferInstruction(
+        senderATA,
+        recipientATA,
+        wallet.publicKey,
+        amountLamports,
+        [],
+        TOKEN_PROGRAM_ID
+      );
+
+      const recordIx = await program.methods
+        .recordPayment(
+          new BN(amountLamports),
+          recipientPubkey,
+          usdcMemo
+        )
+        .accounts({
+          agent: agentPDA,
+          owner: wallet.publicKey,
+        })
+        .instruction();
+
+      const tx = new Transaction().add(transferIx, recordIx);
+      tx.feePayer = wallet.publicKey;
+      tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+
+      const signed = await wallet.signTransaction!(tx);
+      const txId = await connection.sendRawTransaction(signed.serialize());
+      await connection.confirmTransaction(txId, "confirmed");
+
+      setStatus(`USDC TRANSFER CONFIRMED · ${amountUSDC} USDC → ${usdcRecipient.slice(0, 8)}...`);
+      setStatusType("ok");
+      setUsdcMemo("");
+      setUsdcRecipient("");
+      await fetchUsdcBalance();
       await fetchAgents(program);
       await fetchPaymentHistory(program);
     } catch (e: any) {
@@ -634,6 +716,116 @@ export default function Home() {
 
         </div>
       )}
+
+      {/* USDC Transfer */}
+      <div className="card-corner" style={{
+        position: "relative",
+        gridColumn: "1 / -1",
+        background: "var(--bg-card)",
+        border: "1px solid rgba(0,255,136,0.2)",
+        borderRadius: "4px",
+        padding: "24px",
+        animation: "fade-in-up 0.75s ease forwards",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+          <div style={{
+            fontFamily: "'Orbitron', monospace",
+            fontSize: "11px",
+            color: "#00ff88",
+            letterSpacing: "0.2em",
+            opacity: 0.7,
+          }}>
+                // USDC TRANSFER
+          </div>
+          <div style={{
+            fontSize: "11px",
+            color: "#00ff88",
+            border: "1px solid rgba(0,255,136,0.2)",
+            padding: "4px 12px",
+            borderRadius: "2px",
+            fontFamily: "'Share Tech Mono', monospace",
+          }}>
+            BALANCE: {usdcBalance.toFixed(2)} USDC
+          </div>
+        </div>
+
+        {agents.length === 0 ? (
+          <div style={{ color: "#2a4a35", fontSize: "12px", textAlign: "center", padding: "16px 0" }}>
+            DEPLOY AN AGENT TO ENABLE USDC TRANSFERS
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div style={{ display: "flex", gap: "12px" }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ color: "#4a7a5a", fontSize: "10px", marginBottom: "6px", letterSpacing: "0.1em" }}>AGENT</div>
+                <select
+                  style={{ width: "100%", padding: "10px 14px", borderRadius: "3px", fontSize: "13px" }}
+                  value={usdcAgent}
+                  onChange={(e) => setUsdcAgent(e.target.value)}
+                >
+                  <option value="">select agent</option>
+                  {agents.map((a) => (
+                    <option key={a.pda} value={a.name}>{a.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ color: "#4a7a5a", fontSize: "10px", marginBottom: "6px", letterSpacing: "0.1em" }}>RECIPIENT WALLET</div>
+                <input
+                  style={{ width: "100%", padding: "10px 14px", borderRadius: "3px", fontSize: "13px" }}
+                  placeholder="recipient public key"
+                  value={usdcRecipient}
+                  onChange={(e) => setUsdcRecipient(e.target.value)}
+                />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: "12px" }}>
+              <input
+                style={{ flex: 1, padding: "10px 14px", borderRadius: "3px", fontSize: "13px" }}
+                placeholder="memo"
+                value={usdcMemo}
+                onChange={(e) => setUsdcMemo(e.target.value)}
+              />
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <input
+                  style={{ width: "100px", padding: "10px 14px", borderRadius: "3px", fontSize: "13px" }}
+                  placeholder="amount"
+                  type="number"
+                  value={usdcAmount}
+                  onChange={(e) => setUsdcAmount(e.target.value)}
+                />
+                <span style={{ color: "#4a7a5a", fontSize: "12px" }}>USDC</span>
+              </div>
+            </div>
+            <button
+              onClick={handleUsdcPayment}
+              disabled={loading || !usdcAgent || !usdcRecipient || !usdcMemo}
+              style={{
+                width: "100%",
+                padding: "12px",
+                background: loading || !usdcAgent || !usdcRecipient || !usdcMemo
+                  ? "transparent"
+                  : "rgba(0,255,136,0.08)",
+                border: "1px solid",
+                borderColor: loading || !usdcAgent || !usdcRecipient || !usdcMemo
+                  ? "rgba(0,255,136,0.1)"
+                  : "rgba(0,255,136,0.4)",
+                color: loading || !usdcAgent || !usdcRecipient || !usdcMemo
+                  ? "#2a4a35"
+                  : "#00ff88",
+                fontFamily: "'Share Tech Mono', monospace",
+                fontSize: "12px",
+                letterSpacing: "0.15em",
+                borderRadius: "3px",
+                cursor: loading || !usdcAgent || !usdcRecipient || !usdcMemo ? "not-allowed" : "pointer",
+                transition: "all 0.2s",
+              }}
+            >
+              {loading ? "PROCESSING..." : "SEND USDC"}
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Agent to Agent Demo */}
       <div className="card-corner" style={{
