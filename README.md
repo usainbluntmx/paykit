@@ -25,15 +25,12 @@ This is the bottleneck of the autonomous AI economy. There is no standard protoc
 
 ---
 
-## The Solution
+## How It Works
 
-PayKit is a three-layer system:
-
-1. **Smart Contract (Anchor/Rust)** — On-chain registry of AI agents with enforced spending limits, payment tracking, and ownership control. Deployed on Solana for sub-second finality and near-zero fees.
-
-2. **SDK (Node.js/TypeScript)** — A simple, developer-friendly library that any application can integrate in minutes. Register agents, record payments, query balances — all in a few lines of code.
-
-3. **Dashboard (Next.js)** — A real-time interface to monitor agents, visualize payment flows, and demonstrate the protocol in action.
+Developer registers an AI agent → Agent gets an on-chain identity + spend limit
+Agent executes a task → Payment recorded on Solana in ~400ms
+Agent pays another agent → Agent-to-agent transaction confirmed immutably
+Anyone can audit → Full payment history indexed from on-chain events
 
 ---
 
@@ -43,15 +40,16 @@ paykit/
 ├── programs/
 │   └── paykit/
 │       └── src/
-│           └── lib.rs          ← Anchor smart contract
+│           └── lib.rs          ← Anchor smart contract (Rust)
 ├── sdk/
 │   └── src/
-│       ├── index.js            ← PayKit SDK
+│       ├── index.js            ← PayKit SDK (Node.js)
 │       └── test.js             ← SDK integration test
 ├── frontend/
 │   └── app/
 │       ├── page.tsx            ← Dashboard UI
 │       ├── layout.tsx          ← App layout
+│       ├── providers.tsx       ← Wallet providers
 │       └── globals.css         ← Global styles
 ├── Anchor.toml                 ← Anchor configuration
 └── README.md
@@ -60,39 +58,46 @@ paykit/
 
 ## Smart Contract
 
-The PayKit program lives on Solana and exposes four instructions:
+**Program ID:** `F27DrerUQGnkmVhqkEy9m46zDkni2m37Df4ogxkoDhUF`
+**Network:** Solana Devnet
+**Framework:** Anchor 0.31.1
+
+The PayKit program exposes five instructions:
 
 | Instruction | Description |
 |---|---|
 | `register_agent` | Creates an on-chain agent account with a name and spend limit |
-| `record_payment` | Logs a payment made by an agent, enforcing the spend limit |
+| `record_payment` | Logs a payment made by an agent against its spend limit |
+| `agent_to_agent_payment` | Records a direct payment between two registered agents |
 | `update_spend_limit` | Allows the owner to adjust the agent's budget |
 | `deactivate_agent` | Permanently disables an agent |
 
 Each agent account stores:
-- `owner` — the wallet that controls the agent
-- `name` — unique identifier (max 32 chars)
-- `spend_limit` — maximum spend in lamports
-- `total_spent` — cumulative spend tracked on-chain
-- `payment_count` — number of payments recorded
-- `is_active` — active/inactive status
 
-All state transitions emit on-chain events (`AgentRegistered`, `PaymentRecorded`) that can be indexed and consumed by any application.
+| Field | Type | Description |
+|---|---|---|
+| `owner` | Pubkey | Wallet that controls the agent |
+| `name` | String | Unique identifier (max 32 chars) |
+| `spend_limit` | u64 | Maximum spend in lamports |
+| `total_spent` | u64 | Cumulative spend tracked on-chain |
+| `payment_count` | u64 | Number of payments recorded |
+| `is_active` | bool | Active/inactive status |
+| `bump` | u8 | PDA bump seed |
 
-**Program ID:** `F27DrerUQGnkmVhqkEy9m46zDkni2m37Df4ogxkoDhUF`  
-**Network:** Solana Devnet  
-**Framework:** Anchor 0.31.1
+All state transitions emit on-chain events (`AgentRegistered`, `PaymentRecorded`, `AgentPaymentSent`) that are indexed and displayed in the dashboard in real time.
 
 ---
 
 ## SDK
 
 ### Installation
+
 ```bash
 npm install @paykit/sdk
 ```
 
 ### Usage
+
 ```javascript
 const { createClient } = require("@paykit/sdk");
 
@@ -110,12 +115,37 @@ await client.recordPayment(
   "Payment for API call"
 );
 
+// Agent-to-agent payment
+await client.agentToAgentPayment(
+  "agent-alpha",          // sender
+  "agent-beta",           // receiver  
+  500_000,               // 0.0005 SOL
+  "Image generation service"
+);
+
 // Fetch agent state
 const agent = await client.fetchAgent("my-agent");
 console.log(agent.totalSpent);    // lamports spent
 console.log(agent.paymentCount);  // number of payments
 console.log(agent.isActive);      // true/false
+
+// Fetch all agents owned by wallet
+const agents = await client.fetchAllAgents();
 ```
+
+---
+
+## Dashboard
+
+The PayKit dashboard is a real-time interface built with Next.js that allows developers to:
+
+- **Connect** their Phantom wallet
+- **Register** AI agents with custom spend limits
+- **Execute** agent-to-agent payments onchain
+- **Monitor** all agents and their payment activity
+- **Audit** the complete payment history indexed from on-chain events
+
+The dashboard demonstrates the full protocol in action and serves as a reference implementation for any developer integrating PayKit.
 
 ---
 
@@ -127,8 +157,23 @@ console.log(agent.isActive);      // true/false
 | Smart Contracts | Rust + Anchor 0.31.1 |
 | SDK | Node.js / JavaScript |
 | Frontend | Next.js 16 + TypeScript + Tailwind CSS |
-| Wallet | @solana/web3.js |
-| Package Manager | npm / yarn |
+| Wallet | Phantom via @solana/wallet-adapter |
+| Fonts | Orbitron + Share Tech Mono |
+
+---
+
+## How PayKit Differs from Alternatives
+
+### vs x402 (Coinbase)
+x402 handles payment for HTTP requests on Base/EVM. PayKit gives agents a persistent on-chain identity with enforced spend limits and immutable payment history on Solana — 50x cheaper and 30x faster than EVM.
+
+### vs Ethereum AI Agent EIPs (ERC-7715, ERC-7579)
+Ethereum's AI agent standards delegate permissions from human wallets to agents. PayKit treats agents as first-class economic entities with their own identity, budget, and history — no human wallet required per transaction.
+
+### Why Solana
+- ~400ms transaction finality
+- ~$0.00025 per transaction
+- Throughput to handle thousands of agent micropayments per second
 
 ---
 
@@ -143,6 +188,7 @@ console.log(agent.isActive);      // true/false
 - Yarn 1.22+
 
 ### Setup
+
 ```bash
 # Clone the repository
 git clone https://github.com/usainbluntmx/paykit.git
@@ -166,15 +212,10 @@ npm install
 npm run dev
 ```
 
-### Environment
+### Solana Config
+
 ```bash
-# Verify Solana config
-solana config get
-
-# Set to Devnet
 solana config set --url devnet
-
-# Check balance
 solana balance
 ```
 
@@ -184,21 +225,23 @@ solana balance
 
 ### Week 1 — Foundation ✅
 - [x] Smart contract with agent registry and payment tracking
+- [x] Agent-to-agent payment instruction
 - [x] SDK with full CRUD operations
-- [x] Next.js dashboard with real-time agent monitoring
 - [x] Deployed and verified on Solana Devnet
 
-### Week 2 — Integration
-- [ ] Phantom wallet connection in dashboard
-- [ ] USDC token transfers between agents
-- [ ] Payment history with on-chain event indexing
-- [ ] SDK TypeScript types and documentation
+### Week 2 — Integration ✅
+- [x] Next.js dashboard with retro-futuristic UI
+- [x] Phantom wallet connection
+- [x] Real-time agent monitoring
+- [x] On-chain payment history indexer
+- [x] Agent-to-agent demo
 
-### Week 3 — Polish
-- [ ] Agent-to-agent payment demo
-- [ ] API key system for SDK authentication
-- [ ] Public SDK package on npm
-- [ ] Hackathon demo video and pitch deck
+### Week 3 — Polish 🔄
+- [ ] USDC token transfers between agents
+- [ ] TypeScript types for SDK
+- [ ] npm package publication
+- [ ] Demo video
+- [ ] Pitch deck
 
 ---
 
@@ -210,14 +253,12 @@ The autonomous AI economy is coming. Agents will hire other agents, pay for comp
 
 PayKit is the standard for how that happens.
 
-The developer who integrates PayKit today is building on the infrastructure of tomorrow's AI economy.
-
 ---
 
 ## Built By
 
-**Ricardo** — [@usainbluntmx](https://github.com/usainbluntmx)  
-Solana Certified Developer · Full-Stack & Blockchain Engineer  
+**Ricardo** — [@usainbluntmx](https://github.com/usainbluntmx)
+Solana Certified Developer · Full-Stack & Blockchain Engineer
 [Zero Two Labs](https://github.com/usainbluntmx) — Building open-source Web3 infrastructure
 
 ---
