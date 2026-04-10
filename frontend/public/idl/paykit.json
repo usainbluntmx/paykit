@@ -413,6 +413,11 @@
       "code": 6005,
       "name": "MemoTooLong",
       "msg": "Memo must be 64 characters or less"
+    },
+    {
+      "code": 6006,
+      "name": "DailyLimitExceeded",
+      "msg": "Agent has exceeded its daily spend limit"
     }
   ],
   "types": [
@@ -448,6 +453,18 @@
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "last_payment_at",
+            "type": "i64"
+          },
+          {
+            "name": "daily_spent",
+            "type": "u64"
+          },
+          {
+            "name": "daily_reset_at",
+            "type": "i64"
           }
         ]
       }

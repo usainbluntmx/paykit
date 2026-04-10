@@ -22,6 +22,9 @@ pub mod paykit {
         agent.payment_count = 0;
         agent.is_active = true;
         agent.bump = ctx.bumps.agent;
+        agent.last_payment_at = 0;
+        agent.daily_spent = 0;
+        agent.daily_reset_at = 0;
 
         emit!(AgentRegistered {
             owner: agent.owner,
@@ -48,6 +51,26 @@ pub mod paykit {
             agent.total_spent.checked_add(amount).unwrap() <= agent.spend_limit,
             PaykitError::SpendLimitExceeded
         );
+
+        let clock = Clock::get()?;
+        let now = clock.unix_timestamp;
+
+        // Reset daily limit every 24 hours
+        let one_day: i64 = 86_400;
+        if now - agent.daily_reset_at > one_day {
+            agent.daily_spent = 0;
+            agent.daily_reset_at = now;
+        }
+
+        // Daily spend limit = 10% of total spend limit
+        let daily_limit = agent.spend_limit / 10;
+        require!(
+            agent.daily_spent.checked_add(amount).unwrap() <= daily_limit,
+            PaykitError::DailyLimitExceeded
+        );
+
+        agent.last_payment_at = now;
+        agent.daily_spent = agent.daily_spent.checked_add(amount).unwrap();
 
         agent.total_spent = agent.total_spent.checked_add(amount).unwrap();
         agent.payment_count = agent.payment_count.checked_add(1).unwrap();
@@ -95,11 +118,29 @@ pub mod paykit {
     let receiver = &mut ctx.accounts.receiver_agent;
 
     require!(sender.is_active, PaykitError::AgentInactive);
-    require!(receiver.is_active, PaykitError::AgentInactive);
-    require!(
-        sender.total_spent.checked_add(amount).unwrap() <= sender.spend_limit,
-        PaykitError::SpendLimitExceeded
-    );
+        require!(receiver.is_active, PaykitError::AgentInactive);
+        require!(
+            sender.total_spent.checked_add(amount).unwrap() <= sender.spend_limit,
+            PaykitError::SpendLimitExceeded
+        );
+
+        let clock = Clock::get()?;
+        let now = clock.unix_timestamp;
+
+        let one_day: i64 = 86_400;
+        if now - sender.daily_reset_at > one_day {
+            sender.daily_spent = 0;
+            sender.daily_reset_at = now;
+        }
+
+        let daily_limit = sender.spend_limit / 10;
+        require!(
+            sender.daily_spent.checked_add(amount).unwrap() <= daily_limit,
+            PaykitError::DailyLimitExceeded
+        );
+
+        sender.last_payment_at = now;
+        sender.daily_spent = sender.daily_spent.checked_add(amount).unwrap();
 
     sender.total_spent = sender.total_spent.checked_add(amount).unwrap();
     sender.payment_count = sender.payment_count.checked_add(1).unwrap();
@@ -125,17 +166,23 @@ pub struct AgentAccount {
     pub payment_count: u64,
     pub is_active: bool,
     pub bump: u8,
+    pub last_payment_at: i64,
+    pub daily_spent: u64,
+    pub daily_reset_at: i64,
 }
 
 impl AgentAccount {
     pub const LEN: usize = 8    // discriminator
         + 32                    // owner
-        + 4 + 32               // name (string prefix + max 32 chars)
+        + 4 + 32               // name
         + 8                    // spend_limit
         + 8                    // total_spent
         + 8                    // payment_count
         + 1                    // is_active
-        + 1;                   // bump
+        + 1                    // bump
+        + 8                    // last_payment_at
+        + 8                    // daily_spent
+        + 8;                   // daily_reset_at
 }
 
 #[derive(Accounts)]
@@ -241,4 +288,6 @@ pub enum PaykitError {
     AgentInactive,
     #[msg("Memo must be 64 characters or less")]
     MemoTooLong,
+    #[msg("Agent has exceeded its daily spend limit")]
+    DailyLimitExceeded,
 }
