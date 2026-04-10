@@ -5,8 +5,8 @@ const { createClient } = require("./index");
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const KEYPAIR_PATH = "/home/usainbluntmx/.config/solana/id.json";
-const AGENT_ORCHESTRATOR = "agent-alpha";
-const AGENT_EXECUTOR = "agent-beta";
+const AGENT_ORCHESTRATOR = "agent-v2-alpha";
+const AGENT_EXECUTOR = "agent-v2-beta";
 
 // ─── Anthropic Client ─────────────────────────────────────────────────────────
 
