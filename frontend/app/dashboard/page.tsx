@@ -8,7 +8,9 @@ import dynamic from "next/dynamic";
 import {
   getAssociatedTokenAddress,
   createTransferInstruction,
+  createAssociatedTokenAccountIdempotentInstruction,
   TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { Transaction } from "@solana/web3.js";
 
@@ -89,7 +91,7 @@ export default function Home() {
     try {
       setStatus("INITIALIZING...");
       setStatusType("loading");
-      const idlRes = await fetch("/idl/paykit.json");
+      const idlRes = await fetch(`/idl/paykit.json?v=${Date.now()}`);
       const idl = await idlRes.json();
       const provider = new AnchorProvider(connection, wallet as any, { commitment: "confirmed" });
       const prog = new Program(idl, provider);
@@ -236,16 +238,27 @@ export default function Home() {
       const senderATA = await getAssociatedTokenAddress(USDC_MINT, wallet.publicKey);
       const recipientATA = await getAssociatedTokenAddress(USDC_MINT, recipientPubkey);
       const agentPDA = getAgentPDA(wallet.publicKey, usdcAgent);
+      const createATAIx = createAssociatedTokenAccountIdempotentInstruction(
+        wallet.publicKey,
+        recipientATA,
+        recipientPubkey,
+        USDC_MINT,
+        TOKEN_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      );
       const transferIx = createTransferInstruction(senderATA, recipientATA, wallet.publicKey, amountLamports, [], TOKEN_PROGRAM_ID);
       const recordIx = await program.methods
         .recordPayment(new BN(amountLamports), recipientPubkey, usdcMemo)
         .accounts({ agent: agentPDA, owner: wallet.publicKey })
         .instruction();
-      const tx = new Transaction().add(transferIx, recordIx);
+      const tx = new Transaction().add(createATAIx, transferIx, recordIx);
       tx.feePayer = wallet.publicKey;
       tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
       const signed = await wallet.signTransaction!(tx);
-      const txId = await connection.sendRawTransaction(signed.serialize());
+      const txId = await connection.sendRawTransaction(signed.serialize(), {
+        skipPreflight: true,
+        preflightCommitment: "confirmed",
+      });
       await connection.confirmTransaction(txId, "confirmed");
       setStatus(`USDC TRANSFER CONFIRMED · ${amountUSDC} USDC → ${usdcRecipient.slice(0, 8)}...`);
       setLastTx(txId);
@@ -256,7 +269,11 @@ export default function Home() {
       await fetchAgents(program);
       await fetchPaymentHistory(program);
     } catch (e: any) {
-      setStatus(`ERR: ${e.message.slice(0, 60)}`);
+      if (e.message?.includes("TokenAccountNotFound") || e.message?.includes("AccountNotFound")) {
+        setStatus("ERR: Recipient wallet has no USDC token account — creating it automatically...");
+      } else {
+        setStatus(`ERR: ${e.message?.slice(0, 60)}`);
+      }
       setStatusType("error");
     }
     setLoading(false);
@@ -563,8 +580,8 @@ export default function Home() {
                       </select>
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ color: "#9aeab0", fontSize: "11px", marginBottom: "5px", letterSpacing: "0.1em" }}>RECIPIENT</div>
-                      <input style={inputStyle} placeholder="public key" value={usdcRecipient} onChange={e => setUsdcRecipient(e.target.value)} />
+                      <div style={{ color: "#9aeab0", fontSize: "11px", marginBottom: "5px", letterSpacing: "0.1em" }}>RECIPIENT WALLET</div>
+                      <input style={inputStyle} placeholder="wallet address (not agent PDA)" value={usdcRecipient} onChange={e => setUsdcRecipient(e.target.value)} />
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: "10px" }}>
