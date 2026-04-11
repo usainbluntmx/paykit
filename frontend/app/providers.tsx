@@ -3,14 +3,13 @@
 import { ReactNode } from "react";
 import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
-import { clusterApiUrl } from "@solana/web3.js";
 import "@solana/wallet-adapter-react-ui/styles.css";
 
-export function Providers({ children }: { children: ReactNode }) {
-    const endpoint = clusterApiUrl("devnet");
+const HELIUS_RPC = "https://devnet.helius-rpc.com/?api-key=9e6102c0-b874-4588-949c-d05694a4a34c";
 
+export function Providers({ children }: { children: ReactNode }) {
     return (
-        <ConnectionProvider endpoint={endpoint}>
+        <ConnectionProvider endpoint={HELIUS_RPC}>
             <WalletProvider wallets={[]} autoConnect>
                 <WalletModalProvider>{children}</WalletModalProvider>
             </WalletProvider>

@@ -69,6 +69,7 @@ export default function Home() {
   const [auditResult, setAuditResult] = useState<Agent | null>(null);
   const [auditError, setAuditError] = useState("");
   const [auditLoading, setAuditLoading] = useState(false);
+  const [lastTx, setLastTx] = useState<string>("");
   const PAYMENTS_PER_PAGE = 3;
 
   useEffect(() => { setMounted(true); }, []);
@@ -112,6 +113,10 @@ export default function Home() {
     return pda;
   }
 
+  function openExplorer(tx: string) {
+    window.open(`https://explorer.solana.com/tx/${tx}?cluster=devnet`, "_blank");
+  }
+
   async function handleRegisterAgent() {
     if (!program || !wallet.publicKey || !agentName) return;
     setLoading(true);
@@ -120,11 +125,12 @@ export default function Home() {
     try {
       const agentPDA = getAgentPDA(wallet.publicKey, agentName);
       const limitLamports = parseFloat(spendLimit) * 1_000_000_000;
-      await program.methods
+      const tx = await program.methods
         .registerAgent(agentName, new BN(limitLamports))
         .accounts({ agent: agentPDA, owner: wallet.publicKey, systemProgram: PublicKey.default })
-        .rpc();
+        .rpc({ skipPreflight: true, commitment: "confirmed" });
       setStatus(`AGENT "${agentName.toUpperCase()}" REGISTERED`);
+      setLastTx(tx);
       setStatusType("ok");
       setAgentName("");
       await fetchAgents(program);
@@ -143,11 +149,12 @@ export default function Home() {
     try {
       const agentPDA = getAgentPDA(wallet.publicKey, selectedAgent);
       const amountLamports = parseFloat(paymentAmount) * 1_000_000_000;
-      await program.methods
+      const tx = await program.methods
         .recordPayment(new BN(amountLamports), wallet.publicKey, paymentMemo)
         .accounts({ agent: agentPDA, owner: wallet.publicKey })
-        .rpc();
+        .rpc({ skipPreflight: true, commitment: "confirmed" });
       setStatus("PAYMENT CONFIRMED ONCHAIN");
+      setLastTx(tx);
       setStatusType("ok");
       setPaymentMemo("");
       await fetchAgents(program);
@@ -241,6 +248,7 @@ export default function Home() {
       const txId = await connection.sendRawTransaction(signed.serialize());
       await connection.confirmTransaction(txId, "confirmed");
       setStatus(`USDC TRANSFER CONFIRMED · ${amountUSDC} USDC → ${usdcRecipient.slice(0, 8)}...`);
+      setLastTx(txId);
       setStatusType("ok");
       setUsdcMemo("");
       setUsdcRecipient("");
@@ -265,11 +273,12 @@ export default function Home() {
       const tx = await program.methods
         .agentToAgentPayment(new BN(parseFloat(a2aAmount) * 1_000_000_000), a2aService)
         .accounts({ senderAgent: new PublicKey(senderAgent.pda), receiverAgent: new PublicKey(receiverAgent.pda), owner: wallet.publicKey })
-        .rpc();
+        .rpc({ skipPreflight: true, commitment: "confirmed" });
       const now = new Date();
       const time = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`;
       setA2aLog(prev => [{ time, sender: a2aSender, receiver: a2aReceiver, service: a2aService, amount: a2aAmount, tx: tx.slice(0, 16) + "..." }, ...prev]);
       setStatus(`AGENT PAYMENT CONFIRMED · ${a2aSender} → ${a2aReceiver}`);
+      setLastTx(tx);
       setStatusType("ok");
       setA2aService("");
       await fetchAgents(program);
@@ -362,6 +371,9 @@ export default function Home() {
           <a href="/" style={{ textDecoration: "none" }}>
             <span style={{ fontFamily: "'Orbitron', monospace", fontSize: "22px", fontWeight: 900, color: "#00ff88", letterSpacing: "0.05em", textShadow: "0 0 20px rgba(0,255,136,0.4)" }}>PAYKIT</span>
           </a>
+          <a href="/docs" style={{ textDecoration: "none" }}>
+            <span style={{ fontSize: "13px", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", letterSpacing: "0.1em" }}>DOCS</span>
+          </a>
           <span style={{ fontSize: "11px", color: "#00ff88", border: "1px solid rgba(0,255,136,0.3)", padding: "2px 8px", borderRadius: "2px", letterSpacing: "0.15em" }}>v0.1.0 DEVNET</span>
           <span style={{ fontSize: "13px", color: "#9aeab0", letterSpacing: "0.08em" }}>AUTONOMOUS AI AGENT PAYMENT PROTOCOL · SOLANA</span>
         </div>
@@ -369,9 +381,33 @@ export default function Home() {
       </div>
 
       {/* Status bar */}
-      <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 14px", background: "rgba(0,255,136,0.02)", border: "1px solid rgba(0,255,136,0.08)", borderLeft: `3px solid ${statusColor}`, borderRadius: "2px", marginBottom: "16px" }}>
-        <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: statusColor, boxShadow: `0 0 8px ${statusColor}`, animation: statusType === "loading" ? "pulse-green 1s infinite" : "none", flexShrink: 0 }} />
-        <span style={{ fontSize: "13px", color: statusColor, letterSpacing: "0.1em" }}>{status}</span>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", padding: "8px 14px", background: "rgba(0,255,136,0.02)", border: "1px solid rgba(0,255,136,0.08)", borderLeft: `3px solid ${statusColor}`, borderRadius: "2px", marginBottom: "16px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: statusColor, boxShadow: `0 0 8px ${statusColor}`, animation: statusType === "loading" ? "pulse-green 1s infinite" : "none", flexShrink: 0 }} />
+          <span style={{ fontSize: "13px", color: statusColor, letterSpacing: "0.1em" }}>{status}</span>
+        </div>
+        {lastTx && (
+          <button
+            onClick={() => openExplorer(lastTx)}
+            style={{
+              background: "transparent",
+              border: "1px solid rgba(0,255,136,0.2)",
+              color: "#9aeab0",
+              fontFamily: "'Share Tech Mono', monospace",
+              fontSize: "11px",
+              padding: "4px 10px",
+              borderRadius: "2px",
+              cursor: "pointer",
+              letterSpacing: "0.1em",
+              whiteSpace: "nowrap",
+              transition: "all 0.2s",
+            }}
+            onMouseOver={e => (e.currentTarget.style.border = "1px solid rgba(0,255,136,0.5)")}
+            onMouseOut={e => (e.currentTarget.style.border = "1px solid rgba(0,255,136,0.2)")}
+          >
+            VIEW ON EXPLORER ↗
+          </button>
+        )}
       </div>
 
       {/* Not connected */}
