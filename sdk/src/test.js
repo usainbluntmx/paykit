@@ -2,8 +2,8 @@ require("dotenv").config();
 const { createClient } = require("./index");
 
 const KEYPAIR_PATH = "/home/usainbluntmx/.config/solana/id.json";
-const AGENT_A = "agent-alpha";
-const AGENT_B = "agent-beta";
+const AGENT_A = "agent-gamma";
+const AGENT_B = "agent-omega";
 const SPEND_LIMIT = 1_000_000_000; // 1 SOL
 
 async function main() {

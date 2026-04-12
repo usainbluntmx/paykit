@@ -271,6 +271,62 @@
       ]
     },
     {
+      "name": "renew_agent",
+      "discriminator": [
+        182,
+        134,
+        104,
+        242,
+        237,
+        200,
+        250,
+        61
+      ],
+      "accounts": [
+        {
+          "name": "agent",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "agent.owner",
+                "account": "AgentAccount"
+              },
+              {
+                "kind": "account",
+                "path": "agent.name",
+                "account": "AgentAccount"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "agent"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "extension_seconds",
+          "type": "i64"
+        }
+      ]
+    },
+    {
       "name": "update_spend_limit",
       "discriminator": [
         131,
@@ -418,6 +474,11 @@
       "code": 6006,
       "name": "DailyLimitExceeded",
       "msg": "Agent has exceeded its daily spend limit"
+    },
+    {
+      "code": 6007,
+      "name": "AgentExpired",
+      "msg": "Agent has expired"
     }
   ],
   "types": [
@@ -464,6 +525,10 @@
           },
           {
             "name": "daily_reset_at",
+            "type": "i64"
+          },
+          {
+            "name": "expires_at",
             "type": "i64"
           }
         ]
