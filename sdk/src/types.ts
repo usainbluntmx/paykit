@@ -50,6 +50,17 @@ export interface TransactionResult {
     agentPDA?: PublicKey;
 }
 
+export interface RenewAgentParams {
+    agentName: string;
+    extensionSeconds: number;
+}
+
+export interface AgentExpiryInfo {
+    expired: boolean;
+    expiresAt: Date;
+    daysRemaining: number;
+}
+
 // ─── Events ───────────────────────────────────────────────────────────────────
 
 export interface AgentRegisteredEvent {

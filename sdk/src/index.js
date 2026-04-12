@@ -207,6 +207,88 @@ class PayKitClient {
 
         return history;
     }
+
+    /**
+   * Renew an agent's expiration date
+   * @param {string} agentName - Name of the agent
+   * @param {number} extensionSeconds - Seconds to extend (e.g. 31_536_000 = 1 year)
+   * @returns {Promise<{tx: string}>}
+   */
+    async renewAgent(agentName, extensionSeconds) {
+        const agentPDA = this.getAgentPDA(this.wallet.publicKey, agentName);
+        const tx = await this.program.methods
+            .renewAgent(new anchor.BN(extensionSeconds))
+            .accounts({
+                agent: agentPDA,
+                owner: this.wallet.publicKey,
+            })
+            .rpc();
+        return { tx };
+    }
+
+    /**
+     * Check if an agent is expired
+     * @param {string} agentName - Name of the agent
+     * @returns {Promise<{expired: boolean, expiresAt: Date, daysRemaining: number}>}
+     */
+    async checkAgentExpiry(agentName, ownerPubkey) {
+        const agent = await this.fetchAgent(agentName, ownerPubkey);
+        const now = Math.floor(Date.now() / 1000);
+        const expiresAt = agent.expiresAt.toNumber();
+        const expired = now >= expiresAt;
+        const daysRemaining = Math.max(0, Math.floor((expiresAt - now) / 86400));
+        return {
+            expired,
+            expiresAt: new Date(expiresAt * 1000),
+            daysRemaining,
+        };
+    }
+
+    /**
+   * Estimate the fee for a transaction before executing it
+   * @param {string} agentName - Name of the agent
+   * @param {number} amountLamports - Payment amount in lamports
+   * @param {string} type - "record" | "agent_to_agent"
+   * @returns {Promise<{fee: number, feeSOL: string}>}
+   */
+    async estimateFee(agentName, amountLamports, type = "record") {
+        const agentPDA = this.getAgentPDA(this.wallet.publicKey, agentName);
+        let tx;
+
+        if (type === "record") {
+            tx = await this.program.methods
+                .recordPayment(
+                    new anchor.BN(amountLamports),
+                    this.wallet.publicKey,
+                    "fee estimation"
+                )
+                .accounts({ agent: agentPDA, owner: this.wallet.publicKey })
+                .transaction();
+        } else {
+            tx = await this.program.methods
+                .agentToAgentPayment(
+                    new anchor.BN(amountLamports),
+                    "fee estimation"
+                )
+                .accounts({
+                    senderAgent: agentPDA,
+                    receiverAgent: agentPDA,
+                    owner: this.wallet.publicKey,
+                })
+                .transaction();
+        }
+
+        tx.recentBlockhash = (
+            await this.connection.getLatestBlockhash()
+        ).blockhash;
+        tx.feePayer = this.wallet.publicKey;
+
+        const fee = await tx.getEstimatedFee(this.connection);
+        return {
+            fee,
+            feeSOL: (fee / 1_000_000_000).toFixed(9),
+        };
+    }
 }
 
 // ─── Helper: Load Wallet from File ────────────────────────────────────────────
@@ -225,8 +307,9 @@ function loadWalletFromFile(keypairPath) {
  * @param {string} [cluster="devnet"] - Solana cluster
  * @returns {PayKitClient}
  */
-function createClient(keypairPath, cluster = "devnet") {
-    const connection = new Connection(clusterApiUrl(cluster), "confirmed");
+function createClient(keypairPath, cluster = "devnet", customRpcUrl = null) {
+    const rpcUrl = customRpcUrl || clusterApiUrl(cluster);
+    const connection = new Connection(rpcUrl, "confirmed");
     const wallet = loadWalletFromFile(keypairPath);
     return new PayKitClient(connection, wallet);
 }

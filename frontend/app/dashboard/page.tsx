@@ -13,6 +13,7 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { Transaction } from "@solana/web3.js";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 const WalletMultiButton = dynamic(
   async () => (await import("@solana/wallet-adapter-react-ui")).WalletMultiButton,
@@ -30,6 +31,7 @@ interface Agent {
   totalSpent: number;
   paymentCount: number;
   isActive: boolean;
+  expiresAt: number;
 }
 
 interface Payment {
@@ -72,6 +74,7 @@ export default function Home() {
   const [auditError, setAuditError] = useState("");
   const [auditLoading, setAuditLoading] = useState(false);
   const [lastTx, setLastTx] = useState<string>("");
+  const [toasts, setToasts] = useState<{ id: number; message: string; type: "ok" | "error" }[]>([]);
   const PAYMENTS_PER_PAGE = 3;
 
   useEffect(() => { setMounted(true); }, []);
@@ -119,6 +122,12 @@ export default function Home() {
     window.open(`https://explorer.solana.com/tx/${tx}?cluster=devnet`, "_blank");
   }
 
+  function showToast(message: string, type: "ok" | "error" = "ok") {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500);
+  }
+
   async function handleRegisterAgent() {
     if (!program || !wallet.publicKey || !agentName) return;
     setLoading(true);
@@ -134,6 +143,7 @@ export default function Home() {
       setStatus(`AGENT "${agentName.toUpperCase()}" REGISTERED`);
       setLastTx(tx);
       setStatusType("ok");
+      showToast(`Agent "${agentName.toUpperCase()}" deployed`);
       setAgentName("");
       await fetchAgents(program);
     } catch (e: any) {
@@ -158,6 +168,7 @@ export default function Home() {
       setStatus("PAYMENT CONFIRMED ONCHAIN");
       setLastTx(tx);
       setStatusType("ok");
+      showToast("Payment confirmed onchain");
       setPaymentMemo("");
       await fetchAgents(program);
       await fetchPaymentHistory(program);
@@ -186,6 +197,7 @@ export default function Home() {
         totalSpent: a.account.totalSpent.toNumber(),
         paymentCount: a.account.paymentCount.toNumber(),
         isActive: a.account.isActive,
+        expiresAt: a.account.expiresAt ? a.account.expiresAt.toNumber() : 0,
       })));
     } catch (e) { console.error(e); }
   }
@@ -263,6 +275,7 @@ export default function Home() {
       setStatus(`USDC TRANSFER CONFIRMED · ${amountUSDC} USDC → ${usdcRecipient.slice(0, 8)}...`);
       setLastTx(txId);
       setStatusType("ok");
+      showToast(`${amountUSDC} USDC sent`);
       setUsdcMemo("");
       setUsdcRecipient("");
       await fetchUsdcBalance();
@@ -297,6 +310,7 @@ export default function Home() {
       setStatus(`AGENT PAYMENT CONFIRMED · ${a2aSender} → ${a2aReceiver}`);
       setLastTx(tx);
       setStatusType("ok");
+      showToast(`${a2aSender} → ${a2aReceiver} confirmed`);
       setA2aService("");
       await fetchAgents(program);
       await fetchPaymentHistory(program);
@@ -322,6 +336,7 @@ export default function Home() {
         totalSpent: agent.totalSpent.toNumber(),
         paymentCount: agent.paymentCount.toNumber(),
         isActive: agent.isActive,
+        expiresAt: agent.expiresAt ? agent.expiresAt.toNumber() : 0,
       });
     } catch { setAuditError("AGENT NOT FOUND OR INVALID PDA"); }
     setAuditLoading(false);
@@ -509,6 +524,9 @@ export default function Home() {
                           <span>SPENT <span style={{ color: "#00cc6a" }}>{(a.totalSpent / 1e9).toFixed(4)} SOL</span></span>
                           <span>DAILY <span style={{ color: "#ffb800" }}>{(a.spendLimit / 1e9 / 10).toFixed(4)} SOL</span></span>
                           <span>TXS <span style={{ color: "#00cc6a" }}>{a.paymentCount}</span></span>
+                          <span>EXPIRES <span style={{ color: a.expiresAt > 0 ? (a.expiresAt * 1000 > Date.now() ? "#6aaa80" : "#ff3c5a") : "#3a6a4a" }}>
+                            {a.expiresAt > 0 ? new Date(a.expiresAt * 1000).toLocaleDateString() : "LEGACY"}
+                          </span></span>
                         </div>
                       </div>
                     ))}
@@ -677,10 +695,95 @@ export default function Home() {
         </div>
       )}
 
+      {/* Activity Chart */}
+      {wallet.connected && agents.length > 0 && (
+        <div className="card-corner" style={{
+          position: "relative",
+          background: "var(--bg-card)",
+          border: "1px solid var(--border)",
+          borderRadius: "4px",
+          padding: "20px",
+          marginTop: "16px",
+        }}>
+          <div style={sectionTitle}>// AGENT ACTIVITY</div>
+          <ResponsiveContainer width="100%" height={160}>
+            <BarChart data={agents.map(a => ({
+              name: a.name.length > 10 ? a.name.slice(0, 10) + "..." : a.name,
+              spent: parseFloat((a.totalSpent / 1e9).toFixed(4)),
+              txs: a.paymentCount,
+            }))} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+              <XAxis
+                dataKey="name"
+                tick={{ fill: "#6aaa80", fontSize: 11, fontFamily: "'Share Tech Mono', monospace" }}
+                axisLine={{ stroke: "rgba(0,255,136,0.1)" }}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fill: "#6aaa80", fontSize: 11, fontFamily: "'Share Tech Mono', monospace" }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <Tooltip
+                contentStyle={{
+                  background: "#0d1410",
+                  border: "1px solid rgba(0,255,136,0.2)",
+                  borderRadius: "3px",
+                  fontFamily: "'Share Tech Mono', monospace",
+                  fontSize: "12px",
+                  color: "#00ff88",
+                }}
+                labelStyle={{ color: "#c8f0d8" }}
+                cursor={{ fill: "rgba(0,255,136,0.05)" }}
+              />
+              <Bar dataKey="txs" name="Payments" radius={[2, 2, 0, 0]}>
+                {agents.map((_, i) => (
+                  <Cell key={i} fill={i % 2 === 0 ? "#00ff88" : "#00cc6a"} opacity={0.7} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          <div style={{ display: "flex", justifyContent: "center", gap: "24px", marginTop: "8px" }}>
+            <span style={{ fontSize: "11px", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace" }}>
+              ■ <span style={{ color: "#00ff88" }}>PAYMENTS PER AGENT</span>
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <div style={{ paddingTop: "12px", borderTop: "1px solid rgba(0,255,136,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "16px" }}>
         <span style={{ fontSize: "12px", color: "#6aaa80", letterSpacing: "0.1em" }}>PAYKIT · ZERO TWO LABS · 2026</span>
         <span style={{ fontSize: "12px", color: "#6aaa80" }}>{PROGRAM_ID.toBase58().slice(0, 20)}...</span>
+      </div>
+
+      {/* Toasts */}
+      <div style={{
+        position: "fixed",
+        bottom: "24px",
+        right: "24px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "8px",
+        zIndex: 9999,
+      }}>
+        {toasts.map(t => (
+          <div key={t.id} style={{
+            padding: "12px 20px",
+            background: t.type === "ok" ? "rgba(0,20,10,0.95)" : "rgba(20,0,5,0.95)",
+            border: `1px solid ${t.type === "ok" ? "rgba(0,255,136,0.4)" : "rgba(255,60,90,0.4)"}`,
+            borderLeft: `3px solid ${t.type === "ok" ? "#00ff88" : "#ff3c5a"}`,
+            borderRadius: "3px",
+            fontFamily: "'Share Tech Mono', monospace",
+            fontSize: "13px",
+            color: t.type === "ok" ? "#00ff88" : "#ff3c5a",
+            letterSpacing: "0.08em",
+            boxShadow: `0 4px 20px ${t.type === "ok" ? "rgba(0,255,136,0.1)" : "rgba(255,60,90,0.1)"}`,
+            animation: "fade-in-up 0.3s ease forwards",
+            maxWidth: "320px",
+          }}>
+            {t.type === "ok" ? "✓ " : "✗ "}{t.message}
+          </div>
+        ))}
       </div>
 
     </main>
