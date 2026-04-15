@@ -147,6 +147,57 @@
       "args": []
     },
     {
+      "name": "reactivate_agent",
+      "discriminator": [
+        231,
+        7,
+        179,
+        97,
+        210,
+        24,
+        209,
+        12
+      ],
+      "accounts": [
+        {
+          "name": "agent",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "agent.owner",
+                "account": "AgentAccount"
+              },
+              {
+                "kind": "account",
+                "path": "agent.name",
+                "account": "AgentAccount"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "agent"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "record_payment",
       "discriminator": [
         226,
@@ -267,6 +318,10 @@
         {
           "name": "spend_limit",
           "type": "u64"
+        },
+        {
+          "name": "daily_limit_bps",
+          "type": "u16"
         }
       ]
     },
@@ -479,6 +534,11 @@
       "code": 6007,
       "name": "AgentExpired",
       "msg": "Agent has expired"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidDailyLimit",
+      "msg": "Daily limit must be between 1 and 10000 basis points"
     }
   ],
   "types": [
@@ -528,6 +588,10 @@
             "type": "i64"
           },
           {
+            "name": "daily_limit_bps",
+            "type": "u16"
+          },
+          {
             "name": "expires_at",
             "type": "i64"
           }
@@ -544,8 +608,16 @@
             "type": "pubkey"
           },
           {
+            "name": "sender_name",
+            "type": "string"
+          },
+          {
             "name": "receiver",
             "type": "pubkey"
+          },
+          {
+            "name": "receiver_name",
+            "type": "string"
           },
           {
             "name": "amount",
@@ -554,6 +626,10 @@
           {
             "name": "service",
             "type": "string"
+          },
+          {
+            "name": "sender_total_spent",
+            "type": "u64"
           }
         ]
       }
@@ -574,6 +650,14 @@
           {
             "name": "spend_limit",
             "type": "u64"
+          },
+          {
+            "name": "daily_limit_bps",
+            "type": "u16"
+          },
+          {
+            "name": "expires_at",
+            "type": "i64"
           }
         ]
       }
@@ -586,6 +670,10 @@
           {
             "name": "agent",
             "type": "pubkey"
+          },
+          {
+            "name": "agent_name",
+            "type": "string"
           },
           {
             "name": "owner",
@@ -605,6 +693,10 @@
           },
           {
             "name": "payment_count",
+            "type": "u64"
+          },
+          {
+            "name": "total_spent",
             "type": "u64"
           }
         ]

@@ -97,4 +97,129 @@ describe("PayKit SDK", () => {
             expect(expiry.daysRemaining).toBeGreaterThan(0);
         }
     }, 15000);
+
+    // ─── Batch Payment ────────────────────────────────────────────────────────
+
+    test("batchPayment throws if payments array is empty", async () => {
+        await expect(client.batchPayment("agent-gamma", [])).rejects.toThrow("Payments array cannot be empty");
+    });
+
+    test("batchPayment throws if more than 5 payments", async () => {
+        const payments = Array(6).fill({ receiverName: "agent-omega", amountLamports: 100, service: "test" });
+        await expect(client.batchPayment("agent-gamma", payments)).rejects.toThrow("Maximum 5 payments per batch");
+    });
+
+    // ─── Reactivate Agent ─────────────────────────────────────────────────────
+
+    test("reactivateAgent throws if agent does not exist", async () => {
+        await expect(client.reactivateAgent("non-existent-agent-xyz")).rejects.toThrow();
+    }, 15000);
+
+    // ─── Browser Wallet ───────────────────────────────────────────────────────
+
+    test("createClientFromWallet throws if wallet not connected", () => {
+        const { createClientFromWallet } = require("../index");
+        expect(() => createClientFromWallet({ publicKey: null, signTransaction: async () => { } }, client.connection))
+            .toThrow("Wallet not connected");
+    });
+
+    test("createClientFromWallet throws if wallet has no signTransaction", () => {
+        const { createClientFromWallet } = require("../index");
+        expect(() => createClientFromWallet({ publicKey: new PublicKey("11111111111111111111111111111111"), signTransaction: null }, client.connection))
+            .toThrow("Wallet does not support signTransaction");
+    });
+
+    test("createClientFromWallet returns a PayKitClient with valid adapter", () => {
+        const { createClientFromWallet } = require("../index");
+        const mockWallet = {
+            publicKey: new PublicKey("11111111111111111111111111111111"),
+            signTransaction: async (tx) => tx,
+        };
+        const browserClient = createClientFromWallet(mockWallet, client.connection);
+        expect(browserClient).toBeDefined();
+        expect(browserClient.wallet.publicKey.toBase58()).toBe("11111111111111111111111111111111");
+    });
+
+    // ─── Error Handling ───────────────────────────────────────────────────────
+
+    test("PayKitError has correct structure", () => {
+        const { PayKitError } = require("../errors");
+        const err = new PayKitError("SpendLimitExceeded", "Agent has exceeded its spend limit.");
+        expect(err.name).toBe("PayKitError");
+        expect(err.code).toBe("SpendLimitExceeded");
+        expect(err.message).toBe("Agent has exceeded its spend limit.");
+        expect(err.originalError).toBeNull();
+    });
+
+    test("parsePayKitError identifies SpendLimitExceeded by error number", () => {
+        const { parsePayKitError } = require("../errors");
+        const raw = new Error("AnchorError: Error Code: SpendLimitExceeded. Error Number: 6003.");
+        const parsed = parsePayKitError(raw);
+        expect(parsed).not.toBeNull();
+        expect(parsed.code).toBe("SpendLimitExceeded");
+    });
+
+    test("parsePayKitError identifies AgentExpired by error number", () => {
+        const { parsePayKitError } = require("../errors");
+        const raw = new Error("AnchorError: Error Code: AgentExpired. Error Number: 6007.");
+        const parsed = parsePayKitError(raw);
+        expect(parsed).not.toBeNull();
+        expect(parsed.code).toBe("AgentExpired");
+    });
+
+    test("parsePayKitError identifies DailyLimitExceeded by error number", () => {
+        const { parsePayKitError } = require("../errors");
+        const raw = new Error("AnchorError: Error Code: DailyLimitExceeded. Error Number: 6006.");
+        const parsed = parsePayKitError(raw);
+        expect(parsed).not.toBeNull();
+        expect(parsed.code).toBe("DailyLimitExceeded");
+    });
+
+    test("parsePayKitError identifies LegacyAgent from deserialization error", () => {
+        const { parsePayKitError } = require("../errors");
+        const raw = new Error("AccountDidNotDeserialize: Failed to deserialize the account.");
+        const parsed = parsePayKitError(raw);
+        expect(parsed).not.toBeNull();
+        expect(parsed.code).toBe("LegacyAgent");
+    });
+
+    test("parsePayKitError identifies BlockhashExpired", () => {
+        const { parsePayKitError } = require("../errors");
+        const raw = new Error("Transaction simulation failed: Blockhash not found");
+        const parsed = parsePayKitError(raw);
+        expect(parsed).not.toBeNull();
+        expect(parsed.code).toBe("BlockhashExpired");
+    });
+
+    test("parsePayKitError identifies InsufficientFunds", () => {
+        const { parsePayKitError } = require("../errors");
+        const raw = new Error("Transaction failed: insufficient funds for transaction");
+        const parsed = parsePayKitError(raw);
+        expect(parsed).not.toBeNull();
+        expect(parsed.code).toBe("InsufficientFunds");
+    });
+
+    test("parsePayKitError returns null for unknown errors", () => {
+        const { parsePayKitError } = require("../errors");
+        const raw = new Error("Some completely unknown error xyz123");
+        const parsed = parsePayKitError(raw);
+        expect(parsed).toBeNull();
+    });
+
+    test("withPayKitError rethrows PayKitError with correct code", async () => {
+        const { withPayKitError } = require("../errors");
+        await expect(
+            withPayKitError(async () => {
+                throw new Error("AnchorError: Error Code: AgentInactive. Error Number: 6004.");
+            })
+        ).rejects.toMatchObject({ code: "AgentInactive" });
+    });
+
+    test("withPayKitError rethrows unknown errors as-is", async () => {
+        const { withPayKitError } = require("../errors");
+        const unknownErr = new Error("totally unknown error xyz");
+        await expect(
+            withPayKitError(async () => { throw unknownErr; })
+        ).rejects.toThrow("totally unknown error xyz");
+    });
 });

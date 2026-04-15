@@ -59,6 +59,19 @@ async function main() {
     }
     console.log();
 
+    // 5. Batch payment
+    console.log("⚡ Batch payment: agent-gamma → [agent-omega x3]");
+    const { tx: batchTx, count } = await client.batchPayment(
+        "agent-gamma",
+        [
+            { receiverName: "agent-omega", amountLamports: 100_000, service: "Data analysis" },
+            { receiverName: "agent-omega", amountLamports: 100_000, service: "Image generation" },
+            { receiverName: "agent-omega", amountLamports: 100_000, service: "Report writing" },
+        ]
+    );
+    console.log(`✅ Batch confirmed — ${count} payments in 1 TX`);
+    console.log(`   TX: ${batchTx}\n`);
+
     console.log("🎉 SDK completo funcionando correctamente en Devnet");
 }
 

@@ -1,4 +1,4 @@
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey, Transaction, Connection } from "@solana/web3.js";
 import BN from "bn.js";
 
 // ─── Agent Account ────────────────────────────────────────────────────────────
@@ -22,6 +22,7 @@ export interface AgentWithPDA extends AgentAccount {
 export interface RegisterAgentParams {
     name: string;
     spendLimitLamports: number;
+    dailyLimitBps?: number;
 }
 
 export interface RecordPaymentParams {
@@ -84,3 +85,62 @@ export interface AgentPaymentSentEvent {
     amount: BN;
     service: string;
 }
+
+export interface BatchPaymentItem {
+    receiverName: string;
+    amountLamports: number;
+    service: string;
+}
+
+export interface BatchPaymentResult {
+    tx: string;
+    count: number;
+}
+
+export interface ReactivateAgentResult {
+    tx: string;
+}
+
+export interface BrowserWalletAdapter {
+    publicKey: PublicKey;
+    signTransaction: (tx: Transaction) => Promise<Transaction>;
+    signAllTransactions?: (txs: Transaction[]) => Promise<Transaction[]>;
+}
+
+export declare class PayKitClient {
+    connection: Connection;
+    wallet: BrowserWalletAdapter;
+    program: any;
+    constructor(connection: Connection, wallet: BrowserWalletAdapter);
+    getAgentPDA(ownerPubkey: PublicKey, name: string): PublicKey;
+    registerAgent(name: string, spendLimitLamports: number): Promise<TransactionResult>;
+    recordPayment(agentName: string, amountLamports: number, recipient: PublicKey, memo: string): Promise<TransactionResult>;
+    agentToAgentPayment(senderName: string, receiverName: string, amountLamports: number, service: string): Promise<TransactionResult>;
+    batchPayment(senderName: string, payments: BatchPaymentItem[]): Promise<BatchPaymentResult>;
+    updateSpendLimit(agentName: string, newLimitLamports: number): Promise<TransactionResult>;
+    deactivateAgent(agentName: string): Promise<TransactionResult>;
+    reactivateAgent(agentName: string): Promise<TransactionResult>;
+    renewAgent(agentName: string, extensionSeconds: number): Promise<TransactionResult>;
+    checkAgentExpiry(agentName: string, ownerPubkey?: PublicKey): Promise<AgentExpiryInfo>;
+    estimateFee(agentName: string, amountLamports: number, type?: string): Promise<{ fee: number; feeSOL: string }>;
+    fetchAgent(agentName: string, ownerPubkey?: PublicKey): Promise<AgentWithPDA>;
+    fetchAllAgents(): Promise<AgentWithPDA[]>;
+    getPaymentHistory(limit?: number): Promise<{ type: string; time: string; tx: string }[]>;
+}
+
+export declare function createClient(keypairPath: string, cluster?: string, customRpcUrl?: string): PayKitClient;
+
+export declare function createClientFromWallet(
+    walletAdapter: BrowserWalletAdapter,
+    connection: Connection
+): PayKitClient;
+
+export declare class PayKitError extends Error {
+    name: "PayKitError";
+    code: string;
+    originalError: Error | null;
+    constructor(code: string, message: string, originalError?: Error | null);
+}
+
+export declare function parsePayKitError(error: Error): PayKitError | null;
+export declare function withPayKitError<T>(fn: () => Promise<T>): Promise<T>;
