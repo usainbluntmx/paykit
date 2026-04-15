@@ -42,6 +42,8 @@ When a developer integrates PayKit, their AI agents get:
 
 6. **Agent-to-agent payments** — Agents can pay other agents directly, with the same spend limits and rate limiting applied automatically.
 
+7. **Batch payments** — A single transaction can pay up to 5 agents simultaneously, enabling orchestrator patterns where one agent delegates work and pays multiple specialized agents atomically.
+
 ---
 
 ## What PayKit Is Not (Yet)
@@ -77,21 +79,27 @@ Agent pays another agent
 → Agent-to-agent transaction confirmed immutably
 → Both agents' counters updated atomically
 → Event emitted on-chain for indexing
+Orchestrator pays multiple agents (batch)
+→ Up to 5 payments in a single transaction
+→ Atomic — all succeed or all fail
+→ Same spend limits and rate limiting applied to each
 Anyone audits
 → Full payment history indexed from on-chain events
 → Any agent inspectable by PDA address — no permission needed
+→ Expiration date and status visible in audit mode
 
 ---
 
 ## Architecture
 
 paykit/
-├── programs/paykit/src/lib.rs  ← Anchor smart contract (Rust)
+├── programs/paykit/src/lib.rs   ← Anchor smart contract (Rust)
 ├── sdk/
-│   ├── src/index.js            ← PayKit SDK (Node.js)
-│   ├── src/types.ts            ← TypeScript types
-│   ├── src/test.js             ← Integration test
-│   └── src/tests/              ← Jest unit tests
+│   ├── src/index.js             ← PayKit SDK (Node.js)
+│   ├── src/types.ts             ← TypeScript types
+│   ├── src/test.js              ← Integration test
+│   ├── src/agent-demo.js        ← Autonomous AI agent demo
+│   └── src/tests/               ← Jest unit tests (13 passing)
 └── frontend/
 └── app/
 ├── page.tsx             ← Landing page (/)
@@ -148,6 +156,15 @@ pub struct AgentAccount {
 | `DailyLimitExceeded` | Payment would exceed the agent's daily limit (10% of total per 24h) |
 | `AgentExpired` | Agent has expired and must be renewed |
 
+### Agent Compatibility — Legacy vs Current
+
+Agents created before the contract upgrade that added `expires_at` cannot be deserialized against the new struct. These agents show as `LEGACY` in the dashboard and cannot be renewed or used with the current contract.
+
+**To migrate a legacy agent:**
+1. Note the agent's name and spend limit
+2. Register a new agent with the same name using the current contract
+3. The old PDA remains on-chain but is effectively replaced
+
 ---
 
 ## SDK
@@ -172,7 +189,7 @@ const { agentPDA } = await client.registerAgent("my-agent", 1_000_000_000);
 // Record a payment made by the agent
 await client.recordPayment(
   "my-agent",
-  1_000_000,              // 0.001 SOL in lamports
+  1_000_000,
   recipientPublicKey,
   "OpenAI API call"
 );
@@ -185,6 +202,13 @@ await client.agentToAgentPayment(
   "Data analysis service"
 );
 
+// Batch payment — pay multiple agents in 1 transaction
+await client.batchPayment("orchestrator-agent", [
+  { receiverName: "agent-researcher", amountLamports: 100_000, service: "Web research" },
+  { receiverName: "agent-writer",     amountLamports: 150_000, service: "Content generation" },
+  { receiverName: "agent-reviewer",   amountLamports: 50_000,  service: "Quality review" },
+]);
+
 // Check agent expiry
 const expiry = await client.checkAgentExpiry("my-agent");
 console.log(expiry.daysRemaining); // days until expiration
@@ -193,25 +217,32 @@ console.log(expiry.expired);       // boolean
 // Renew agent for another year
 await client.renewAgent("my-agent", 31_536_000);
 
+// Estimate fee before executing
+const { feeSOL } = await client.estimateFee("my-agent", 250_000, "record");
+
 // Fetch all agents owned by wallet
 const agents = await client.fetchAllAgents();
 
 // Get payment history from on-chain events
 const history = await client.getPaymentHistory(10);
-
-// Estimate fee before executing
-const { feeSOL } = await client.estimateFee("my-agent", 250_000, "record");
 ```
 
 ### Mainnet Support
 
 ```javascript
-// Connect to mainnet with custom RPC
 const client = createClient(
   "/path/to/keypair.json",
   "mainnet-beta",
   "https://your-rpc-endpoint.com"
 );
+```
+
+### Running Tests
+
+```bash
+cd sdk
+npm test          # Jest unit tests (13 passing)
+node src/test.js  # Integration test on Devnet
 ```
 
 ---
@@ -290,11 +321,15 @@ cd ../frontend && npm install && npm run dev
 
 ### ✅ Completed
 - Smart contract with 6 instructions, rate limiting, expiration, and renewal
-- SDK with full CRUD, TypeScript types, Jest tests, and fee estimation
-- Dashboard with Phantom wallet, real-time agent monitoring, and activity chart
+- SDK with full CRUD, TypeScript types, Jest tests (13 passing), fee estimation, and batch payments
+- Dashboard with Phantom wallet, real-time agent monitoring, and dual-axis activity chart
+- Agent pagination (3 per page) and payment log pagination
+- Renew agent button directly from dashboard UI
+- Expiration date and status in audit mode
 - USDC transfers with automatic token account creation for new wallets
 - On-chain payment history indexer with filters and pagination
 - Audit mode — inspect any agent by PDA address
+- Toast notifications for all confirmed transactions
 - Autonomous AI agent demo with Anthropic API
 - Landing page, dashboard, and full documentation
 
@@ -323,7 +358,7 @@ PayKit is that layer. Open-source. On Solana. Built for the agents of tomorrow.
 
 ## Built By
 
-**Richi XBT** — [@usainbluntmx](https://github.com/usainbluntmx)  
+**Ricardo** — [@usainbluntmx](https://github.com/usainbluntmx)  
 Solana Certified Developer · Full-Stack & Blockchain Engineer  
 [Zero Two Labs](https://github.com/usainbluntmx) — Building open-source Web3 infrastructure
 

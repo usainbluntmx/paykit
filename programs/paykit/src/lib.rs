@@ -10,7 +10,9 @@ pub mod paykit {
         ctx: Context<RegisterAgent>,
         name: String,
         spend_limit: u64,
+        daily_limit_bps: u16,
     ) -> Result<()> {
+        require!(daily_limit_bps > 0 && daily_limit_bps <= 10000, PaykitError::InvalidDailyLimit);
         require!(name.len() <= 32, PaykitError::NameTooLong);
         require!(spend_limit > 0, PaykitError::InvalidSpendLimit);
 
@@ -26,12 +28,15 @@ pub mod paykit {
         agent.last_payment_at = 0;
         agent.daily_spent = 0;
         agent.daily_reset_at = 0;
+        agent.daily_limit_bps = daily_limit_bps;
         agent.expires_at = clock.unix_timestamp + 31_536_000;
 
         emit!(AgentRegistered {
             owner: agent.owner,
             name: agent.name.clone(),
             spend_limit: agent.spend_limit,
+            daily_limit_bps: agent.daily_limit_bps,
+            expires_at: agent.expires_at,
         });
 
         Ok(())
@@ -65,7 +70,7 @@ pub mod paykit {
             agent.daily_reset_at = now;
         }
 
-        let daily_limit = agent.spend_limit / 10;
+        let daily_limit = agent.spend_limit * agent.daily_limit_bps as u64 / 10000;
         require!(
             agent.daily_spent.checked_add(amount).unwrap() <= daily_limit,
             PaykitError::DailyLimitExceeded
@@ -78,11 +83,13 @@ pub mod paykit {
 
         emit!(PaymentRecorded {
             agent: agent.key(),
+            agent_name: agent.name.clone(),
             owner: agent.owner,
             recipient,
             amount,
             memo,
             payment_count: agent.payment_count,
+            total_spent: agent.total_spent,
         });
 
         Ok(())
@@ -101,6 +108,17 @@ pub mod paykit {
     pub fn deactivate_agent(ctx: Context<UpdateAgent>) -> Result<()> {
         let agent = &mut ctx.accounts.agent;
         agent.is_active = false;
+        Ok(())
+    }
+
+    pub fn reactivate_agent(ctx: Context<UpdateAgent>) -> Result<()> {
+        let agent = &mut ctx.accounts.agent;
+        let clock = Clock::get()?;
+        require!(
+            clock.unix_timestamp < agent.expires_at,
+            PaykitError::AgentExpired
+        );
+        agent.is_active = true;
         Ok(())
     }
 
@@ -149,7 +167,7 @@ pub mod paykit {
             sender.daily_reset_at = now;
         }
 
-        let daily_limit = sender.spend_limit / 10;
+        let daily_limit = sender.spend_limit * sender.daily_limit_bps as u64 / 10000;
         require!(
             sender.daily_spent.checked_add(amount).unwrap() <= daily_limit,
             PaykitError::DailyLimitExceeded
@@ -163,9 +181,12 @@ pub mod paykit {
 
         emit!(AgentPaymentSent {
             sender: sender.key(),
+            sender_name: sender.name.clone(),
             receiver: receiver.key(),
+            receiver_name: receiver.name.clone(),
             amount,
             service: service.clone(),
+            sender_total_spent: sender.total_spent,
         });
 
         Ok(())
@@ -184,6 +205,7 @@ pub struct AgentAccount {
     pub last_payment_at: i64,
     pub daily_spent: u64,
     pub daily_reset_at: i64,
+    pub daily_limit_bps: u16,
     pub expires_at: i64,
 }
 
@@ -199,7 +221,8 @@ impl AgentAccount {
         + 8                    // last_payment_at
         + 8                    // daily_spent
         + 8                    // daily_reset_at
-        + 8;                   // expires_at
+        + 8                    // expires_at
+        + 2;                   // daily_limit_bps
 }
 
 #[derive(Accounts)]
@@ -271,24 +294,31 @@ pub struct AgentRegistered {
     pub owner: Pubkey,
     pub name: String,
     pub spend_limit: u64,
+    pub daily_limit_bps: u16,
+    pub expires_at: i64,
 }
 
 #[event]
 pub struct PaymentRecorded {
     pub agent: Pubkey,
+    pub agent_name: String,
     pub owner: Pubkey,
     pub recipient: Pubkey,
     pub amount: u64,
     pub memo: String,
     pub payment_count: u64,
+    pub total_spent: u64,
 }
 
 #[event]
 pub struct AgentPaymentSent {
     pub sender: Pubkey,
+    pub sender_name: String,
     pub receiver: Pubkey,
+    pub receiver_name: String,
     pub amount: u64,
     pub service: String,
+    pub sender_total_spent: u64,
 }
 
 #[error_code]
@@ -309,4 +339,6 @@ pub enum PaykitError {
     DailyLimitExceeded,
     #[msg("Agent has expired")]
     AgentExpired,
+    #[msg("Daily limit must be between 1 and 10000 basis points")]
+    InvalidDailyLimit,
 }
