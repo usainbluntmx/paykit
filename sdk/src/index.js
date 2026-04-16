@@ -338,6 +338,174 @@ class PayKitClient {
         });
     }
 
+    /**
+   * Fetch payment history filtered by a specific agent name
+   * @param {string} agentName - Name of the agent to filter by
+   * @param {number} [limit=50] - Number of transactions to scan
+   * @returns {Promise<Array>}
+   */
+    async getAgentHistory(agentName, limit = 50) {
+        return withPayKitError(async () => {
+            const agentPDA = this.getAgentPDA(this.wallet.publicKey, agentName);
+            const agentPDAStr = agentPDA.toBase58();
+
+            const signatures = await this.connection.getSignaturesForAddress(
+                agentPDA,
+                { limit }
+            );
+
+            const history = [];
+
+            for (const sig of signatures) {
+                const tx = await this.connection.getParsedTransaction(sig.signature, {
+                    commitment: "confirmed",
+                    maxSupportedTransactionVersion: 0,
+                });
+
+                if (!tx?.meta?.logMessages) continue;
+
+                const logs = tx.meta.logMessages;
+                const time = new Date((tx.blockTime || 0) * 1000).toISOString();
+
+                if (logs.some(l => l.includes("Instruction: AgentToAgentPayment"))) {
+                    history.push({
+                        type: "agent_to_agent",
+                        agentName,
+                        agentPDA: agentPDAStr,
+                        time,
+                        tx: sig.signature,
+                    });
+                } else if (logs.some(l => l.includes("Instruction: RecordPayment"))) {
+                    history.push({
+                        type: "record_payment",
+                        agentName,
+                        agentPDA: agentPDAStr,
+                        time,
+                        tx: sig.signature,
+                    });
+                } else if (logs.some(l => l.includes("Instruction: RegisterAgent"))) {
+                    history.push({
+                        type: "register_agent",
+                        agentName,
+                        agentPDA: agentPDAStr,
+                        time,
+                        tx: sig.signature,
+                    });
+                }
+            }
+
+            return history;
+        });
+    }
+
+    /**
+   * Watch an agent for new transactions via polling (no external service needed)
+   * @param {string} agentName - Name of the agent to watch
+   * @param {function} callback - Called with each new transaction entry
+   * @param {number} [intervalMs=5000] - Polling interval in milliseconds
+   * @returns {function} - Call this function to stop watching
+   */
+    watchAgent(agentName, callback, intervalMs = 5000) {
+        let lastSignature = null;
+        let active = true;
+
+        const poll = async () => {
+            if (!active) return;
+            try {
+                const history = await this.getAgentHistory(agentName, 5);
+                if (history.length > 0) {
+                    const latest = history[0];
+                    if (latest.tx !== lastSignature) {
+                        if (lastSignature !== null) {
+                            // Only fire callback after we have a baseline
+                            const newEntries = history.filter(h => h.tx !== lastSignature);
+                            for (const entry of newEntries.reverse()) {
+                                callback(null, entry);
+                            }
+                        }
+                        lastSignature = latest.tx;
+                    }
+                }
+            } catch (err) {
+                const parsed = parsePayKitError(err);
+                callback(parsed || err, null);
+            }
+            if (active) setTimeout(poll, intervalMs);
+        };
+
+        // Set baseline on first run
+        this.getAgentHistory(agentName, 1).then(history => {
+            if (history.length > 0) lastSignature = history[0].tx;
+            setTimeout(poll, intervalMs);
+        }).catch(() => {
+            setTimeout(poll, intervalMs);
+        });
+
+        return () => { active = false; };
+    }
+
+    /**
+     * Register a Helius webhook to notify an external URL when an agent transacts
+     * @param {string} agentName - Name of the agent to watch
+     * @param {string} webhookUrl - Your endpoint URL that will receive POST requests
+     * @param {string} heliusApiKey - Your Helius API key
+     * @param {string} [cluster="devnet"] - "devnet" or "mainnet-beta"
+     * @returns {Promise<{webhookId: string, agentPDA: string, webhookUrl: string}>}
+     */
+    async createWebhook(agentName, webhookUrl, heliusApiKey, cluster = "devnet") {
+        return withPayKitError(async () => {
+            const agentPDA = this.getAgentPDA(this.wallet.publicKey, agentName);
+            const baseUrl = cluster === "mainnet-beta"
+                ? "https://api.helius.xyz"
+                : "https://api-devnet.helius.xyz";
+
+            const response = await fetch(`${baseUrl}/v0/webhooks?api-key=${heliusApiKey}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    webhookURL: webhookUrl,
+                    transactionTypes: ["Any"],
+                    accountAddresses: [agentPDA.toBase58()],
+                    webhookType: "enhanced",
+                }),
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(`Helius webhook creation failed: ${err.message || response.status}`);
+            }
+
+            const data = await response.json();
+            return {
+                webhookId: data.webhookID,
+                agentPDA: agentPDA.toBase58(),
+                webhookUrl,
+            };
+        });
+    }
+
+    /**
+     * Delete a Helius webhook
+     * @param {string} webhookId - The webhook ID returned by createWebhook
+     * @param {string} heliusApiKey - Your Helius API key
+     * @param {string} [cluster="devnet"] - "devnet" or "mainnet-beta"
+     * @returns {Promise<{deleted: boolean}>}
+     */
+    async deleteWebhook(webhookId, heliusApiKey, cluster = "devnet") {
+        return withPayKitError(async () => {
+            const baseUrl = cluster === "mainnet-beta"
+                ? "https://api.helius.xyz"
+                : "https://api-devnet.helius.xyz";
+
+            const response = await fetch(`${baseUrl}/v0/webhooks/${webhookId}?api-key=${heliusApiKey}`, {
+                method: "DELETE",
+            });
+
+            if (!response.ok) throw new Error(`Failed to delete webhook: ${response.status}`);
+            return { deleted: true };
+        });
+    }
+
     // ─── Check Agent Expiry ────────────────────────────────────────────────────
 
     /**

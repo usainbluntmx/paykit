@@ -4,7 +4,7 @@
   "description": "PayKit SDK - Autonomous AI Agent Payments on Solana",
   "main": "src/index.js",
   "scripts": {
-    "test": "jest --testTimeout=30000",
+    "test": "jest --testTimeout=30000 --forceExit",
     "test:integration": "node src/test.js"
   },
   "jest": {

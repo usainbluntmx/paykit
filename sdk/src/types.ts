@@ -126,6 +126,10 @@ export declare class PayKitClient {
     fetchAgent(agentName: string, ownerPubkey?: PublicKey): Promise<AgentWithPDA>;
     fetchAllAgents(): Promise<AgentWithPDA[]>;
     getPaymentHistory(limit?: number): Promise<{ type: string; time: string; tx: string }[]>;
+    getAgentHistory(agentName: string, limit?: number): Promise<AgentHistoryEntry[]>;
+    watchAgent(agentName: string, callback: (err: PayKitError | null, entry: AgentHistoryEntry | null) => void, intervalMs?: number): () => void;
+    createWebhook(agentName: string, webhookUrl: string, heliusApiKey: string, cluster?: string): Promise<WebhookResult>;
+    deleteWebhook(webhookId: string, heliusApiKey: string, cluster?: string): Promise<{ deleted: boolean }>;
 }
 
 export declare function createClient(keypairPath: string, cluster?: string, customRpcUrl?: string): PayKitClient;
@@ -144,3 +148,21 @@ export declare class PayKitError extends Error {
 
 export declare function parsePayKitError(error: Error): PayKitError | null;
 export declare function withPayKitError<T>(fn: () => Promise<T>): Promise<T>;
+
+export interface AgentHistoryEntry {
+    type: "agent_to_agent" | "record_payment" | "register_agent";
+    agentName: string;
+    agentPDA: string;
+    time: string;
+    tx: string;
+}
+
+export interface WebhookResult {
+    webhookId: string;
+    agentPDA: string;
+    webhookUrl: string;
+}
+
+export interface AgentWatchEntry extends AgentHistoryEntry {
+    // Same fields as AgentHistoryEntry
+}

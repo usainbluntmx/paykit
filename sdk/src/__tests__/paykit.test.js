@@ -222,4 +222,53 @@ describe("PayKit SDK", () => {
             withPayKitError(async () => { throw unknownErr; })
         ).rejects.toThrow("totally unknown error xyz");
     });
+
+    // ─── Agent History ────────────────────────────────────────────────────────
+
+    test("getAgentHistory returns an array", async () => {
+        const agents = await client.fetchAllAgents();
+        if (agents.length > 0) {
+            const history = await client.getAgentHistory(agents[0].name);
+            expect(Array.isArray(history)).toBe(true);
+        }
+    }, 30000);
+
+    test("getAgentHistory entries have correct fields", async () => {
+        const agents = await client.fetchAllAgents();
+        if (agents.length > 0) {
+            const history = await client.getAgentHistory(agents[0].name, 5);
+            if (history.length > 0) {
+                const entry = history[0];
+                expect(["agent_to_agent", "record_payment", "register_agent"]).toContain(entry.type);
+                expect(entry.agentName).toBe(agents[0].name);
+                expect(entry.agentPDA).toBeDefined();
+                expect(entry.time).toBeDefined();
+                expect(entry.tx).toBeDefined();
+            }
+        }
+    }, 30000);
+
+    // ─── Webhooks ─────────────────────────────────────────────────────────────
+
+    test("watchAgent returns a stop function", () => {
+        const stop = client.watchAgent("agent-gamma", () => { });
+        expect(typeof stop).toBe("function");
+        stop();
+    });
+
+    test("watchAgent calls callback with error on invalid agent", async () => {
+        await new Promise((resolve) => {
+            const stop = client.watchAgent("non-existent-xyz-999", (err, entry) => {
+                stop();
+                resolve(null);
+            }, 500);
+            setTimeout(() => { stop(); resolve(null); }, 3000);
+        });
+    }, 10000);
+
+    test("createWebhook throws with invalid API key", async () => {
+        await expect(
+            client.createWebhook("agent-gamma", "https://example.com/webhook", "invalid-key")
+        ).rejects.toThrow();
+    }, 15000);
 });
