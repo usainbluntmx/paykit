@@ -78,9 +78,6 @@
         },
         {
           "name": "agent_signer",
-          "docs": [
-            "The sender agent's own keypair must sign"
-          ],
           "signer": true
         }
       ],
@@ -92,6 +89,10 @@
         {
           "name": "service",
           "type": "string"
+        },
+        {
+          "name": "category_id",
+          "type": "u8"
         }
       ]
     },
@@ -240,9 +241,6 @@
         },
         {
           "name": "agent_signer",
-          "docs": [
-            "The agent's own keypair must sign"
-          ],
           "signer": true
         }
       ],
@@ -258,6 +256,10 @@
         {
           "name": "memo",
           "type": "string"
+        },
+        {
+          "name": "category_id",
+          "type": "u8"
         }
       ]
     },
@@ -330,6 +332,14 @@
         {
           "name": "funding_lamports",
           "type": "u64"
+        },
+        {
+          "name": "capabilities",
+          "type": "u16"
+        },
+        {
+          "name": "tier",
+          "type": "u8"
         }
       ]
     },
@@ -390,6 +400,248 @@
       ]
     },
     {
+      "name": "set_capabilities",
+      "discriminator": [
+        53,
+        115,
+        162,
+        138,
+        188,
+        140,
+        23,
+        26
+      ],
+      "accounts": [
+        {
+          "name": "agent",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "agent.agent_key",
+                "account": "AgentAccount"
+              },
+              {
+                "kind": "account",
+                "path": "agent.name",
+                "account": "AgentAccount"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "agent"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "capabilities",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "set_category_limit",
+      "discriminator": [
+        213,
+        204,
+        214,
+        228,
+        221,
+        174,
+        201,
+        72
+      ],
+      "accounts": [
+        {
+          "name": "agent",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "agent.agent_key",
+                "account": "AgentAccount"
+              },
+              {
+                "kind": "account",
+                "path": "agent.name",
+                "account": "AgentAccount"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "agent"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "category_id",
+          "type": "u8"
+        },
+        {
+          "name": "limit",
+          "type": "u64"
+        },
+        {
+          "name": "custom_name",
+          "type": {
+            "option": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_custom_capability",
+      "discriminator": [
+        69,
+        199,
+        77,
+        156,
+        53,
+        100,
+        142,
+        76
+      ],
+      "accounts": [
+        {
+          "name": "agent",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "agent.agent_key",
+                "account": "AgentAccount"
+              },
+              {
+                "kind": "account",
+                "path": "agent.name",
+                "account": "AgentAccount"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "agent"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "slot",
+          "type": "u8"
+        },
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "enabled",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "set_tier",
+      "discriminator": [
+        197,
+        250,
+        253,
+        88,
+        170,
+        70,
+        237,
+        66
+      ],
+      "accounts": [
+        {
+          "name": "agent",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "agent.agent_key",
+                "account": "AgentAccount"
+              },
+              {
+                "kind": "account",
+                "path": "agent.name",
+                "account": "AgentAccount"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "agent"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "tier",
+          "type": "u8"
+        }
+      ]
+    },
+    {
       "name": "update_spend_limit",
       "discriminator": [
         131,
@@ -446,21 +698,6 @@
       ]
     }
   ],
-  "accounts": [
-    {
-      "name": "AgentAccount",
-      "discriminator": [
-        241,
-        119,
-        69,
-        140,
-        233,
-        9,
-        112,
-        50
-      ]
-    }
-  ],
   "events": [
     {
       "name": "AgentPaymentSent",
@@ -486,6 +723,19 @@
         100,
         189,
         85
+      ]
+    },
+    {
+      "name": "CapabilitiesUpdated",
+      "discriminator": [
+        238,
+        187,
+        138,
+        145,
+        174,
+        93,
+        144,
+        113
       ]
     },
     {
@@ -547,9 +797,188 @@
       "code": 6008,
       "name": "InvalidDailyLimit",
       "msg": "Daily limit must be between 1 and 10000 basis points"
+    },
+    {
+      "code": 6009,
+      "name": "CapabilityDenied",
+      "msg": "Agent does not have the required capability"
+    },
+    {
+      "code": 6010,
+      "name": "TierNotAllowed",
+      "msg": "Agent cannot hire agents of this tier"
+    },
+    {
+      "code": 6011,
+      "name": "InvalidTier",
+      "msg": "Invalid tier — must be 0, 1, or 2"
+    },
+    {
+      "code": 6012,
+      "name": "CategoryLimitExceeded",
+      "msg": "Category limit exceeded for this payment"
+    },
+    {
+      "code": 6013,
+      "name": "InvalidCategory",
+      "msg": "Invalid category ID"
+    },
+    {
+      "code": 6014,
+      "name": "CategorySlotsFull",
+      "msg": "All category slots are in use"
+    },
+    {
+      "code": 6015,
+      "name": "InvalidCapabilitySlot",
+      "msg": "Invalid capability slot — must be 0-7"
     }
   ],
   "types": [
+    {
+      "name": "AgentPaymentSent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sender",
+            "type": "pubkey"
+          },
+          {
+            "name": "sender_name",
+            "type": "string"
+          },
+          {
+            "name": "receiver",
+            "type": "pubkey"
+          },
+          {
+            "name": "receiver_name",
+            "type": "string"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "service",
+            "type": "string"
+          },
+          {
+            "name": "category_id",
+            "type": "u8"
+          },
+          {
+            "name": "sender_total_spent",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AgentRegistered",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "agent_key",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "spend_limit",
+            "type": "u64"
+          },
+          {
+            "name": "daily_limit_bps",
+            "type": "u16"
+          },
+          {
+            "name": "expires_at",
+            "type": "i64"
+          },
+          {
+            "name": "capabilities",
+            "type": "u16"
+          },
+          {
+            "name": "tier",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CapabilitiesUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "agent",
+            "type": "pubkey"
+          },
+          {
+            "name": "agent_name",
+            "type": "string"
+          },
+          {
+            "name": "capabilities",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PaymentRecorded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "agent",
+            "type": "pubkey"
+          },
+          {
+            "name": "agent_name",
+            "type": "string"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "memo",
+            "type": "string"
+          },
+          {
+            "name": "category_id",
+            "type": "u8"
+          },
+          {
+            "name": "payment_count",
+            "type": "u64"
+          },
+          {
+            "name": "total_spent",
+            "type": "u64"
+          }
+        ]
+      }
+    },
     {
       "name": "AgentAccount",
       "type": {
@@ -606,117 +1035,75 @@
           {
             "name": "daily_limit_bps",
             "type": "u16"
-          }
-        ]
-      }
-    },
-    {
-      "name": "AgentPaymentSent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "sender",
-            "type": "pubkey"
           },
           {
-            "name": "sender_name",
-            "type": "string"
-          },
-          {
-            "name": "receiver",
-            "type": "pubkey"
-          },
-          {
-            "name": "receiver_name",
-            "type": "string"
-          },
-          {
-            "name": "amount",
-            "type": "u64"
-          },
-          {
-            "name": "service",
-            "type": "string"
-          },
-          {
-            "name": "sender_total_spent",
-            "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "AgentRegistered",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "agent_key",
-            "type": "pubkey"
-          },
-          {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "name",
-            "type": "string"
-          },
-          {
-            "name": "spend_limit",
-            "type": "u64"
-          },
-          {
-            "name": "daily_limit_bps",
+            "name": "capabilities",
             "type": "u16"
           },
           {
-            "name": "expires_at",
-            "type": "i64"
+            "name": "tier",
+            "type": "u8"
+          },
+          {
+            "name": "category_limits",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "CategoryLimit"
+                  }
+                },
+                8
+              ]
+            }
+          },
+          {
+            "name": "custom_capability_names",
+            "type": {
+              "array": [
+                {
+                  "array": [
+                    "u8",
+                    16
+                  ]
+                },
+                8
+              ]
+            }
           }
         ]
       }
     },
     {
-      "name": "PaymentRecorded",
+      "name": "CategoryLimit",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "agent",
-            "type": "pubkey"
+            "name": "category_id",
+            "type": "u8"
           },
           {
-            "name": "agent_name",
-            "type": "string"
-          },
-          {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "recipient",
-            "type": "pubkey"
-          },
-          {
-            "name": "amount",
-            "type": "u64"
-          },
-          {
-            "name": "memo",
-            "type": "string"
-          },
-          {
-            "name": "payment_count",
-            "type": "u64"
-          },
-          {
-            "name": "total_spent",
+            "name": "limit",
             "type": "u64"
           }
         ]
       }
+    }
+  ],
+  "accounts": [
+    {
+      "name": "AgentAccount",
+      "discriminator": [
+        241,
+        119,
+        69,
+        140,
+        233,
+        9,
+        112,
+        50
+      ]
     }
   ]
 }

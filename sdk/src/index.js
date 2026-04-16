@@ -5,6 +5,58 @@ const os = require("os");
 const path = require("path");
 const { withPayKitError } = require("./errors");
 
+// ─── Capability Constants ─────────────────────────────────────────────────────
+
+const CAPABILITIES = {
+    CAN_PAY_AGENTS: 1 << 0,
+    CAN_HIRE_BASIC: 1 << 1,
+    CAN_HIRE_STANDARD: 1 << 2,
+    CAN_HIRE_PREMIUM: 1 << 3,
+    CAN_TRANSFER_SOL: 1 << 4,
+    CAN_TRANSFER_SPL: 1 << 5,
+    CAN_BATCH_PAY: 1 << 6,
+    CUSTOM_1: 1 << 8,
+    CUSTOM_2: 1 << 9,
+    CUSTOM_3: 1 << 10,
+    CUSTOM_4: 1 << 11,
+    CUSTOM_5: 1 << 12,
+    CUSTOM_6: 1 << 13,
+    CUSTOM_7: 1 << 14,
+    CUSTOM_8: 1 << 15,
+};
+
+const CAP_ALL_DEFAULT =
+    CAPABILITIES.CAN_PAY_AGENTS |
+    CAPABILITIES.CAN_HIRE_BASIC |
+    CAPABILITIES.CAN_HIRE_STANDARD |
+    CAPABILITIES.CAN_HIRE_PREMIUM |
+    CAPABILITIES.CAN_TRANSFER_SOL |
+    CAPABILITIES.CAN_TRANSFER_SPL |
+    CAPABILITIES.CAN_BATCH_PAY;
+
+// ─── Category Constants ───────────────────────────────────────────────────────
+
+const CATEGORIES = {
+    NONE: 0,
+    COMPUTE: 1,
+    DATA: 2,
+    STORAGE: 3,
+    INFERENCE: 4,
+    RESEARCH: 5,
+    CONTENT: 6,
+    // 8-255: custom
+};
+
+const CATEGORY_NAMES = {
+    0: "none",
+    1: "compute",
+    2: "data",
+    3: "storage",
+    4: "inference",
+    5: "research",
+    6: "content",
+};
+
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const PROGRAM_ID = new PublicKey("F27DrerUQGnkmVhqkEy9m46zDkni2m37Df4ogxkoDhUF");
@@ -77,13 +129,11 @@ class PayKitClient {
      * @param {number} [fundingLamports=10000000] - SOL to fund agent wallet (default 0.01 SOL)
      * @returns {Promise<{tx: string, agentPDA: PublicKey, agentPublicKey: PublicKey, keypairPath: string}>}
      */
-    async createAutonomousAgent(name, spendLimitLamports, dailyLimitBps = 1000, fundingLamports = 10_000_000) {
+    async createAutonomousAgent(name, spendLimitLamports, dailyLimitBps = 1000, fundingLamports = 10_000_000, capabilities = CAP_ALL_DEFAULT, tier = 0) {
         return withPayKitError(async () => {
-            // Generate agent keypair
             const agentKeypair = Keypair.generate();
             const agentPDA = this.getAgentPDA(agentKeypair.publicKey, name);
 
-            // Save keypair before sending TX — fail early if storage fails
             saveAgentKeypair(name, agentKeypair);
 
             try {
@@ -92,7 +142,9 @@ class PayKitClient {
                         name,
                         new anchor.BN(spendLimitLamports),
                         dailyLimitBps,
-                        new anchor.BN(fundingLamports)
+                        new anchor.BN(fundingLamports),
+                        capabilities,
+                        tier
                     )
                     .accounts({
                         agent: agentPDA,
@@ -107,9 +159,10 @@ class PayKitClient {
                     agentPDA,
                     agentPublicKey: agentKeypair.publicKey,
                     keypairPath: getAgentKeypairPath(name),
+                    capabilities,
+                    tier,
                 };
             } catch (err) {
-                // If TX fails, remove the keypair so state is clean
                 try { fs.unlinkSync(getAgentKeypairPath(name)); } catch { }
                 throw err;
             }
@@ -126,13 +179,13 @@ class PayKitClient {
      * @param {string} memo - Payment description (max 64 chars)
      * @returns {Promise<{tx: string}>}
      */
-    async recordPayment(agentName, amountLamports, recipientPubkey, memo) {
+    async recordPayment(agentName, amountLamports, recipientPubkey, memo, categoryId = 0) {
         return withPayKitError(async () => {
             const agentKeypair = loadAgentKeypair(agentName);
             const agentPDA = this.getAgentPDA(agentKeypair.publicKey, agentName);
 
             const tx = await this.program.methods
-                .recordPayment(new anchor.BN(amountLamports), recipientPubkey, memo)
+                .recordPayment(new anchor.BN(amountLamports), recipientPubkey, memo, categoryId)
                 .accounts({
                     agent: agentPDA,
                     agentSigner: agentKeypair.publicKey,
@@ -155,7 +208,7 @@ class PayKitClient {
      * @param {string} service - Service description (max 64 chars)
      * @returns {Promise<{tx: string}>}
      */
-    async agentToAgentPayment(senderName, receiverName, amountLamports, service) {
+    async agentToAgentPayment(senderName, receiverName, amountLamports, service, categoryId = 0) {
         return withPayKitError(async () => {
             const senderKeypair = loadAgentKeypair(senderName);
             const receiverKeypair = loadAgentKeypair(receiverName);
@@ -164,7 +217,7 @@ class PayKitClient {
             const receiverPDA = this.getAgentPDA(receiverKeypair.publicKey, receiverName);
 
             const tx = await this.program.methods
-                .agentToAgentPayment(new anchor.BN(amountLamports), service)
+                .agentToAgentPayment(new anchor.BN(amountLamports), service, categoryId)
                 .accounts({
                     senderAgent: senderPDA,
                     receiverAgent: receiverPDA,
@@ -308,9 +361,10 @@ class PayKitClient {
                 .recordPayment(
                     new anchor.BN(rawAmount),
                     receiverKeypair.publicKey,
-                    memo
+                    memo,
+                    0  // category_id: none
                 )
-                .accounts({
+                .accountsPartial({
                     agent: senderPDA,
                     agentSigner: senderKeypair.publicKey,
                 })
@@ -365,9 +419,10 @@ class PayKitClient {
                 .recordPayment(
                     new anchor.BN(lamports),
                     receiverKeypair.publicKey,
-                    memo
+                    memo,
+                    0  // category_id: none
                 )
-                .accounts({
+                .accountsPartial({
                     agent: senderPDA,
                     agentSigner: senderKeypair.publicKey,
                 })
@@ -721,6 +776,117 @@ class PayKitClient {
         });
     }
 
+    // ─── Capabilities ─────────────────────────────────────────────────────────
+
+    /**
+     * Set capabilities for an agent. Owner signs.
+     * @param {string} agentName
+     * @param {number} capabilities - bitmask using CAPABILITIES constants
+     */
+    async setCapabilities(agentName, capabilities) {
+        return withPayKitError(async () => {
+            const agentKeypair = loadAgentKeypair(agentName);
+            const agentPDA = this.getAgentPDA(agentKeypair.publicKey, agentName);
+
+            const tx = await this.program.methods
+                .setCapabilities(capabilities)
+                .accounts({ agent: agentPDA, owner: this.wallet.publicKey })
+                .rpc();
+
+            return { tx, capabilities };
+        });
+    }
+
+    /**
+     * Set the tier of an agent. Owner signs.
+     * @param {string} agentName
+     * @param {number} tier - 0=basic, 1=standard, 2=premium
+     */
+    async setTier(agentName, tier) {
+        return withPayKitError(async () => {
+            const agentKeypair = loadAgentKeypair(agentName);
+            const agentPDA = this.getAgentPDA(agentKeypair.publicKey, agentName);
+
+            const tx = await this.program.methods
+                .setTier(tier)
+                .accounts({ agent: agentPDA, owner: this.wallet.publicKey })
+                .rpc();
+
+            return { tx, tier };
+        });
+    }
+
+    /**
+     * Set a spending limit for a specific category. Owner signs.
+     * @param {string} agentName
+     * @param {number} categoryId - use CATEGORIES constants or custom ID (8-255)
+     * @param {number} limitLamports - max spend per payment in this category
+     * @param {string} [customName] - name for custom categories (id >= 8)
+     */
+    async setCategoryLimit(agentName, categoryId, limitLamports, customName = null) {
+        return withPayKitError(async () => {
+            const agentKeypair = loadAgentKeypair(agentName);
+            const agentPDA = this.getAgentPDA(agentKeypair.publicKey, agentName);
+
+            const tx = await this.program.methods
+                .setCategoryLimit(categoryId, new anchor.BN(limitLamports), customName)
+                .accounts({ agent: agentPDA, owner: this.wallet.publicKey })
+                .rpc();
+
+            return { tx, categoryId, limitLamports };
+        });
+    }
+
+    /**
+     * Define a custom capability in a slot (0-7 maps to bits 8-15).
+     * Owner signs.
+     * @param {string} agentName
+     * @param {number} slot - 0-7
+     * @param {string} name - capability name (max 16 chars)
+     * @param {boolean} enabled - whether to enable this capability
+     */
+    async setCustomCapability(agentName, slot, name, enabled = true) {
+        return withPayKitError(async () => {
+            const agentKeypair = loadAgentKeypair(agentName);
+            const agentPDA = this.getAgentPDA(agentKeypair.publicKey, agentName);
+
+            const tx = await this.program.methods
+                .setCustomCapability(slot, name, enabled)
+                .accounts({ agent: agentPDA, owner: this.wallet.publicKey })
+                .rpc();
+
+            return { tx, slot, name, enabled };
+        });
+    }
+
+    /**
+     * Decode a capabilities bitmask into a human-readable object.
+     * @param {number} capabilities - bitmask
+     * @returns {object}
+     */
+    decodeCapabilities(capabilities) {
+        return {
+            canPayAgents: !!(capabilities & CAPABILITIES.CAN_PAY_AGENTS),
+            canHireBasic: !!(capabilities & CAPABILITIES.CAN_HIRE_BASIC),
+            canHireStandard: !!(capabilities & CAPABILITIES.CAN_HIRE_STANDARD),
+            canHirePremium: !!(capabilities & CAPABILITIES.CAN_HIRE_PREMIUM),
+            canTransferSOL: !!(capabilities & CAPABILITIES.CAN_TRANSFER_SOL),
+            canTransferSPL: !!(capabilities & CAPABILITIES.CAN_TRANSFER_SPL),
+            canBatchPay: !!(capabilities & CAPABILITIES.CAN_BATCH_PAY),
+            custom: {
+                slot1: !!(capabilities & CAPABILITIES.CUSTOM_1),
+                slot2: !!(capabilities & CAPABILITIES.CUSTOM_2),
+                slot3: !!(capabilities & CAPABILITIES.CUSTOM_3),
+                slot4: !!(capabilities & CAPABILITIES.CUSTOM_4),
+                slot5: !!(capabilities & CAPABILITIES.CUSTOM_5),
+                slot6: !!(capabilities & CAPABILITIES.CUSTOM_6),
+                slot7: !!(capabilities & CAPABILITIES.CUSTOM_7),
+                slot8: !!(capabilities & CAPABILITIES.CUSTOM_8),
+            },
+            raw: capabilities,
+        };
+    }
+
     /**
      * List all agent keypairs stored locally.
      * @returns {Array<{name: string, publicKey: string, keypairPath: string}>}
@@ -743,7 +909,11 @@ class PayKitClient {
 // ─── Constants for dataSize filter ───────────────────────────────────────────
 
 const AgentAccount = {
-    LEN: 8 + 32 + 32 + (4 + 32) + 8 + 8 + 8 + 1 + 1 + 8 + 8 + 8 + 8 + 2, // 168
+    LEN: 8 + 32 + 32 + (4 + 32) + 8 + 8 + 8 + 1 + 1 + 8 + 8 + 8 + 8 + 2 + 2 + 1 + (9 * 8) + (16 * 8),
+    // discriminator + agent_key + owner + name + spend_limit + total_spent +
+    // payment_count + is_active + bump + last_payment_at + daily_spent +
+    // daily_reset_at + expires_at + daily_limit_bps + capabilities + tier +
+    // category_limits(9*8) + custom_capability_names(16*8)
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -776,4 +946,8 @@ module.exports = {
     agentKeypairExists,
     PROGRAM_ID,
     AGENTS_DIR,
+    CAPABILITIES,
+    CAP_ALL_DEFAULT,
+    CATEGORIES,
+    CATEGORY_NAMES,
 };
