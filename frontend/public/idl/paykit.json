@@ -37,7 +37,7 @@
               },
               {
                 "kind": "account",
-                "path": "sender_agent.owner",
+                "path": "sender_agent.agent_key",
                 "account": "AgentAccount"
               },
               {
@@ -65,7 +65,7 @@
               },
               {
                 "kind": "account",
-                "path": "receiver_agent.owner",
+                "path": "receiver_agent.agent_key",
                 "account": "AgentAccount"
               },
               {
@@ -77,11 +77,11 @@
           }
         },
         {
-          "name": "owner",
-          "signer": true,
-          "relations": [
-            "sender_agent"
-          ]
+          "name": "agent_signer",
+          "docs": [
+            "The sender agent's own keypair must sign"
+          ],
+          "signer": true
         }
       ],
       "args": [
@@ -125,7 +125,7 @@
               },
               {
                 "kind": "account",
-                "path": "agent.owner",
+                "path": "agent.agent_key",
                 "account": "AgentAccount"
               },
               {
@@ -176,7 +176,7 @@
               },
               {
                 "kind": "account",
-                "path": "agent.owner",
+                "path": "agent.agent_key",
                 "account": "AgentAccount"
               },
               {
@@ -227,7 +227,7 @@
               },
               {
                 "kind": "account",
-                "path": "agent.owner",
+                "path": "agent.agent_key",
                 "account": "AgentAccount"
               },
               {
@@ -239,11 +239,11 @@
           }
         },
         {
-          "name": "owner",
-          "signer": true,
-          "relations": [
-            "agent"
-          ]
+          "name": "agent_signer",
+          "docs": [
+            "The agent's own keypair must sign"
+          ],
+          "signer": true
         }
       ],
       "args": [
@@ -291,7 +291,7 @@
               },
               {
                 "kind": "account",
-                "path": "owner"
+                "path": "agent_signer"
               },
               {
                 "kind": "arg",
@@ -299,6 +299,10 @@
               }
             ]
           }
+        },
+        {
+          "name": "agent_signer",
+          "writable": true
         },
         {
           "name": "owner",
@@ -322,6 +326,10 @@
         {
           "name": "daily_limit_bps",
           "type": "u16"
+        },
+        {
+          "name": "funding_lamports",
+          "type": "u64"
         }
       ]
     },
@@ -355,7 +363,7 @@
               },
               {
                 "kind": "account",
-                "path": "agent.owner",
+                "path": "agent.agent_key",
                 "account": "AgentAccount"
               },
               {
@@ -411,7 +419,7 @@
               },
               {
                 "kind": "account",
-                "path": "agent.owner",
+                "path": "agent.agent_key",
                 "account": "AgentAccount"
               },
               {
@@ -548,6 +556,10 @@
         "kind": "struct",
         "fields": [
           {
+            "name": "agent_key",
+            "type": "pubkey"
+          },
+          {
             "name": "owner",
             "type": "pubkey"
           },
@@ -588,12 +600,12 @@
             "type": "i64"
           },
           {
-            "name": "daily_limit_bps",
-            "type": "u16"
-          },
-          {
             "name": "expires_at",
             "type": "i64"
+          },
+          {
+            "name": "daily_limit_bps",
+            "type": "u16"
           }
         ]
       }
@@ -639,6 +651,10 @@
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "agent_key",
+            "type": "pubkey"
+          },
           {
             "name": "owner",
             "type": "pubkey"
