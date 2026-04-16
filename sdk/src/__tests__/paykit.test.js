@@ -121,7 +121,7 @@ describe("PayKit SDK", () => {
     // ─── checkAgentExpiry ─────────────────────────────────────────────────────
 
     test("checkAgentExpiry returns expiry info for existing agent", async () => {
-        const expiry = await client.checkAgentExpiry("agent-autonomous-01");
+        const expiry = await client.checkAgentExpiry("agent-cap-01");
         expect(expiry.expired).toBe(false);
         expect(expiry.daysRemaining).toBeGreaterThan(300);
         expect(expiry.expiresAt).toBeInstanceOf(Date);
@@ -339,28 +339,27 @@ describe("PayKit SDK", () => {
     }, 15000);
 
     test("transferSOL moves funds between agents autonomously", async () => {
-        const before = await client.getSOLBalance("agent-autonomous-02");
+        const before = await client.getSOLBalance("agent-cap-02");
         const { tx } = await client.transferSOL(
-            "agent-autonomous-01",
-            "agent-autonomous-02",
+            "agent-cap-01",
+            "agent-cap-02",
             0.0001,
             "Jest test transfer"
         );
         expect(tx).toBeDefined();
         expect(tx.length).toBeGreaterThan(0);
-        const after = await client.getSOLBalance("agent-autonomous-02");
+        const after = await client.getSOLBalance("agent-cap-02");
         expect(after.lamports).toBeGreaterThan(before.lamports);
     }, 30000);
 
     test("transferSOL records payment onchain", async () => {
-        const historyBefore = await client.getAgentHistory("agent-autonomous-01", 5);
         await client.transferSOL(
-            "agent-autonomous-01",
-            "agent-autonomous-02",
+            "agent-cap-01",
+            "agent-cap-02",
             0.0001,
             "Jest accountability test"
         );
-        const historyAfter = await client.getAgentHistory("agent-autonomous-01", 5);
+        const historyAfter = await client.getAgentHistory("agent-cap-01", 5);
         expect(historyAfter.length).toBeGreaterThan(0);
         expect(historyAfter[0].type).toBe("record_payment");
     }, 30000);

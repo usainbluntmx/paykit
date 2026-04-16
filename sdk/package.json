@@ -5,12 +5,17 @@
   "main": "src/index.js",
   "scripts": {
     "test": "jest --testTimeout=30000 --forceExit",
-    "test:integration": "node src/test.js"
+    "test:integration": "node src/test.js",
+    "patch-idl": "node src/patch-idl.js",
+    "build": "cd .. && anchor build && cd sdk && node src/patch-idl.js"
   },
   "jest": {
     "testMatch": [
       "**/__tests__/**/*.test.js"
     ]
+  },
+  "bin": {
+    "paykit": "./src/cli.js"
   },
   "keywords": [
     "solana",
