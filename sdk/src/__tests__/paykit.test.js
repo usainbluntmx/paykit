@@ -316,4 +316,53 @@ describe("PayKit SDK", () => {
         }
     });
 
+    // ─── Token Transfers ──────────────────────────────────────────────────────
+
+    test("getSOLBalance returns balance for existing agent", async () => {
+        const balance = await client.getSOLBalance("agent-autonomous-01");
+        expect(balance.lamports).toBeGreaterThan(0);
+        expect(balance.sol).toBeGreaterThan(0);
+        expect(typeof balance.sol).toBe("number");
+    }, 15000);
+
+    test("getSOLBalance returns zero for unknown agent", async () => {
+        await expect(client.getSOLBalance("agent-does-not-exist-xyz")).rejects.toThrow();
+    });
+
+    test("getTokenBalance returns zero for agent with no USDC", async () => {
+        const { PublicKey } = require("@solana/web3.js");
+        const USDC_MINT = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
+        const balance = await client.getTokenBalance("agent-autonomous-01", USDC_MINT, 6);
+        expect(balance.raw).toBe(0);
+        expect(balance.ui).toBe(0);
+        expect(balance.mint).toBe(USDC_MINT.toBase58());
+    }, 15000);
+
+    test("transferSOL moves funds between agents autonomously", async () => {
+        const before = await client.getSOLBalance("agent-autonomous-02");
+        const { tx } = await client.transferSOL(
+            "agent-autonomous-01",
+            "agent-autonomous-02",
+            0.0001,
+            "Jest test transfer"
+        );
+        expect(tx).toBeDefined();
+        expect(tx.length).toBeGreaterThan(0);
+        const after = await client.getSOLBalance("agent-autonomous-02");
+        expect(after.lamports).toBeGreaterThan(before.lamports);
+    }, 30000);
+
+    test("transferSOL records payment onchain", async () => {
+        const historyBefore = await client.getAgentHistory("agent-autonomous-01", 5);
+        await client.transferSOL(
+            "agent-autonomous-01",
+            "agent-autonomous-02",
+            0.0001,
+            "Jest accountability test"
+        );
+        const historyAfter = await client.getAgentHistory("agent-autonomous-01", 5);
+        expect(historyAfter.length).toBeGreaterThan(0);
+        expect(historyAfter[0].type).toBe("record_payment");
+    }, 30000);
+
 });

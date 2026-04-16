@@ -226,6 +226,207 @@ class PayKitClient {
         });
     }
 
+    // ─── Token Transfers ──────────────────────────────────────────────────────
+
+    /**
+     * Transfer USDC from one agent to another.
+     * The sender agent signs with its own keypair — no owner involvement.
+     * Also records the payment onchain for accountability.
+     * @param {string} fromAgentName - Sender agent name
+     * @param {string} toAgentName - Receiver agent name  
+     * @param {number} amountUSDC - Amount in USDC (e.g. 1.5 = 1.5 USDC)
+     * @param {string} memo - Payment description
+     * @returns {Promise<{tx: string, amount: number, mint: string}>}
+     */
+    async transferUSDC(fromAgentName, toAgentName, amountUSDC, memo) {
+        const USDC_MINT = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
+        return this.transferSPL(fromAgentName, toAgentName, amountUSDC, USDC_MINT, 6, memo);
+    }
+
+    /**
+     * Transfer any SPL token between agents.
+     * The sender agent signs autonomously.
+     * @param {string} fromAgentName - Sender agent name
+     * @param {string} toAgentName - Receiver agent name
+     * @param {number} amount - Human-readable amount (e.g. 1.5)
+     * @param {PublicKey} mint - SPL token mint address
+     * @param {number} decimals - Token decimals (6 for USDC, 9 for most others)
+     * @param {string} memo - Payment description
+     * @returns {Promise<{tx: string, amount: number, mint: string}>}
+     */
+    async transferSPL(fromAgentName, toAgentName, amount, mint, decimals, memo) {
+        return withPayKitError(async () => {
+            const {
+                getAssociatedTokenAddress,
+                createAssociatedTokenAccountInstruction,
+                createTransferInstruction,
+                TOKEN_PROGRAM_ID,
+                ASSOCIATED_TOKEN_PROGRAM_ID,
+                getAccount,
+            } = require("@solana/spl-token");
+
+            const senderKeypair = loadAgentKeypair(fromAgentName);
+            const receiverKeypair = loadAgentKeypair(toAgentName);
+
+            const senderATA = await getAssociatedTokenAddress(mint, senderKeypair.publicKey);
+            const receiverATA = await getAssociatedTokenAddress(mint, receiverKeypair.publicKey);
+
+            const rawAmount = Math.floor(amount * Math.pow(10, decimals));
+            const tx = new anchor.web3.Transaction();
+
+            // Create receiver ATA if it doesn't exist
+            try {
+                await getAccount(this.connection, receiverATA);
+            } catch {
+                tx.add(
+                    createAssociatedTokenAccountInstruction(
+                        senderKeypair.publicKey,   // payer
+                        receiverATA,               // ata
+                        receiverKeypair.publicKey, // owner
+                        mint,
+                        TOKEN_PROGRAM_ID,
+                        ASSOCIATED_TOKEN_PROGRAM_ID
+                    )
+                );
+            }
+
+            // SPL transfer instruction — sender agent signs
+            tx.add(
+                createTransferInstruction(
+                    senderATA,
+                    receiverATA,
+                    senderKeypair.publicKey,
+                    rawAmount,
+                    [],
+                    TOKEN_PROGRAM_ID
+                )
+            );
+
+            // Record payment onchain for accountability
+            const senderPDA = this.getAgentPDA(senderKeypair.publicKey, fromAgentName);
+            const recordIx = await this.program.methods
+                .recordPayment(
+                    new anchor.BN(rawAmount),
+                    receiverKeypair.publicKey,
+                    memo
+                )
+                .accounts({
+                    agent: senderPDA,
+                    agentSigner: senderKeypair.publicKey,
+                })
+                .instruction();
+            tx.add(recordIx);
+
+            tx.feePayer = senderKeypair.publicKey;
+            tx.recentBlockhash = (await this.connection.getLatestBlockhash()).blockhash;
+            tx.sign(senderKeypair);
+
+            const txId = await this.connection.sendRawTransaction(tx.serialize(), {
+                skipPreflight: true,
+                preflightCommitment: "confirmed",
+            });
+            await this.connection.confirmTransaction(txId, "confirmed");
+
+            return { tx: txId, amount, mint: mint.toBase58() };
+        });
+    }
+
+    /**
+     * Transfer SOL directly between agent wallets.
+     * The sender agent signs autonomously.
+     * Also records the payment onchain for accountability.
+     * @param {string} fromAgentName - Sender agent name
+     * @param {string} toAgentName - Receiver agent name
+     * @param {number} amountSOL - Amount in SOL (e.g. 0.001)
+     * @param {string} memo - Payment description
+     * @returns {Promise<{tx: string, amount: number}>}
+     */
+    async transferSOL(fromAgentName, toAgentName, amountSOL, memo) {
+        return withPayKitError(async () => {
+            const senderKeypair = loadAgentKeypair(fromAgentName);
+            const receiverKeypair = loadAgentKeypair(toAgentName);
+
+            const lamports = Math.floor(amountSOL * 1_000_000_000);
+            const senderPDA = this.getAgentPDA(senderKeypair.publicKey, fromAgentName);
+
+            const tx = new anchor.web3.Transaction();
+
+            // SOL transfer
+            tx.add(
+                anchor.web3.SystemProgram.transfer({
+                    fromPubkey: senderKeypair.publicKey,
+                    toPubkey: receiverKeypair.publicKey,
+                    lamports,
+                })
+            );
+
+            // Record payment onchain for accountability
+            const recordIx = await this.program.methods
+                .recordPayment(
+                    new anchor.BN(lamports),
+                    receiverKeypair.publicKey,
+                    memo
+                )
+                .accounts({
+                    agent: senderPDA,
+                    agentSigner: senderKeypair.publicKey,
+                })
+                .instruction();
+            tx.add(recordIx);
+
+            tx.feePayer = senderKeypair.publicKey;
+            tx.recentBlockhash = (await this.connection.getLatestBlockhash()).blockhash;
+            tx.sign(senderKeypair);
+
+            const txId = await this.connection.sendRawTransaction(tx.serialize(), {
+                skipPreflight: true,
+                preflightCommitment: "confirmed",
+            });
+            await this.connection.confirmTransaction(txId, "confirmed");
+
+            return { tx: txId, amount: amountSOL };
+        });
+    }
+
+    /**
+     * Get token balance for an agent's wallet.
+     * @param {string} agentName - Agent name
+     * @param {PublicKey} mint - SPL token mint address
+     * @param {number} [decimals=6] - Token decimals
+     * @returns {Promise<{raw: number, ui: number, mint: string}>}
+     */
+    async getTokenBalance(agentName, mint, decimals = 6) {
+        return withPayKitError(async () => {
+            const { getAssociatedTokenAddress, getAccount } = require("@solana/spl-token");
+            const agentKeypair = loadAgentKeypair(agentName);
+            const ata = await getAssociatedTokenAddress(mint, agentKeypair.publicKey);
+            try {
+                const account = await getAccount(this.connection, ata);
+                const raw = Number(account.amount);
+                return {
+                    raw,
+                    ui: raw / Math.pow(10, decimals),
+                    mint: mint.toBase58(),
+                };
+            } catch {
+                return { raw: 0, ui: 0, mint: mint.toBase58() };
+            }
+        });
+    }
+
+    /**
+     * Get SOL balance for an agent's wallet.
+     * @param {string} agentName - Agent name
+     * @returns {Promise<{lamports: number, sol: number}>}
+     */
+    async getSOLBalance(agentName) {
+        return withPayKitError(async () => {
+            const agentKeypair = loadAgentKeypair(agentName);
+            const lamports = await this.connection.getBalance(agentKeypair.publicKey);
+            return { lamports, sol: lamports / 1_000_000_000 };
+        });
+    }
+
     // ─── Owner operations ─────────────────────────────────────────────────────
 
     /**
