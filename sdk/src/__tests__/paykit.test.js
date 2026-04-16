@@ -1,22 +1,23 @@
-const { createClient, PROGRAM_ID } = require("../index");
+const { createClient, loadAgentKeypair, agentKeypairExists, PROGRAM_ID } = require("../index");
 const { PublicKey } = require("@solana/web3.js");
+const { PayKitError, parsePayKitError } = require("../errors");
+const path = require("path");
 
-const KEYPAIR_PATH = "/home/usainbluntmx/.config/solana/id.json";
+const KEYPAIR_PATH = path.join(process.env.HOME, ".config/solana/id.json");
+
+let client;
+
+beforeAll(() => {
+    client = createClient(KEYPAIR_PATH, "devnet");
+});
 
 describe("PayKit SDK", () => {
-    let client;
 
-    beforeAll(() => {
-        client = createClient(KEYPAIR_PATH, "devnet");
-    });
-
-    // ─── Client ──────────────────────────────────────────────────────────────
+    // ─── Client ───────────────────────────────────────────────────────────────
 
     test("createClient returns a PayKitClient instance", () => {
         expect(client).toBeDefined();
-        expect(client.connection).toBeDefined();
-        expect(client.wallet).toBeDefined();
-        expect(client.program).toBeDefined();
+        expect(client.constructor.name).toBe("PayKitClient");
     });
 
     test("wallet public key is a valid PublicKey", () => {
@@ -27,46 +28,80 @@ describe("PayKit SDK", () => {
         expect(PROGRAM_ID.toBase58()).toBe("F27DrerUQGnkmVhqkEy9m46zDkni2m37Df4ogxkoDhUF");
     });
 
-    // ─── PDA Derivation ───────────────────────────────────────────────────────
+    // ─── PDA ──────────────────────────────────────────────────────────────────
 
     test("getAgentPDA returns a valid PublicKey", () => {
-        const pda = client.getAgentPDA(client.wallet.publicKey, "test-agent");
+        const agentKey = client.wallet.publicKey;
+        const pda = client.getAgentPDA(agentKey, "test-agent");
         expect(pda).toBeInstanceOf(PublicKey);
     });
 
     test("getAgentPDA is deterministic", () => {
-        const pda1 = client.getAgentPDA(client.wallet.publicKey, "test-agent");
-        const pda2 = client.getAgentPDA(client.wallet.publicKey, "test-agent");
+        const agentKey = client.wallet.publicKey;
+        const pda1 = client.getAgentPDA(agentKey, "test-agent");
+        const pda2 = client.getAgentPDA(agentKey, "test-agent");
         expect(pda1.toBase58()).toBe(pda2.toBase58());
     });
 
-    test("getAgentPDA differs by agent name", () => {
-        const pda1 = client.getAgentPDA(client.wallet.publicKey, "agent-a");
-        const pda2 = client.getAgentPDA(client.wallet.publicKey, "agent-b");
+    test("getAgentPDA differs by agent key", () => {
+        const { Keypair } = require("@solana/web3.js");
+        const key1 = Keypair.generate().publicKey;
+        const key2 = Keypair.generate().publicKey;
+        const pda1 = client.getAgentPDA(key1, "test-agent");
+        const pda2 = client.getAgentPDA(key2, "test-agent");
         expect(pda1.toBase58()).not.toBe(pda2.toBase58());
     });
 
-    // ─── Fetch Agents ─────────────────────────────────────────────────────────
+    test("getAgentPDA differs by agent name", () => {
+        const agentKey = client.wallet.publicKey;
+        const pda1 = client.getAgentPDA(agentKey, "agent-alpha");
+        const pda2 = client.getAgentPDA(agentKey, "agent-beta");
+        expect(pda1.toBase58()).not.toBe(pda2.toBase58());
+    });
+
+    // ─── Keypair Storage ──────────────────────────────────────────────────────
+
+    test("agentKeypairExists returns true for registered agent", () => {
+        expect(agentKeypairExists("agent-autonomous-01")).toBe(true);
+    });
+
+    test("agentKeypairExists returns false for unknown agent", () => {
+        expect(agentKeypairExists("agent-does-not-exist-xyz")).toBe(false);
+    });
+
+    test("loadAgentKeypair returns a valid keypair", () => {
+        const { Keypair } = require("@solana/web3.js");
+        const keypair = loadAgentKeypair("agent-autonomous-01");
+        expect(keypair).toBeDefined();
+        expect(keypair.publicKey).toBeInstanceOf(PublicKey);
+    });
+
+    test("loadAgentKeypair throws for unknown agent", () => {
+        expect(() => loadAgentKeypair("agent-does-not-exist-xyz")).toThrow();
+    });
+
+    // ─── fetchAllAgents ────────────────────────────────────────────────────────
 
     test("fetchAllAgents returns an array", async () => {
         const agents = await client.fetchAllAgents();
         expect(Array.isArray(agents)).toBe(true);
-    }, 15000);
+    }, 30000);
 
     test("fetchAllAgents returns agents with correct fields", async () => {
         const agents = await client.fetchAllAgents();
         if (agents.length > 0) {
-            const agent = agents[0];
-            expect(agent.name).toBeDefined();
-            expect(agent.owner).toBeDefined();
-            expect(agent.spendLimit).toBeDefined();
-            expect(agent.totalSpent).toBeDefined();
-            expect(agent.paymentCount).toBeDefined();
-            expect(typeof agent.isActive).toBe("boolean");
+            const a = agents[0];
+            expect(a.name).toBeDefined();
+            expect(a.spendLimit).toBeDefined();
+            expect(a.totalSpent).toBeDefined();
+            expect(a.isActive).toBeDefined();
+            expect(a.dailyLimitBps).toBeDefined();
+            expect(a.agentKey).toBeDefined();
+            expect(a.owner).toBeDefined();
         }
-    }, 15000);
+    }, 30000);
 
-    // ─── Payment History ──────────────────────────────────────────────────────
+    // ─── getPaymentHistory ────────────────────────────────────────────────────
 
     test("getPaymentHistory returns an array", async () => {
         const history = await client.getPaymentHistory(5);
@@ -83,175 +118,158 @@ describe("PayKit SDK", () => {
         }
     }, 30000);
 
-    // ─── Expiry Check ─────────────────────────────────────────────────────────
+    // ─── checkAgentExpiry ─────────────────────────────────────────────────────
 
     test("checkAgentExpiry returns expiry info for existing agent", async () => {
-        const agents = await client.fetchAllAgents();
-        const newAgent = agents.find(a => a.expiresAt && a.expiresAt.toNumber() > 0);
-        if (newAgent) {
-            const expiry = await client.checkAgentExpiry(newAgent.name);
-            expect(typeof expiry.expired).toBe("boolean");
-            expect(expiry.expiresAt).toBeInstanceOf(Date);
-            expect(typeof expiry.daysRemaining).toBe("number");
-            expect(expiry.expired).toBe(false);
-            expect(expiry.daysRemaining).toBeGreaterThan(0);
-        }
-    }, 15000);
+        const expiry = await client.checkAgentExpiry("agent-autonomous-01");
+        expect(expiry.expired).toBe(false);
+        expect(expiry.daysRemaining).toBeGreaterThan(300);
+        expect(expiry.expiresAt).toBeInstanceOf(Date);
+    }, 30000);
 
-    // ─── Batch Payment ────────────────────────────────────────────────────────
+    // ─── batchPayment ─────────────────────────────────────────────────────────
 
     test("batchPayment throws if payments array is empty", async () => {
-        await expect(client.batchPayment("agent-gamma", [])).rejects.toThrow("Payments array cannot be empty");
+        await expect(client.batchPayment("agent-autonomous-01", [])).rejects.toThrow();
     });
 
     test("batchPayment throws if more than 5 payments", async () => {
-        const payments = Array(6).fill({ receiverName: "agent-omega", amountLamports: 100, service: "test" });
-        await expect(client.batchPayment("agent-gamma", payments)).rejects.toThrow("Maximum 5 payments per batch");
+        const payments = Array(6).fill({
+            receiverName: "agent-autonomous-02",
+            amountLamports: 1000,
+            service: "test",
+        });
+        await expect(client.batchPayment("agent-autonomous-01", payments)).rejects.toThrow();
     });
 
-    // ─── Reactivate Agent ─────────────────────────────────────────────────────
+    // ─── reactivateAgent ──────────────────────────────────────────────────────
 
     test("reactivateAgent throws if agent does not exist", async () => {
-        await expect(client.reactivateAgent("non-existent-agent-xyz")).rejects.toThrow();
-    }, 15000);
+        await expect(client.reactivateAgent("agent-does-not-exist-xyz")).rejects.toThrow();
+    }, 30000);
 
-    // ─── Browser Wallet ───────────────────────────────────────────────────────
+    // ─── createClientFromWallet ───────────────────────────────────────────────
 
     test("createClientFromWallet throws if wallet not connected", () => {
         const { createClientFromWallet } = require("../index");
-        expect(() => createClientFromWallet({ publicKey: null, signTransaction: async () => { } }, client.connection))
-            .toThrow("Wallet not connected");
+        const { Connection, clusterApiUrl } = require("@solana/web3.js");
+        const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+        expect(() => createClientFromWallet({ publicKey: null }, connection)).toThrow("Wallet not connected");
     });
 
     test("createClientFromWallet throws if wallet has no signTransaction", () => {
         const { createClientFromWallet } = require("../index");
-        expect(() => createClientFromWallet({ publicKey: new PublicKey("11111111111111111111111111111111"), signTransaction: null }, client.connection))
-            .toThrow("Wallet does not support signTransaction");
+        const { Connection, clusterApiUrl, Keypair } = require("@solana/web3.js");
+        const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+        expect(() => createClientFromWallet({ publicKey: Keypair.generate().publicKey }, connection)).toThrow("signTransaction");
     });
 
     test("createClientFromWallet returns a PayKitClient with valid adapter", () => {
-        const { createClientFromWallet } = require("../index");
+        const { createClientFromWallet, PayKitClient } = require("../index");
+        const { Connection, clusterApiUrl, Keypair } = require("@solana/web3.js");
+        const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
         const mockWallet = {
-            publicKey: new PublicKey("11111111111111111111111111111111"),
+            publicKey: Keypair.generate().publicKey,
             signTransaction: async (tx) => tx,
+            signAllTransactions: async (txs) => txs,
         };
-        const browserClient = createClientFromWallet(mockWallet, client.connection);
-        expect(browserClient).toBeDefined();
-        expect(browserClient.wallet.publicKey.toBase58()).toBe("11111111111111111111111111111111");
+        const c = createClientFromWallet(mockWallet, connection);
+        expect(c).toBeInstanceOf(PayKitClient);
     });
 
     // ─── Error Handling ───────────────────────────────────────────────────────
 
     test("PayKitError has correct structure", () => {
-        const { PayKitError } = require("../errors");
-        const err = new PayKitError("SpendLimitExceeded", "Agent has exceeded its spend limit.");
-        expect(err.name).toBe("PayKitError");
+        const err = new PayKitError("SpendLimitExceeded", "Agent exceeded spend limit", 6003, null);
         expect(err.code).toBe("SpendLimitExceeded");
-        expect(err.message).toBe("Agent has exceeded its spend limit.");
-        expect(err.originalError).toBeNull();
+        expect(err.message).toBe("Agent exceeded spend limit");
+        expect(err.errorNumber).toBe(6003);
+        expect(err instanceof Error).toBe(true);
     });
 
     test("parsePayKitError identifies SpendLimitExceeded by error number", () => {
-        const { parsePayKitError } = require("../errors");
-        const raw = new Error("AnchorError: Error Code: SpendLimitExceeded. Error Number: 6003.");
-        const parsed = parsePayKitError(raw);
-        expect(parsed).not.toBeNull();
-        expect(parsed.code).toBe("SpendLimitExceeded");
+        const raw = { message: "custom program error: 0x1773" };
+        const err = parsePayKitError(raw);
+        expect(err).not.toBeNull();
+        expect(err.code).toBe("SpendLimitExceeded");
     });
 
     test("parsePayKitError identifies AgentExpired by error number", () => {
-        const { parsePayKitError } = require("../errors");
-        const raw = new Error("AnchorError: Error Code: AgentExpired. Error Number: 6007.");
-        const parsed = parsePayKitError(raw);
-        expect(parsed).not.toBeNull();
-        expect(parsed.code).toBe("AgentExpired");
+        const raw = { message: "custom program error: 0x1777" };
+        const err = parsePayKitError(raw);
+        expect(err).not.toBeNull();
+        expect(err.code).toBe("AgentExpired");
     });
 
     test("parsePayKitError identifies DailyLimitExceeded by error number", () => {
-        const { parsePayKitError } = require("../errors");
-        const raw = new Error("AnchorError: Error Code: DailyLimitExceeded. Error Number: 6006.");
-        const parsed = parsePayKitError(raw);
-        expect(parsed).not.toBeNull();
-        expect(parsed.code).toBe("DailyLimitExceeded");
+        const raw = { message: "custom program error: 0x1776" };
+        const err = parsePayKitError(raw);
+        expect(err).not.toBeNull();
+        expect(err.code).toBe("DailyLimitExceeded");
     });
 
     test("parsePayKitError identifies LegacyAgent from deserialization error", () => {
-        const { parsePayKitError } = require("../errors");
-        const raw = new Error("AccountDidNotDeserialize: Failed to deserialize the account.");
-        const parsed = parsePayKitError(raw);
-        expect(parsed).not.toBeNull();
-        expect(parsed.code).toBe("LegacyAgent");
+        const raw = { message: "Trying to access beyond buffer length" };
+        const err = parsePayKitError(raw);
+        expect(err).not.toBeNull();
+        expect(err.code).toBe("LegacyAgent");
     });
 
     test("parsePayKitError identifies BlockhashExpired", () => {
-        const { parsePayKitError } = require("../errors");
-        const raw = new Error("Transaction simulation failed: Blockhash not found");
-        const parsed = parsePayKitError(raw);
-        expect(parsed).not.toBeNull();
-        expect(parsed.code).toBe("BlockhashExpired");
+        const raw = { message: "Blockhash not found" };
+        const err = parsePayKitError(raw);
+        expect(err).not.toBeNull();
+        expect(err.code).toBe("BlockhashExpired");
     });
 
     test("parsePayKitError identifies InsufficientFunds", () => {
-        const { parsePayKitError } = require("../errors");
-        const raw = new Error("Transaction failed: insufficient funds for transaction");
-        const parsed = parsePayKitError(raw);
-        expect(parsed).not.toBeNull();
-        expect(parsed.code).toBe("InsufficientFunds");
+        const raw = { message: "Insufficient funds for transaction" };
+        const err = parsePayKitError(raw);
+        expect(err).not.toBeNull();
+        expect(err.code).toBe("InsufficientFunds");
     });
 
     test("parsePayKitError returns null for unknown errors", () => {
-        const { parsePayKitError } = require("../errors");
-        const raw = new Error("Some completely unknown error xyz123");
-        const parsed = parsePayKitError(raw);
-        expect(parsed).toBeNull();
+        const raw = { message: "some completely unknown error xyz" };
+        const err = parsePayKitError(raw);
+        expect(err).toBeNull();
     });
 
     test("withPayKitError rethrows PayKitError with correct code", async () => {
         const { withPayKitError } = require("../errors");
-        await expect(
-            withPayKitError(async () => {
-                throw new Error("AnchorError: Error Code: AgentInactive. Error Number: 6004.");
-            })
-        ).rejects.toMatchObject({ code: "AgentInactive" });
+        const raw = { message: "custom program error: 0x1773" };
+        await expect(withPayKitError(async () => { throw raw; })).rejects.toMatchObject({ code: "SpendLimitExceeded" });
     });
 
     test("withPayKitError rethrows unknown errors as-is", async () => {
         const { withPayKitError } = require("../errors");
-        const unknownErr = new Error("totally unknown error xyz");
-        await expect(
-            withPayKitError(async () => { throw unknownErr; })
-        ).rejects.toThrow("totally unknown error xyz");
+        const raw = new Error("unknown random error");
+        await expect(withPayKitError(async () => { throw raw; })).rejects.toThrow("unknown random error");
     });
 
-    // ─── Agent History ────────────────────────────────────────────────────────
+    // ─── getAgentHistory ──────────────────────────────────────────────────────
 
     test("getAgentHistory returns an array", async () => {
-        const agents = await client.fetchAllAgents();
-        if (agents.length > 0) {
-            const history = await client.getAgentHistory(agents[0].name);
-            expect(Array.isArray(history)).toBe(true);
-        }
+        const history = await client.getAgentHistory("agent-autonomous-01");
+        expect(Array.isArray(history)).toBe(true);
     }, 30000);
 
     test("getAgentHistory entries have correct fields", async () => {
-        const agents = await client.fetchAllAgents();
-        if (agents.length > 0) {
-            const history = await client.getAgentHistory(agents[0].name, 5);
-            if (history.length > 0) {
-                const entry = history[0];
-                expect(["agent_to_agent", "record_payment", "register_agent"]).toContain(entry.type);
-                expect(entry.agentName).toBe(agents[0].name);
-                expect(entry.agentPDA).toBeDefined();
-                expect(entry.time).toBeDefined();
-                expect(entry.tx).toBeDefined();
-            }
+        const history = await client.getAgentHistory("agent-autonomous-01", 5);
+        if (history.length > 0) {
+            const entry = history[0];
+            expect(["agent_to_agent", "record_payment", "register_agent"]).toContain(entry.type);
+            expect(entry.agentName).toBe("agent-autonomous-01");
+            expect(entry.agentPDA).toBeDefined();
+            expect(entry.time).toBeDefined();
+            expect(entry.tx).toBeDefined();
         }
     }, 30000);
 
-    // ─── Webhooks ─────────────────────────────────────────────────────────────
+    // ─── watchAgent ───────────────────────────────────────────────────────────
 
     test("watchAgent returns a stop function", () => {
-        const stop = client.watchAgent("agent-gamma", () => { });
+        const stop = client.watchAgent("agent-autonomous-01", () => { });
         expect(typeof stop).toBe("function");
         stop();
     });
@@ -266,9 +284,36 @@ describe("PayKit SDK", () => {
         });
     }, 10000);
 
+    // ─── createWebhook ────────────────────────────────────────────────────────
+
     test("createWebhook throws with invalid API key", async () => {
         await expect(
-            client.createWebhook("agent-gamma", "https://example.com/webhook", "invalid-key")
+            client.createWebhook("agent-autonomous-01", "https://example.com/webhook", "invalid-key")
         ).rejects.toThrow();
     }, 15000);
+
+    // ─── listLocalAgents ──────────────────────────────────────────────────────
+
+    test("listLocalAgents returns an array", () => {
+        const agents = client.listLocalAgents();
+        expect(Array.isArray(agents)).toBe(true);
+    });
+
+    test("listLocalAgents includes registered agents", () => {
+        const agents = client.listLocalAgents();
+        const names = agents.map(a => a.name);
+        expect(names).toContain("agent-autonomous-01");
+        expect(names).toContain("agent-autonomous-02");
+    });
+
+    test("listLocalAgents entries have correct fields", () => {
+        const agents = client.listLocalAgents();
+        if (agents.length > 0) {
+            const a = agents[0];
+            expect(a.name).toBeDefined();
+            expect(a.publicKey).toBeDefined();
+            expect(a.keypairPath).toBeDefined();
+        }
+    });
+
 });

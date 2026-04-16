@@ -7,18 +7,19 @@ const PAYKIT_ERRORS = {
     6003: { code: "SpendLimitExceeded", message: "Agent has exceeded its total spend limit." },
     6004: { code: "AgentInactive", message: "Agent is inactive and cannot make or receive payments." },
     6005: { code: "MemoTooLong", message: "Memo or service description exceeds 64 characters." },
-    6006: { code: "DailyLimitExceeded", message: "Agent has exceeded its daily spend limit (10% of total per 24h)." },
-    6007: { code: "AgentExpired", message: "Agent has expired. Use renewAgent() to extend its expiration." },
+    6006: { code: "DailyLimitExceeded", message: "Agent has exceeded its daily spend limit." },
+    6007: { code: "AgentExpired", message: "Agent has expired. Use renewAgent() to extend." },
     6008: { code: "InvalidDailyLimit", message: "Daily limit must be between 1 and 10000 basis points." },
 };
 
 // ─── PayKit Error Class ───────────────────────────────────────────────────────
 
 class PayKitError extends Error {
-    constructor(code, message, originalError = null) {
+    constructor(code, message, errorNumber = null, originalError = null) {
         super(message);
         this.name = "PayKitError";
         this.code = code;
+        this.errorNumber = errorNumber;
         this.originalError = originalError;
     }
 }
@@ -30,57 +31,73 @@ function parsePayKitError(error) {
 
     const message = error.message || "";
 
-    // Anchor error number pattern — e.g. "Error Number: 6003"
+    // Hex pattern — e.g. "custom program error: 0x1773"
+    const hexMatch = message.match(/custom program error: 0x([0-9a-fA-F]+)/);
+    if (hexMatch) {
+        const errNum = parseInt(hexMatch[1], 16);
+        const known = PAYKIT_ERRORS[errNum];
+        if (known) return new PayKitError(known.code, known.message, errNum, error);
+    }
+
+    // Decimal pattern — e.g. "Error Number: 6003"
     const numMatch = message.match(/Error Number: (\d+)/);
     if (numMatch) {
         const errNum = parseInt(numMatch[1]);
         const known = PAYKIT_ERRORS[errNum];
-        if (known) return new PayKitError(known.code, known.message, error);
+        if (known) return new PayKitError(known.code, known.message, errNum, error);
     }
 
     // Anchor error code pattern — e.g. "Error Code: SpendLimitExceeded"
     const codeMatch = message.match(/Error Code: (\w+)/);
     if (codeMatch) {
-        const codeName = codeMatch[1];
-        const known = Object.values(PAYKIT_ERRORS).find(e => e.code === codeName);
-        if (known) return new PayKitError(known.code, known.message, error);
+        const known = Object.values(PAYKIT_ERRORS).find(e => e.code === codeMatch[1]);
+        if (known) return new PayKitError(known.code, known.message, null, error);
     }
 
     // Named error patterns in message
-    for (const err of Object.values(PAYKIT_ERRORS)) {
+    for (const [num, err] of Object.entries(PAYKIT_ERRORS)) {
         if (message.includes(err.code)) {
-            return new PayKitError(err.code, err.message, error);
+            return new PayKitError(err.code, err.message, parseInt(num), error);
         }
     }
 
     // Blockhash expired
     if (message.includes("Blockhash not found") || message.includes("BlockhashNotFound")) {
-        return new PayKitError("BlockhashExpired", "Transaction blockhash expired. Please retry.", error);
+        return new PayKitError("BlockhashExpired", "Transaction blockhash expired. Please retry.", null, error);
     }
 
     // Already processed
     if (message.includes("already been processed")) {
-        return new PayKitError("AlreadyProcessed", "This transaction was already processed onchain.", error);
+        return new PayKitError("AlreadyProcessed", "This transaction was already processed onchain.", null, error);
     }
 
     // Account not found
     if (message.includes("AccountNotFound") || message.includes("Account does not exist")) {
-        return new PayKitError("AccountNotFound", "Agent account not found. Verify the agent name and owner.", error);
+        return new PayKitError("AccountNotFound", "Agent account not found. Verify the agent name and owner.", null, error);
     }
 
-    // Deserialization — legacy agent
-    if (message.includes("AccountDidNotDeserialize") || message.includes("Failed to deserialize")) {
-        return new PayKitError("LegacyAgent", "This agent was created with an older contract version and is incompatible. Register a new agent with the same name.", error);
+    // Legacy agent — deserialization or buffer overflow
+    if (
+        message.includes("AccountDidNotDeserialize") ||
+        message.includes("Failed to deserialize") ||
+        message.includes("beyond buffer length") ||
+        message.includes("out of range")
+    ) {
+        return new PayKitError("LegacyAgent", "This agent was created with an older contract version and is incompatible.", null, error);
     }
 
     // Insufficient funds
-    if (message.includes("insufficient funds") || message.includes("InsufficientFunds")) {
-        return new PayKitError("InsufficientFunds", "Insufficient SOL balance to pay transaction fees.", error);
+    if (
+        message.includes("insufficient funds") ||
+        message.includes("Insufficient funds") ||
+        message.includes("InsufficientFunds")
+    ) {
+        return new PayKitError("InsufficientFunds", "Insufficient SOL balance to pay transaction fees.", null, error);
     }
 
     // Wallet not connected
     if (message.includes("Wallet not connected")) {
-        return new PayKitError("WalletNotConnected", "Wallet is not connected.", error);
+        return new PayKitError("WalletNotConnected", "Wallet is not connected.", null, error);
     }
 
     return null;
