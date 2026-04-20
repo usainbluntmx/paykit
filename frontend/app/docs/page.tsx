@@ -1,801 +1,1000 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-
-interface Section {
-    id: string;
-    title: string;
-}
-
-const sections: Section[] = [
-    { id: "overview", title: "Overview" },
-    { id: "installation", title: "Installation" },
-    { id: "quickstart", title: "Quickstart" },
-    { id: "register-agent", title: "registerAgent" },
-    { id: "record-payment", title: "recordPayment" },
-    { id: "agent-to-agent", title: "agentToAgentPayment" },
-    { id: "batch-payment", title: "batchPayment" },
-    { id: "update-spend-limit", title: "updateSpendLimit" },
-    { id: "deactivate-agent", title: "deactivateAgent" },
-    { id: "reactivate-agent", title: "reactivateAgent" },
-    { id: "renew-agent", title: "renewAgent" },
-    { id: "check-expiry", title: "checkAgentExpiry" },
-    { id: "estimate-fee", title: "estimateFee" },
-    { id: "fetch-agent", title: "fetchAgent" },
-    { id: "fetch-all-agents", title: "fetchAllAgents" },
-    { id: "payment-history", title: "getPaymentHistory" },
-    { id: "agent-history", title: "getAgentHistory" },
-    { id: "watch-agent", title: "watchAgent" },
-    { id: "webhooks", title: "createWebhook" },
-    { id: "browser-wallet", title: "Browser Wallet" },
-    { id: "errors", title: "Error Codes" },
-    { id: "legacy-migration", title: "Legacy Migration" },
-    { id: "langchain", title: "LangChain Integration" },
-    { id: "crewai", title: "CrewAI Integration" },
-    { id: "contract", title: "Smart Contract" },
-    { id: "architecture", title: "Architecture" },
-];
-
-function Code({ children }: { children: string }) {
-    const [copied, setCopied] = useState(false);
-    function copy() {
-        navigator.clipboard.writeText(children);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    }
-    return (
-        <div style={{ position: "relative", marginBottom: "24px" }}>
-            <button onClick={copy} style={{ position: "absolute", top: "10px", right: "10px", background: "transparent", border: "1px solid rgba(0,255,136,0.2)", color: copied ? "#00ff88" : "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", padding: "3px 8px", borderRadius: "2px", cursor: "pointer", letterSpacing: "0.1em", transition: "all 0.2s" }}>
-                {copied ? "COPIED" : "COPY"}
-            </button>
-            <pre style={{ background: "#060a08", border: "1px solid rgba(0,255,136,0.12)", borderRadius: "4px", padding: "20px", fontFamily: "'Share Tech Mono', monospace", fontSize: "13px", lineHeight: 1.8, color: "#c8f0d8", overflowX: "auto", whiteSpace: "pre" }}>
-                {children}
-            </pre>
-        </div>
-    );
-}
-
-function Badge({ text, color = "#00ff88" }: { text: string; color?: string }) {
-    return (
-        <span style={{ display: "inline-block", fontSize: "11px", color, border: `1px solid ${color}40`, background: `${color}10`, padding: "2px 8px", borderRadius: "2px", fontFamily: "'Share Tech Mono', monospace", letterSpacing: "0.1em", marginRight: "8px" }}>
-            {text}
-        </span>
-    );
-}
-
-function Param({ name, type, required, desc }: { name: string; type: string; required?: boolean; desc: string }) {
-    return (
-        <div style={{ display: "grid", gridTemplateColumns: "160px 120px 1fr", gap: "16px", padding: "12px 0", borderBottom: "1px solid rgba(0,255,136,0.06)", fontSize: "14px", alignItems: "start" }}>
-            <span style={{ color: "#00ff88", fontFamily: "'Share Tech Mono', monospace" }}>{name}</span>
-            <span style={{ color: "#ffb800", fontFamily: "'Share Tech Mono', monospace" }}>{type}</span>
-            <span style={{ color: "#9aeab0" }}>{desc} {required && <span style={{ color: "#ff3c5a", fontSize: "12px" }}>required</span>}</span>
-        </div>
-    );
-}
-
-function SectionTitle({ id, children }: { id: string; children: string }) {
-    return (
-        <h2 id={id} style={{ fontFamily: "'Orbitron', monospace", fontSize: "16px", color: "#00ff88", letterSpacing: "0.15em", marginBottom: "16px", marginTop: "48px", paddingTop: "16px", borderTop: "1px solid rgba(0,255,136,0.1)" }}>
-            {children}
-        </h2>
-    );
-}
-
-function SubTitle({ children }: { children: string }) {
-    return (
-        <h3 style={{ fontFamily: "'Orbitron', monospace", fontSize: "12px", color: "#6aaa80", letterSpacing: "0.2em", marginBottom: "12px", marginTop: "24px" }}>
-            {children}
-        </h3>
-    );
-}
-
-function P({ children }: { children: React.ReactNode }) {
-    return (
-        <p style={{ fontSize: "15px", color: "#9aeab0", lineHeight: 1.8, marginBottom: "16px" }}>
-            {children}
-        </p>
-    );
-}
-
-function Callout({ type = "info", children }: { type?: "info" | "warning" | "danger"; children: React.ReactNode }) {
-    const colors = { info: "#00ff88", warning: "#ffb800", danger: "#ff3c5a" };
-    const color = colors[type];
-    return (
-        <div style={{ padding: "14px 18px", background: `${color}08`, border: `1px solid ${color}30`, borderLeft: `3px solid ${color}`, borderRadius: "3px", marginBottom: "20px", fontSize: "14px", color: "#9aeab0", lineHeight: 1.7 }}>
-            {children}
-        </div>
-    );
-}
-
-export default function Docs() {
-    const router = useRouter();
-    const [activeSection, setActiveSection] = useState("overview");
-
-    function scrollTo(id: string) {
-        setActiveSection(id);
-        document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-
-    return (
-        <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", minHeight: "100vh", maxWidth: "1200px", margin: "0 auto" }}>
-
-            {/* Sidebar */}
-            <div style={{ position: "sticky", top: 0, height: "100vh", overflowY: "auto", borderRight: "1px solid rgba(0,255,136,0.08)", padding: "32px 20px", display: "flex", flexDirection: "column", gap: "4px" }}>
-                <div style={{ marginBottom: "24px" }}>
-                    <button onClick={() => router.push("/")} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, marginBottom: "8px" }}>
-                        <span style={{ fontFamily: "'Orbitron', monospace", fontSize: "18px", fontWeight: 900, color: "#00ff88", textShadow: "0 0 20px rgba(0,255,136,0.4)" }}>PAYKIT</span>
-                    </button>
-                    <div style={{ fontSize: "11px", color: "#6aaa80", letterSpacing: "0.15em" }}>SDK DOCUMENTATION</div>
-                </div>
-                {sections.map(s => (
-                    <button key={s.id} onClick={() => scrollTo(s.id)} style={{ background: activeSection === s.id ? "rgba(0,255,136,0.08)" : "transparent", border: "none", borderLeft: `2px solid ${activeSection === s.id ? "#00ff88" : "transparent"}`, color: activeSection === s.id ? "#00ff88" : "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "13px", padding: "8px 12px", cursor: "pointer", textAlign: "left", letterSpacing: "0.05em", transition: "all 0.15s", borderRadius: "0 3px 3px 0" }}>
-                        {s.title}
-                    </button>
-                ))}
-                <div style={{ marginTop: "auto", paddingTop: "24px", borderTop: "1px solid rgba(0,255,136,0.06)" }}>
-                    <button onClick={() => router.push("/dashboard")} style={{ background: "rgba(0,255,136,0.06)", border: "1px solid rgba(0,255,136,0.2)", color: "#00ff88", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", padding: "8px 12px", borderRadius: "3px", cursor: "pointer", width: "100%", letterSpacing: "0.1em" }}>
-                        LIVE DEMO →
-                    </button>
-                </div>
-            </div>
-
-            {/* Content */}
-            <div style={{ padding: "48px 56px", overflowY: "auto", maxHeight: "100vh" }}>
-
-                {/* Overview */}
-                <div id="overview">
-                    <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "11px", color: "#6aaa80", letterSpacing: "0.2em", marginBottom: "12px" }}>// REFERENCE</div>
-                    <h1 style={{ fontFamily: "'Orbitron', monospace", fontSize: "28px", fontWeight: 900, color: "#00ff88", letterSpacing: "0.05em", textShadow: "0 0 20px rgba(0,255,136,0.3)", marginBottom: "20px" }}>PayKit SDK</h1>
-                    <P>PayKit is an open-source SDK for registering autonomous AI agents on Solana, enforcing spend limits, and recording payment history immutably onchain. It is the accountability infrastructure layer for the autonomous AI economy.</P>
-                    <P>PayKit is <strong style={{ color: "#c8f0d8" }}>not a payment processor</strong>. It is an accountability layer. The SDK wraps the PayKit Anchor program and exposes a simple JavaScript/TypeScript API any developer can integrate in minutes.</P>
-                    <Callout type="info">
-                        <strong style={{ color: "#00ff88" }}>Current version (Camino A):</strong> Agents are tied to their owner's wallet — the owner signs transactions, and the agent's PDA stores the accountability data. Camino B (agents with their own keypairs and token accounts) is on the roadmap.
-                    </Callout>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginTop: "24px", marginBottom: "8px" }}>
-                        {[
-                            { label: "PROGRAM ID", value: "F27DrerUQGnk...", full: "F27DrerUQGnkmVhqkEy9m46zDkni2m37Df4ogxkoDhUF" },
-                            { label: "NETWORK", value: "Solana Devnet" },
-                            { label: "FRAMEWORK", value: "Anchor 0.31.1" },
-                        ].map(item => (
-                            <div key={item.label} style={{ padding: "14px", background: "rgba(0,255,136,0.02)", border: "1px solid rgba(0,255,136,0.1)", borderRadius: "3px" }}>
-                                <div style={{ fontSize: "10px", color: "#6aaa80", letterSpacing: "0.15em", marginBottom: "6px", fontFamily: "'Orbitron', monospace" }}>{item.label}</div>
-                                <div style={{ fontSize: "13px", color: "#c8f0d8", fontFamily: "'Share Tech Mono', monospace", cursor: item.full ? "pointer" : "default" }} onClick={() => item.full && navigator.clipboard.writeText(item.full)} title={item.full ? "Click to copy" : undefined}>
-                                    {item.value}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Installation */}
-                <SectionTitle id="installation">INSTALLATION</SectionTitle>
-                <P>Install the PayKit SDK via npm or yarn:</P>
-                <Code>{`npm install @paykit/sdk`}</Code>
-                <P>The SDK requires Node.js 18+ and a Solana keypair file to sign transactions.</P>
-
-                {/* Quickstart */}
-                <SectionTitle id="quickstart">QUICKSTART</SectionTitle>
-                <Code>{`const { createClient } = require("@paykit/sdk");
-
-// 1. Create a client with your keypair
-const client = createClient("/path/to/keypair.json", "devnet");
-
-// 2. Register an AI agent with a 1 SOL spend limit and 10% daily limit
-const { agentPDA } = await client.registerAgent("my-agent", 1_000_000_000, 1000);
-
-// 3. Record a payment
-await client.recordPayment("my-agent", 1_000_000, recipientPublicKey, "API call");
-
-// 4. Agent pays another agent
-await client.agentToAgentPayment("my-agent", "other-agent", 250_000, "Data analysis");
-
-// 5. Watch for new transactions (polling)
-const stop = client.watchAgent("my-agent", (err, entry) => {
-  if (entry) console.log("New tx:", entry.type, entry.tx);
-});
-// later...
-stop();`}</Code>
-
-                {/* registerAgent */}
-                <SectionTitle id="register-agent">registerAgent</SectionTitle>
-                <div style={{ marginBottom: "16px" }}><Badge text="async" /><Badge text="onchain" color="#ffb800" /></div>
-                <P>Registers a new AI agent onchain. Creates a PDA account with identity, spend limit, configurable daily rate limit, and 365-day expiration. The daily limit is specified in basis points (BPS) — 1000 BPS = 10%, 500 BPS = 5%, 10000 BPS = 100%.</P>
-                <Callout type="info">
-                    <strong style={{ color: "#00ff88" }}>Why BPS?</strong> Basis points give precise control over the daily limit without floating point math. 100 BPS = 1%, so a 5% daily limit is 500 BPS, a 25% daily limit is 2500 BPS.
-                </Callout>
-                <Code>{`const { tx, agentPDA } = await client.registerAgent(name, spendLimitLamports, dailyLimitBps);`}</Code>
-                <SubTitle>// PARAMETERS</SubTitle>
-                <Param name="name" type="string" required desc="Unique identifier. Maximum 32 characters." />
-                <Param name="spendLimitLamports" type="number" required desc="Maximum total spend in lamports. 1 SOL = 1,000,000,000 lamports." />
-                <Param name="dailyLimitBps" type="number" required desc="Daily spend limit in basis points. 1000 = 10%, 500 = 5%, 10000 = 100%. Must be between 1 and 10000." />
-                <SubTitle>// EXAMPLE</SubTitle>
-                <Code>{`// Agent with 5 SOL limit and 20% daily cap
-const { agentPDA } = await client.registerAgent("trading-agent", 5_000_000_000, 2000);
-
-// Agent with 1 SOL limit and 5% daily cap (very conservative)
-await client.registerAgent("safe-agent", 1_000_000_000, 500);
-
-// Agent with 1 SOL limit and 100% daily cap (no daily restriction)
-await client.registerAgent("fast-agent", 1_000_000_000, 10000);`}</Code>
-
-                {/* recordPayment */}
-                <SectionTitle id="record-payment">recordPayment</SectionTitle>
-                <div style={{ marginBottom: "16px" }}><Badge text="async" /><Badge text="onchain" color="#ffb800" /><Badge text="enforces limits" color="#ff3c5a" /></div>
-                <P>Records a payment made by an agent onchain. Enforces the total spend limit and the configurable daily limit. Both limits are enforced at the protocol level — they cannot be bypassed by the SDK or any application.</P>
-                <Code>{`const { tx } = await client.recordPayment(agentName, amountLamports, recipient, memo);`}</Code>
-                <SubTitle>// PARAMETERS</SubTitle>
-                <Param name="agentName" type="string" required desc="Name of the agent making the payment." />
-                <Param name="amountLamports" type="number" required desc="Payment amount in lamports." />
-                <Param name="recipient" type="PublicKey" required desc="Recipient public key." />
-                <Param name="memo" type="string" required desc="Payment description. Maximum 64 characters." />
-                <SubTitle>// EXAMPLE</SubTitle>
-                <Code>{`await client.recordPayment("trading-agent", 500_000, new PublicKey("..."), "OpenAI API call");`}</Code>
-
-                {/* agentToAgentPayment */}
-                <SectionTitle id="agent-to-agent">agentToAgentPayment</SectionTitle>
-                <div style={{ marginBottom: "16px" }}><Badge text="async" /><Badge text="onchain" color="#ffb800" /><Badge text="enforces limits" color="#ff3c5a" /></div>
-                <P>Records a direct payment from one registered agent to another. Both agents must be registered, active, and not expired. The sender's spend limit and daily limit are enforced atomically.</P>
-                <Code>{`const { tx } = await client.agentToAgentPayment(senderName, receiverName, amountLamports, service);`}</Code>
-                <SubTitle>// EXAMPLE</SubTitle>
-                <Code>{`await client.agentToAgentPayment("agent-alpha", "agent-beta", 250_000, "Market data analysis");`}</Code>
-
-                {/* batchPayment */}
-                <SectionTitle id="batch-payment">batchPayment</SectionTitle>
-                <div style={{ marginBottom: "16px" }}><Badge text="async" /><Badge text="onchain" color="#ffb800" /><Badge text="atomic" color="#00ff88" /><Badge text="max 5" color="#ffb800" /></div>
-                <P>Sends payments from one agent to multiple agents in a single Solana transaction. All payments succeed or all fail atomically. This is the key primitive for orchestrator patterns — one agent delegates work and pays multiple specialized agents in one shot.</P>
-                <Callout type="info">
-                    <strong style={{ color: "#00ff88" }}>Why batch?</strong> Solana transactions support multiple instructions. Instead of 5 separate transactions (5x fees, 5x latency), batchPayment packs all payments into one transaction — atomic, cheaper, and faster.
-                </Callout>
-                <Code>{`const { tx, count } = await client.batchPayment(senderName, payments);`}</Code>
-                <SubTitle>// EXAMPLE</SubTitle>
-                <Code>{`const { tx, count } = await client.batchPayment("orchestrator", [
-  { receiverName: "agent-researcher", amountLamports: 100_000, service: "Web research" },
-  { receiverName: "agent-writer",     amountLamports: 150_000, service: "Content generation" },
-  { receiverName: "agent-reviewer",   amountLamports: 50_000,  service: "Quality review" },
-]);
-console.log(\`\${count} payments in 1 TX: \${tx}\`);`}</Code>
-
-                {/* updateSpendLimit */}
-                <SectionTitle id="update-spend-limit">updateSpendLimit</SectionTitle>
-                <div style={{ marginBottom: "16px" }}><Badge text="async" /><Badge text="onchain" color="#ffb800" /><Badge text="owner only" color="#6aaa80" /></div>
-                <P>Updates the total spend limit of an existing agent. Does not reset total_spent or daily_spent.</P>
-                <Code>{`await client.updateSpendLimit("my-agent", 10_000_000_000); // 10 SOL`}</Code>
-
-                {/* deactivateAgent */}
-                <SectionTitle id="deactivate-agent">deactivateAgent</SectionTitle>
-                <div style={{ marginBottom: "16px" }}><Badge text="async" /><Badge text="onchain" color="#ffb800" /><Badge text="owner only" color="#6aaa80" /></div>
-                <P>Disables an agent. A deactivated agent cannot make or receive payments. Unlike previous versions where this was irreversible, agents can now be reactivated using <code style={{ color: "#ffb800" }}>reactivateAgent</code> as long as they haven't expired.</P>
-                <Code>{`await client.deactivateAgent("my-agent");`}</Code>
-
-                {/* reactivateAgent */}
-                <SectionTitle id="reactivate-agent">reactivateAgent</SectionTitle>
-                <div style={{ marginBottom: "16px" }}><Badge text="async" /><Badge text="onchain" color="#ffb800" /><Badge text="owner only" color="#6aaa80" /></div>
-                <P>Reactivates a previously deactivated agent. The agent must not be expired — if it is, renew it first with <code style={{ color: "#ffb800" }}>renewAgent</code>. This allows temporary suspension and resumption of agent activity without losing its onchain history.</P>
-                <Callout type="info">
-                    <strong style={{ color: "#00ff88" }}>Why reactivate?</strong> A common pattern is to temporarily deactivate an agent while reconfiguring its spend limit or investigating suspicious activity, then reactivate it once the review is complete — without losing its payment history.
-                </Callout>
-                <Code>{`await client.reactivateAgent("my-agent");`}</Code>
-
-                {/* renewAgent */}
-                <SectionTitle id="renew-agent">renewAgent</SectionTitle>
-                <div style={{ marginBottom: "16px" }}><Badge text="async" /><Badge text="onchain" color="#ffb800" /><Badge text="owner only" color="#6aaa80" /></div>
-                <P>Extends an agent's expiration. If already expired, extension starts from now. If still active, adds to the current expiration. Only agents created with the current contract version support renewal — legacy agents cannot be renewed.</P>
-                <Code>{`await client.renewAgent("my-agent", 31_536_000); // +1 year
-await client.renewAgent("my-agent", 15_768_000); // +6 months`}</Code>
-
-                {/* checkAgentExpiry */}
-                <SectionTitle id="check-expiry">checkAgentExpiry</SectionTitle>
-                <div style={{ marginBottom: "16px" }}><Badge text="async" /><Badge text="read only" color="#6aaa80" /></div>
-                <P>Returns the expiration status of an agent. Use this before executing payments to avoid AgentExpired errors.</P>
-                <Code>{`const expiry = await client.checkAgentExpiry("my-agent");
-// { expired: false, expiresAt: Date, daysRemaining: 342 }
-
-if (expiry.expired) await client.renewAgent("my-agent", 31_536_000);`}</Code>
-
-                {/* estimateFee */}
-                <SectionTitle id="estimate-fee">estimateFee</SectionTitle>
-                <div style={{ marginBottom: "16px" }}><Badge text="async" /><Badge text="read only" color="#6aaa80" /></div>
-                <P>Estimates the Solana network fee for a transaction before executing. Useful for agents that need to factor gas costs into their budget calculations.</P>
-                <Code>{`const { fee, feeSOL } = await client.estimateFee("my-agent", 250_000, "record");
-console.log(\`Fee: \${feeSOL} SOL\`); // ~0.000005000 SOL`}</Code>
-                <SubTitle>// PARAMETERS</SubTitle>
-                <Param name="agentName" type="string" required desc="Name of the agent." />
-                <Param name="amountLamports" type="number" required desc="Payment amount in lamports." />
-                <Param name="type" type="string" desc='"record" or "agent_to_agent". Defaults to "record".' />
-
-                {/* fetchAgent */}
-                <SectionTitle id="fetch-agent">fetchAgent</SectionTitle>
-                <div style={{ marginBottom: "16px" }}><Badge text="async" /><Badge text="read only" color="#6aaa80" /></div>
-                <P>Fetches the current state of a single agent account. Any public key can be inspected — no ownership required.</P>
-                <Code>{`const agent = await client.fetchAgent("my-agent");
-const remaining = agent.spendLimit.toNumber() - agent.totalSpent.toNumber();
-console.log("Remaining:", remaining / 1e9, "SOL");`}</Code>
-
-                {/* fetchAllAgents */}
-                <SectionTitle id="fetch-all-agents">fetchAllAgents</SectionTitle>
-                <div style={{ marginBottom: "16px" }}><Badge text="async" /><Badge text="read only" color="#6aaa80" /></div>
-                <P>Fetches all current-version agent accounts owned by the wallet. Automatically excludes legacy agents (created before the current contract version) using an onchain dataSize filter — only accounts of exactly 136 bytes are returned.</P>
-                <Callout type="warning">
-                    <strong style={{ color: "#ffb800" }}>Legacy agents:</strong> Agents created before the current contract version will not appear in fetchAllAgents results. This is intentional — they cannot be deserialized against the current struct. See the Legacy Migration guide below.
-                </Callout>
-                <Code>{`const agents = await client.fetchAllAgents();
-for (const a of agents) {
-  console.log(a.name, a.dailyLimitBps, "bps daily limit");
-}`}</Code>
-
-                {/* getPaymentHistory */}
-                <SectionTitle id="payment-history">getPaymentHistory</SectionTitle>
-                <div style={{ marginBottom: "16px" }}><Badge text="async" /><Badge text="read only" color="#6aaa80" /><Badge text="program-wide" color="#ffb800" /></div>
-                <P>Fetches recent transaction history across the entire PayKit program by reading onchain logs. Returns transactions from all agents. For agent-specific history, use <code style={{ color: "#ffb800" }}>getAgentHistory</code>.</P>
-                <Code>{`const history = await client.getPaymentHistory(10);
-// [{ type: "agent_to_agent", time: "...", tx: "..." }, ...]`}</Code>
-
-                {/* getAgentHistory */}
-                <SectionTitle id="agent-history">getAgentHistory</SectionTitle>
-                <div style={{ marginBottom: "16px" }}><Badge text="async" /><Badge text="read only" color="#6aaa80" /><Badge text="agent-specific" color="#00ff88" /></div>
-                <P>Fetches transaction history filtered to a specific agent. Uses the agent's PDA address as the filter — only transactions that directly involved this agent are returned. This is more efficient and precise than getPaymentHistory for single-agent monitoring.</P>
-                <Callout type="info">
-                    <strong style={{ color: "#00ff88" }}>Why use this instead of getPaymentHistory?</strong> getPaymentHistory fetches all program transactions and requires you to filter. getAgentHistory queries only the agent's PDA — it's faster, more targeted, and scales better when you have many agents.
-                </Callout>
-                <Code>{`const history = await client.getAgentHistory("my-agent", 20);
-for (const entry of history) {
-  console.log(\`[\${entry.type}] \${entry.time} — \${entry.tx}\`);
-}
-// [agent_to_agent] 2026-04-15T... — 3GjtjJ...
-// [register_agent] 2026-04-15T... — 5kwYQ1...`}</Code>
-                <SubTitle>// RETURNS</SubTitle>
-                <Code>{`Array<{
-  type: "agent_to_agent" | "record_payment" | "register_agent",
-  agentName: string,
-  agentPDA: string,
-  time: string,   // ISO 8601
-  tx: string      // Transaction signature
-}>`}</Code>
-
-                {/* watchAgent */}
-                <SectionTitle id="watch-agent">watchAgent</SectionTitle>
-                <div style={{ marginBottom: "16px" }}><Badge text="polling" color="#ffb800" /><Badge text="no external service" color="#6aaa80" /></div>
-                <P>Watches an agent for new transactions via polling. The SDK polls the agent's PDA at a configurable interval and calls your callback whenever a new transaction is detected. Returns a stop function — call it to stop watching.</P>
-                <Callout type="info">
-                    <strong style={{ color: "#00ff88" }}>When to use this vs createWebhook:</strong> Use watchAgent for development, testing, or short-lived processes. Use createWebhook (Helius) for production systems where you need reliable, persistent notifications to an HTTP endpoint.
-                </Callout>
-                <Code>{`// Start watching — callback receives (error, entry)
-const stop = client.watchAgent(
-  "my-agent",
-  (err, entry) => {
-    if (err) { console.error("Watch error:", err.code); return; }
-    console.log("New transaction:", entry.type, entry.tx);
-  },
-  5000  // poll every 5 seconds (default)
-);
-
-// Stop watching when done
-setTimeout(stop, 60_000); // stop after 1 minute`}</Code>
-                <SubTitle>// PARAMETERS</SubTitle>
-                <Param name="agentName" type="string" required desc="Name of the agent to watch." />
-                <Param name="callback" type="function" required desc="Called with (err, entry) on each new transaction. err is null on success." />
-                <Param name="intervalMs" type="number" desc="Polling interval in milliseconds. Defaults to 5000 (5 seconds)." />
-                <SubTitle>// RETURNS</SubTitle>
-                <P>A <code style={{ color: "#ffb800" }}>stop()</code> function. Call it to stop polling and clean up the timer.</P>
-
-                {/* createWebhook */}
-                <SectionTitle id="webhooks">createWebhook / deleteWebhook</SectionTitle>
-                <div style={{ marginBottom: "16px" }}><Badge text="async" /><Badge text="Helius required" color="#ffb800" /><Badge text="production" color="#00ff88" /></div>
-                <P>Registers a real-time webhook via Helius that POSTs to your endpoint whenever the agent transacts onchain. Unlike watchAgent, this runs server-side and works even when your Node.js process is not running.</P>
-                <Callout type="warning">
-                    <strong style={{ color: "#ffb800" }}>Requires a Helius API key.</strong> Free tier includes 3 webhooks and up to 1M notifications/month — sufficient for development and most production use cases. Get your key at helius.dev.
-                </Callout>
-                <Code>{`// Register webhook — Helius will POST to your URL on every agent transaction
-const { webhookId, agentPDA } = await client.createWebhook(
-  "my-agent",
-  "https://your-api.com/webhook/paykit",
-  process.env.HELIUS_API_KEY,
-  "devnet"  // or "mainnet-beta"
-);
-console.log("Webhook registered:", webhookId);
-
-// Your endpoint receives POST requests like:
-// {
-//   type: "TRANSFER",
-//   accountData: [...],
-//   transaction: { ... }
-// }
-
-// Delete webhook when no longer needed
-await client.deleteWebhook(webhookId, process.env.HELIUS_API_KEY);`}</Code>
-                <SubTitle>// createWebhook PARAMETERS</SubTitle>
-                <Param name="agentName" type="string" required desc="Name of the agent to monitor." />
-                <Param name="webhookUrl" type="string" required desc="Your public HTTP endpoint that will receive POST requests." />
-                <Param name="heliusApiKey" type="string" required desc="Your Helius API key from helius.dev." />
-                <Param name="cluster" type="string" desc='"devnet" or "mainnet-beta". Defaults to "devnet".' />
-                <SubTitle>// RETURNS</SubTitle>
-                <Code>{`{
-  webhookId: string,  // Use this to delete the webhook later
-  agentPDA: string,   // The agent's onchain address being monitored
-  webhookUrl: string  // The URL that will receive notifications
-}`}</Code>
-
-                {/* Browser Wallet */}
-                <SectionTitle id="browser-wallet">BROWSER WALLET SUPPORT</SectionTitle>
-                <div style={{ marginBottom: "16px" }}><Badge text="Phantom" color="#00ff88" /><Badge text="Backpack" color="#ffb800" /><Badge text="any wallet adapter" color="#6aaa80" /></div>
-                <P>PayKit supports browser wallet adapters (Phantom, Backpack, Solflare, etc.) directly via <code style={{ color: "#ffb800" }}>createClientFromWallet</code>. This enables frontend applications to use the SDK without a keypair file.</P>
-                <Callout type="info">
-                    <strong style={{ color: "#00ff88" }}>Two client constructors:</strong> Use <code style={{ color: "#c8f0d8" }}>createClient</code> for Node.js server-side code (LangChain agents, backend services, scripts). Use <code style={{ color: "#c8f0d8" }}>createClientFromWallet</code> for browser-based applications with wallet adapters.
-                </Callout>
-                <Code>{`import { createClientFromWallet } from "@paykit/sdk";
+import { useState, useEffect } from "react";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
+import { PublicKey, Keypair, SystemProgram, Transaction } from "@solana/web3.js";
+import { Program, AnchorProvider, BN } from "@coral-xyz/anchor";
+import dynamic from "next/dynamic";
+import {
+  getAssociatedTokenAddress,
+  createTransferInstruction,
+  createAssociatedTokenAccountIdempotentInstruction,
+  TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
-function MyComponent() {
-  const wallet = useWallet();
-  const { connection } = useConnection();
-
-  async function handleRegister() {
-    if (!wallet.connected) return;
-
-    // Create client from browser wallet — no keypair file needed
-    const client = createClientFromWallet(wallet, connection);
-
-    const { agentPDA } = await client.registerAgent(
-      "my-web-agent",
-      1_000_000_000,
-      1000  // 10% daily limit
-    );
-    console.log("Agent registered:", agentPDA.toBase58());
-  }
-}`}</Code>
-
-                {/* Error Codes */}
-                <SectionTitle id="errors">ERROR CODES</SectionTitle>
-                <P>PayKit throws structured <code style={{ color: "#ffb800" }}>PayKitError</code> instances with a <code style={{ color: "#ffb800" }}>code</code> field. All contract errors, network errors, and SDK validation errors are mapped to named codes.</P>
-                <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
-                    {[
-                        { code: "NameTooLong", num: "6000", desc: "Agent name exceeds 32 characters." },
-                        { code: "InvalidSpendLimit", num: "6001", desc: "Spend limit must be greater than zero." },
-                        { code: "InvalidAmount", num: "6002", desc: "Payment amount must be greater than zero." },
-                        { code: "SpendLimitExceeded", num: "6003", desc: "Payment would exceed the agent's total spend limit." },
-                        { code: "AgentInactive", num: "6004", desc: "Agent is deactivated. Use reactivateAgent to restore." },
-                        { code: "MemoTooLong", num: "6005", desc: "Memo exceeds 64 characters." },
-                        { code: "DailyLimitExceeded", num: "6006", desc: "Payment would exceed the agent's daily BPS limit. Resets every 24h." },
-                        { code: "AgentExpired", num: "6007", desc: "Agent has expired. Use renewAgent to extend." },
-                        { code: "InvalidDailyLimit", num: "6008", desc: "dailyLimitBps must be between 1 and 10000." },
-                        { code: "BlockhashExpired", num: "—", desc: "Transaction blockhash expired. Retry the transaction." },
-                        { code: "AlreadyProcessed", num: "—", desc: "Transaction was already processed onchain." },
-                        { code: "AccountNotFound", num: "—", desc: "Agent account not found. Check name and owner." },
-                        { code: "LegacyAgent", num: "—", desc: "Agent created with older contract. See Legacy Migration." },
-                        { code: "InsufficientFunds", num: "—", desc: "Insufficient SOL for transaction fees." },
-                        { code: "WalletNotConnected", num: "—", desc: "Wallet is not connected." },
-                    ].map(err => (
-                        <div key={err.code} style={{ display: "grid", gridTemplateColumns: "200px 60px 1fr", gap: "16px", padding: "12px 0", borderBottom: "1px solid rgba(0,255,136,0.06)", fontSize: "14px", alignItems: "start" }}>
-                            <span style={{ color: "#ff3c5a", fontFamily: "'Share Tech Mono', monospace" }}>{err.code}</span>
-                            <span style={{ color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px" }}>{err.num}</span>
-                            <span style={{ color: "#9aeab0" }}>{err.desc}</span>
-                        </div>
-                    ))}
-                </div>
-                <SubTitle>// HANDLING ERRORS</SubTitle>
-                <Code>{`import { PayKitError } from "@paykit/sdk/errors";
-
-try {
-  await client.recordPayment("my-agent", 1_000_000, recipient, "payment");
-} catch (e) {
-  if (e instanceof PayKitError) {
-    switch (e.code) {
-      case "SpendLimitExceeded":
-        console.log("Agent hit its total budget");
-        break;
-      case "DailyLimitExceeded":
-        console.log("Agent hit its daily limit — resets in 24h");
-        break;
-      case "AgentExpired":
-        await client.renewAgent("my-agent", 31_536_000);
-        break;
-      case "AgentInactive":
-        await client.reactivateAgent("my-agent");
-        break;
-      default:
-        console.error(e.code, e.message);
-    }
-  }
-}`}</Code>
-
-                {/* Legacy Migration */}
-                <SectionTitle id="legacy-migration">LEGACY AGENT MIGRATION</SectionTitle>
-                <Callout type="warning">
-                    <strong style={{ color: "#ffb800" }}>Important:</strong> Agents created before the current contract version cannot be deserialized against the new struct. They appear as <strong>LEGACY</strong> in the dashboard and are excluded from fetchAllAgents results. This is a known limitation of Solana's fixed account size model.
-                </Callout>
-                <P>Each time the contract struct gains a new field (expires_at, daily_limit_bps, etc.), existing accounts on-chain become incompatible because they were allocated with the old size.</P>
-                <SubTitle>// HOW TO IDENTIFY LEGACY AGENTS</SubTitle>
-                <P>Legacy agents show <code style={{ color: "#ffb800" }}>EXPIRES: LEGACY</code> in the dashboard. In the SDK they cause a <code style={{ color: "#ff3c5a" }}>LegacyAgent</code> error when fetched directly.</P>
-                <SubTitle>// MIGRATION STEPS</SubTitle>
-                <Code>{`// Step 1 — Note the legacy agent's configuration
-// (Use Solana Explorer or the audit mode in the dashboard)
-
-// Step 2 — Register a new agent with the same name
-// The new agent gets expires_at and daily_limit_bps fields
-const { agentPDA } = await client.registerAgent(
-  "my-old-agent",   // same name — creates a new PDA
-  1_000_000_000,    // same spend limit
-  1000              // 10% daily limit (new required field)
+const WalletMultiButton = dynamic(
+  async () => (await import("@solana/wallet-adapter-react-ui")).WalletMultiButton,
+  { ssr: false }
 );
 
-// Step 3 — Verify
-const expiry = await client.checkAgentExpiry("my-old-agent");
-console.log("Migrated — expires in:", expiry.daysRemaining, "days");`}</Code>
-                <Callout type="info">
-                    The old legacy PDA remains on-chain permanently as an immutable record. It does not consume additional rent — it simply cannot be interacted with using the current contract version.
-                </Callout>
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-                {/* LangChain */}
-                <SectionTitle id="langchain">LANGCHAIN INTEGRATION</SectionTitle>
-                <P>PayKit integrates naturally with LangChain as a set of custom tools. Register PayKit methods as tools your agent can call autonomously to manage budgets and record payments.</P>
-                <Code>{`npm install langchain @langchain/openai @paykit/sdk`}</Code>
-                <SubTitle>// TOOL DEFINITIONS</SubTitle>
-                <Code>{`const { createClient } = require("@paykit/sdk");
-const { DynamicStructuredTool } = require("langchain/tools");
-const { z } = require("zod");
+const PROGRAM_ID = new PublicKey("F27DrerUQGnkmVhqkEy9m46zDkni2m37Df4ogxkoDhUF");
+const USDC_MINT  = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
+const AGENT_ACCOUNT_SIZE = 371;
+const OWNER_OFFSET = 8 + 32; // discriminator + agent_key
 
-const paykit = createClient("/path/to/keypair.json", "devnet");
+const CAP_ALL_DEFAULT = 0b01111111; // bits 0-6
+const TIER_LABELS = ["BASIC", "STANDARD", "PREMIUM"];
+const TIER_COLORS = ["#6aaa80", "#00ff88", "#ffb800"];
 
-const recordPaymentTool = new DynamicStructuredTool({
-  name: "record_payment",
-  description: "Record a payment onchain via PayKit for accountability.",
-  schema: z.object({
-    agentName: z.string(),
-    amountSOL: z.number(),
-    recipientAddress: z.string(),
-    memo: z.string(),
-  }),
-  func: async ({ agentName, amountSOL, recipientAddress, memo }) => {
-    const { PublicKey } = require("@solana/web3.js");
-    const { tx } = await paykit.recordPayment(
-      agentName,
-      Math.floor(amountSOL * 1_000_000_000),
-      new PublicKey(recipientAddress),
-      memo
-    );
-    return \`Payment recorded. TX: \${tx}\`;
-  },
-});
+const CAP_LABELS: Record<string, string> = {
+  canPayAgents:    "PAY AGENTS",
+  canHireBasic:    "HIRE BASIC",
+  canHireStandard: "HIRE STANDARD",
+  canHirePremium:  "HIRE PREMIUM",
+  canTransferSOL:  "TRANSFER SOL",
+  canTransferSPL:  "TRANSFER SPL",
+  canBatchPay:     "BATCH PAY",
+};
 
-const checkBudgetTool = new DynamicStructuredTool({
-  name: "check_budget",
-  description: "Check remaining budget and expiry before making a payment.",
-  schema: z.object({ agentName: z.string() }),
-  func: async ({ agentName }) => {
-    const agent = await paykit.fetchAgent(agentName);
-    const expiry = await paykit.checkAgentExpiry(agentName);
-    const remaining = agent.spendLimit.toNumber() - agent.totalSpent.toNumber();
-    return JSON.stringify({
-      remainingSOL: (remaining / 1e9).toFixed(4),
-      dailyLimitBps: agent.dailyLimitBps,
-      daysUntilExpiry: expiry.daysRemaining,
-    });
-  },
-});
+// ─── Responsive hook ──────────────────────────────────────────────────────────
 
-const payAgentTool = new DynamicStructuredTool({
-  name: "pay_agent",
-  description: "Pay another registered agent for a completed service.",
-  schema: z.object({
-    senderAgent: z.string(),
-    receiverAgent: z.string(),
-    amountSOL: z.number(),
-    service: z.string(),
-  }),
-  func: async ({ senderAgent, receiverAgent, amountSOL, service }) => {
-    const { tx } = await paykit.agentToAgentPayment(
-      senderAgent, receiverAgent,
-      Math.floor(amountSOL * 1_000_000_000), service
-    );
-    return \`Agent payment confirmed. TX: \${tx}\`;
-  },
-});`}</Code>
-                <SubTitle>// AGENT SETUP</SubTitle>
-                <Code>{`const { ChatOpenAI } = require("@langchain/openai");
-const { AgentExecutor, createOpenAIFunctionsAgent } = require("langchain/agents");
-const { ChatPromptTemplate } = require("@langchain/core/prompts");
-
-const llm = new ChatOpenAI({ model: "gpt-4o", temperature: 0 });
-const tools = [recordPaymentTool, checkBudgetTool, payAgentTool];
-
-const prompt = ChatPromptTemplate.fromMessages([
-  ["system", \`You are an autonomous AI agent with a PayKit wallet on Solana.
-Your agent name is "langchain-agent-01".
-Always check your budget before making payments.
-Record all significant actions onchain for accountability.\`],
-  ["human", "{input}"],
-  ["placeholder", "{agent_scratchpad}"],
-]);
-
-const agent = await createOpenAIFunctionsAgent({ llm, tools, prompt });
-const executor = new AgentExecutor({ agent, tools });
-
-const result = await executor.invoke({
-  input: "Check my budget, then pay agent-researcher 0.001 SOL for the analysis task."
-});`}</Code>
-
-                {/* CrewAI */}
-                <SectionTitle id="crewai">CREWAI INTEGRATION</SectionTitle>
-                <P>PayKit works with CrewAI via a lightweight Node.js sidecar service that CrewAI Python tools call via HTTP requests.</P>
-                <Callout type="info">
-                    <strong style={{ color: "#00ff88" }}>Architecture note:</strong> PayKit SDK is Node.js. The recommended pattern for CrewAI (Python) is to run PayKit as an HTTP sidecar that Python tools call via requests.
-                </Callout>
-                <SubTitle>// PAYKIT SIDECAR (Node.js)</SubTitle>
-                <Code>{`const express = require("express");
-const { createClient } = require("@paykit/sdk");
-
-const app = express();
-app.use(express.json());
-const paykit = createClient("/path/to/keypair.json", "devnet");
-
-app.post("/register", async (req, res) => {
-  const { name, spendLimitSOL, dailyLimitBps = 1000 } = req.body;
-  const result = await paykit.registerAgent(name, spendLimitSOL * 1e9, dailyLimitBps);
-  res.json({ pda: result.agentPDA.toBase58(), tx: result.tx });
-});
-
-app.post("/pay", async (req, res) => {
-  const { sender, receiver, amountSOL, service } = req.body;
-  const result = await paykit.agentToAgentPayment(
-    sender, receiver, Math.floor(amountSOL * 1e9), service
-  );
-  res.json({ tx: result.tx });
-});
-
-app.post("/batch", async (req, res) => {
-  const { sender, payments } = req.body;
-  const result = await paykit.batchPayment(sender, payments.map(p => ({
-    ...p, amountLamports: Math.floor(p.amountSOL * 1e9)
-  })));
-  res.json({ tx: result.tx, count: result.count });
-});
-
-app.get("/agent/:name", async (req, res) => {
-  const agent = await paykit.fetchAgent(req.params.name);
-  const expiry = await paykit.checkAgentExpiry(req.params.name);
-  res.json({
-    spendLimit: agent.spendLimit.toString(),
-    totalSpent: agent.totalSpent.toString(),
-    paymentCount: agent.paymentCount.toString(),
-    dailyLimitBps: agent.dailyLimitBps,
-    isActive: agent.isActive,
-    daysRemaining: expiry.daysRemaining,
-  });
-});
-
-app.listen(3333, () => console.log("PayKit sidecar on port 3333"));`}</Code>
-                <SubTitle>// CREWAI TOOLS (Python)</SubTitle>
-                <Code>{`import requests
-from crewai.tools import BaseTool
-
-PAYKIT_URL = "http://localhost:3333"
-
-class RecordPaymentTool(BaseTool):
-    name: str = "record_payment"
-    description: str = "Record a payment onchain via PayKit for accountability."
-
-    def _run(self, agent_name: str, amount_sol: float, recipient: str, memo: str) -> str:
-        res = requests.post(f"{PAYKIT_URL}/pay", json={
-            "sender": agent_name, "receiver": recipient,
-            "amountSOL": amount_sol, "service": memo,
-        })
-        return f"Payment recorded. TX: {res.json()['tx']}"
-
-class CheckBudgetTool(BaseTool):
-    name: str = "check_budget"
-    description: str = "Check remaining budget before executing any payment."
-
-    def _run(self, agent_name: str) -> str:
-        data = requests.get(f"{PAYKIT_URL}/agent/{agent_name}").json()
-        spent = int(data["totalSpent"]) / 1e9
-        limit = int(data["spendLimit"]) / 1e9
-        return (
-            f"Agent: {agent_name} | Spent: {spent:.4f} SOL | "
-            f"Remaining: {limit - spent:.4f} SOL | "
-            f"Daily limit: {data['dailyLimitBps'] / 100:.0f}% | "
-            f"Days until expiry: {data['daysRemaining']}"
-        )`}</Code>
-
-                {/* Smart Contract */}
-                <SectionTitle id="contract">SMART CONTRACT</SectionTitle>
-                <P>The PayKit program is written in Rust using Anchor and deployed on Solana Devnet. All 7 instructions emit rich onchain events that include agent names, amounts, and timestamps.</P>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "24px" }}>
-                    {[
-                        { label: "PROGRAM ID", value: "F27DrerUQGnkmVhqkEy9m46zDkni2m37Df4ogxkoDhUF" },
-                        { label: "NETWORK", value: "Solana Devnet" },
-                        { label: "FRAMEWORK", value: "Anchor 0.31.1" },
-                        { label: "LANGUAGE", value: "Rust 1.94.1" },
-                    ].map(item => (
-                        <div key={item.label} style={{ padding: "14px", background: "rgba(0,255,136,0.02)", border: "1px solid rgba(0,255,136,0.08)", borderRadius: "3px" }}>
-                            <div style={{ fontSize: "10px", color: "#6aaa80", letterSpacing: "0.15em", marginBottom: "6px", fontFamily: "'Orbitron', monospace" }}>{item.label}</div>
-                            <div style={{ fontSize: "13px", color: "#c8f0d8", fontFamily: "'Share Tech Mono', monospace", wordBreak: "break-all" }}>{item.value}</div>
-                        </div>
-                    ))}
-                </div>
-                <SubTitle>// INSTRUCTIONS</SubTitle>
-                <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
-                    {[
-                        { name: "register_agent", desc: "Creates agent PDA with name, spend limit, configurable daily BPS, and 365-day expiration." },
-                        { name: "record_payment", desc: "Logs a payment. Enforces total spend limit and configurable daily BPS limit." },
-                        { name: "agent_to_agent_payment", desc: "Records a direct payment between two registered agents." },
-                        { name: "update_spend_limit", desc: "Updates the spend limit. Owner only." },
-                        { name: "deactivate_agent", desc: "Disables an agent. Reversible via reactivate_agent." },
-                        { name: "reactivate_agent", desc: "Re-enables a deactivated agent. Requires agent to not be expired." },
-                        { name: "renew_agent", desc: "Extends expiration by specified seconds. Owner only." },
-                    ].map(ix => (
-                        <div key={ix.name} style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: "16px", padding: "12px 0", borderBottom: "1px solid rgba(0,255,136,0.06)", fontSize: "14px", alignItems: "start" }}>
-                            <span style={{ color: "#00ff88", fontFamily: "'Share Tech Mono', monospace" }}>{ix.name}</span>
-                            <span style={{ color: "#9aeab0" }}>{ix.desc}</span>
-                        </div>
-                    ))}
-                </div>
-                <SubTitle>// AGENT ACCOUNT SCHEMA</SubTitle>
-                <Code>{`pub struct AgentAccount {
-  pub owner: Pubkey,          // Wallet that controls the agent
-  pub name: String,           // Unique identifier (max 32 chars)
-  pub spend_limit: u64,       // Maximum spend in lamports
-  pub total_spent: u64,       // Cumulative spend in lamports
-  pub payment_count: u64,     // Number of payments recorded
-  pub is_active: bool,        // Active/inactive status
-  pub bump: u8,               // PDA bump seed
-  pub last_payment_at: i64,   // Unix timestamp of last payment
-  pub daily_spent: u64,       // Amount spent today in lamports
-  pub daily_reset_at: i64,    // Unix timestamp of last daily reset
-  pub expires_at: i64,        // Unix timestamp of expiration (0 = legacy)
-  pub daily_limit_bps: u16,   // Daily limit in basis points (1–10000)
+function useWindowSize() {
+  const [width, setWidth] = useState(1200);
+  useEffect(() => {
+    function update() { setWidth(window.innerWidth); }
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+  return width;
 }
-// Account size: 136 bytes (used as dataSize filter in fetchAllAgents)`}</Code>
 
-                {/* Architecture */}
-                <SectionTitle id="architecture">ARCHITECTURE</SectionTitle>
-                <P>PayKit is three independent layers that can be used together or separately:</P>
-                <Code>{`┌──────────────────────────────────────────────────────────────┐
-│     AI Agent / LangChain / CrewAI / Browser App / Custom      │
-├──────────────────────────────────────────────────────────────┤
-│                     PayKit SDK (Node.js)                       │
-│  registerAgent · recordPayment · batchPayment · reactivate    │
-│  agentToAgent · renewAgent · estimateFee · checkExpiry        │
-│  getAgentHistory · watchAgent · createWebhook · browserWallet │
-├──────────────────────────────────────────────────────────────┤
-│              PayKit Program (Solana / Anchor)                  │
-│  PDAs · Spend Limits · BPS Rate Limiting · Expiration         │
-│  Rich Onchain Events · dataSize=136 Filter                    │
-├──────────────────────────────────────────────────────────────┤
-│                      Solana Blockchain                         │
-│             ~400ms finality · ~$0.00025/tx                    │
-└──────────────────────────────────────────────────────────────┘`}</Code>
-                <SubTitle>// PDA DERIVATION</SubTitle>
-                <Code>{`const [agentPDA] = PublicKey.findProgramAddressSync(
-  [Buffer.from("agent"), ownerPublicKey.toBuffer(), Buffer.from(agentName)],
-  PROGRAM_ID
-);`}</Code>
-                <SubTitle>// RATE LIMITING</SubTitle>
-                <div style={{ display: "flex", flexDirection: "column", gap: "0", marginBottom: "24px" }}>
-                    {[
-                        { rule: "Total spend limit", desc: "Agent can never exceed spend_limit across its entire lifetime. Protocol-enforced — cannot be bypassed." },
-                        { rule: "Daily BPS limit", desc: "Configurable per agent in basis points. 1000 BPS = 10%, 500 BPS = 5%. Resets every 24 hours automatically." },
-                        { rule: "Expiration", desc: "Agents expire after 365 days by default. Expired agents cannot transact. Renewable via renewAgent." },
-                        { rule: "Activation", desc: "Agents can be deactivated and reactivated by their owner. Deactivation is now reversible." },
-                    ].map(item => (
-                        <div key={item.rule} style={{ display: "grid", gridTemplateColumns: "200px 1fr", gap: "16px", padding: "12px 0", borderBottom: "1px solid rgba(0,255,136,0.06)", fontSize: "14px" }}>
-                            <span style={{ color: "#ffb800", fontFamily: "'Share Tech Mono', monospace" }}>{item.rule}</span>
-                            <span style={{ color: "#9aeab0" }}>{item.desc}</span>
-                        </div>
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface Agent {
+  pda: string;
+  agentKey: string;
+  name: string;
+  owner: string;
+  spendLimit: number;
+  totalSpent: number;
+  paymentCount: number;
+  isActive: boolean;
+  expiresAt: number;
+  dailyLimitBps: number;
+  capabilities: number;
+  tier: number;
+}
+
+interface Payment {
+  agent: string;
+  memo: string;
+  tx: string;
+}
+
+// ─── Capability decoder ───────────────────────────────────────────────────────
+
+function decodeCapabilities(caps: number) {
+  return {
+    canPayAgents:    !!(caps & (1 << 0)),
+    canHireBasic:    !!(caps & (1 << 1)),
+    canHireStandard: !!(caps & (1 << 2)),
+    canHirePremium:  !!(caps & (1 << 3)),
+    canTransferSOL:  !!(caps & (1 << 4)),
+    canTransferSPL:  !!(caps & (1 << 5)),
+    canBatchPay:     !!(caps & (1 << 6)),
+  };
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export default function Home() {
+  const { connection } = useConnection();
+  const wallet = useWallet();
+  const windowWidth = useWindowSize();
+  const isMobile  = windowWidth < 768;
+  const isTablet  = windowWidth < 1100;
+
+  // Program
+  const [program, setProgram]   = useState<Program | null>(null);
+  const [mounted, setMounted]   = useState(false);
+  const [status, setStatus]     = useState("AWAITING CONNECTION");
+  const [statusType, setStatusType] = useState<"idle"|"ok"|"error"|"loading">("idle");
+  const [lastTx, setLastTx]     = useState("");
+  const [loading, setLoading]   = useState(false);
+  const [toasts, setToasts]     = useState<{id:number;message:string;type:"ok"|"error"}[]>([]);
+
+  // Agents & payments
+  const [agents, setAgents]     = useState<Agent[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [agentPage, setAgentPage]   = useState(0);
+  const [paymentPage, setPaymentPage] = useState(0);
+  const [paymentFilter, setPaymentFilter] = useState<"all"|"agent_to_agent"|"record_payment"|"register_agent">("all");
+  const AGENTS_PER_PAGE  = 3;
+  const PAYMENTS_PER_PAGE = 3;
+
+  // Register agent form
+  const [agentName, setAgentName]       = useState("");
+  const [spendLimit, setSpendLimit]     = useState("1");
+  const [dailyLimitBps, setDailyLimitBps] = useState("1000");
+  const [fundingSOL, setFundingSOL]     = useState("0.01");
+  const [agentTier, setAgentTier]       = useState(0);
+  const [agentCaps, setAgentCaps]       = useState(CAP_ALL_DEFAULT);
+
+  // Record payment
+  const [selectedAgent, setSelectedAgent] = useState("");
+  const [paymentAmount, setPaymentAmount] = useState("0.001");
+  const [paymentMemo, setPaymentMemo]     = useState("");
+
+  // A2A
+  const [a2aSender, setA2aSender]   = useState("");
+  const [a2aReceiver, setA2aReceiver] = useState("");
+  const [a2aService, setA2aService] = useState("");
+  const [a2aAmount, setA2aAmount]   = useState("0.001");
+  const [a2aCategory, setA2aCategory] = useState(0);
+  const [a2aLog, setA2aLog]         = useState<{time:string;sender:string;receiver:string;service:string;amount:string;tx:string}[]>([]);
+
+  // USDC
+  const [usdcBalance, setUsdcBalance]   = useState(0);
+  const [usdcAgent, setUsdcAgent]       = useState("");
+  const [usdcRecipient, setUsdcRecipient] = useState("");
+  const [usdcAmount, setUsdcAmount]     = useState("1");
+  const [usdcMemo, setUsdcMemo]         = useState("");
+
+  // Audit
+  const [auditPDA, setAuditPDA]         = useState("");
+  const [auditResult, setAuditResult]   = useState<Agent | null>(null);
+  const [auditError, setAuditError]     = useState("");
+  const [auditLoading, setAuditLoading] = useState(false);
+
+  // Capabilities panel
+  const [showCapsPanel, setShowCapsPanel] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    if (!wallet.connected || !wallet.publicKey) {
+      setProgram(null); setAgents([]);
+      setStatus("AWAITING CONNECTION"); setStatusType("idle");
+      return;
+    }
+    initProgram();
+  }, [wallet.connected, wallet.publicKey]);
+
+  // ─── Init ──────────────────────────────────────────────────────────────────
+
+  async function initProgram() {
+    try {
+      setStatus("INITIALIZING..."); setStatusType("loading");
+      const idlRes = await fetch(`/idl/paykit.json?v=${Date.now()}`);
+      const idl = await idlRes.json();
+      const provider = new AnchorProvider(connection, wallet as any, { commitment: "confirmed" });
+      const prog = new Program(idl, provider);
+      setProgram(prog);
+      setStatus("SYSTEM ONLINE"); setStatusType("ok");
+      await fetchAgents(prog);
+      await fetchPaymentHistory(prog);
+      await fetchUsdcBalance();
+    } catch (e: any) {
+      setStatus(`ERR: ${e.message}`); setStatusType("error");
+    }
+  }
+
+  // ─── PDA derivation (Camino B — derived from agent keypair, not owner) ─────
+
+  function getAgentPDA(agentPublicKey: PublicKey, name: string): PublicKey {
+    const [pda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("agent"), agentPublicKey.toBuffer(), Buffer.from(name)],
+      PROGRAM_ID
+    );
+    return pda;
+  }
+
+  // ─── Helpers ───────────────────────────────────────────────────────────────
+
+  function openExplorer(tx: string) {
+    window.open(`https://explorer.solana.com/tx/${tx}?cluster=devnet`, "_blank");
+  }
+
+  function showToast(message: string, type: "ok" | "error" = "ok") {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500);
+  }
+
+  // ─── fetchAgents ───────────────────────────────────────────────────────────
+
+  async function fetchAgents(prog?: Program) {
+    const p = prog || program;
+    if (!p || !wallet.publicKey) return;
+    try {
+      const all = await (p.account as any).agentAccount.all([
+        { dataSize: AGENT_ACCOUNT_SIZE },
+        { memcmp: { offset: OWNER_OFFSET, bytes: wallet.publicKey.toBase58() } },
+      ]);
+      const valid = all.filter((a: any) => {
+        try {
+          a.account.spendLimit.toNumber();
+          a.account.expiresAt.toNumber();
+          if (a.account.capabilities === undefined || a.account.capabilities === null) return false;
+          return true;
+        } catch { return false; }
+      });
+      setAgents(valid.map((a: any) => ({
+        pda: a.publicKey.toBase58(),
+        agentKey: a.account.agentKey.toBase58(),
+        name: a.account.name,
+        owner: a.account.owner.toBase58(),
+        spendLimit: a.account.spendLimit.toNumber(),
+        totalSpent: a.account.totalSpent.toNumber(),
+        paymentCount: a.account.paymentCount.toNumber(),
+        isActive: a.account.isActive,
+        expiresAt: a.account.expiresAt.toNumber(),
+        dailyLimitBps: a.account.dailyLimitBps,
+        capabilities: a.account.capabilities,
+        tier: a.account.tier,
+      })));
+    } catch (e) { console.error(e); }
+  }
+
+  // ─── fetchPaymentHistory ───────────────────────────────────────────────────
+
+  async function fetchPaymentHistory(prog?: Program) {
+    const p = prog || program;
+    if (!p || !wallet.publicKey) return;
+    try {
+      const sigs = await connection.getSignaturesForAddress(PROGRAM_ID, { limit: 50 });
+      const history: Payment[] = [];
+      for (const sig of sigs) {
+        const tx = await connection.getParsedTransaction(sig.signature, {
+          commitment: "confirmed", maxSupportedTransactionVersion: 0,
+        });
+        if (!tx?.meta?.logMessages) continue;
+        const logs = tx.meta.logMessages;
+        const time = new Date((tx.blockTime || 0) * 1000);
+        const timeStr = `${time.getHours().toString().padStart(2,"0")}:${time.getMinutes().toString().padStart(2,"0")}:${time.getSeconds().toString().padStart(2,"0")}`;
+        if (logs.some(l => l.includes("Instruction: AgentToAgentPayment")))
+          history.push({ agent: "agent-to-agent", memo: "agent-to-agent payment", tx: `[${timeStr}] ${sig.signature.slice(0,16)}...` });
+        else if (logs.some(l => l.includes("Instruction: RecordPayment")))
+          history.push({ agent: "manual payment", memo: "recorded payment", tx: `[${timeStr}] ${sig.signature.slice(0,16)}...` });
+        else if (logs.some(l => l.includes("Instruction: RegisterAgent")))
+          history.push({ agent: "system", memo: "agent registered", tx: `[${timeStr}] ${sig.signature.slice(0,16)}...` });
+      }
+      setPayments(history);
+    } catch (e) { console.error(e); }
+  }
+
+  // ─── fetchUsdcBalance ──────────────────────────────────────────────────────
+
+  async function fetchUsdcBalance() {
+    if (!wallet.publicKey) return;
+    try {
+      const ata = await getAssociatedTokenAddress(USDC_MINT, wallet.publicKey);
+      const balance = await connection.getTokenAccountBalance(ata);
+      setUsdcBalance(balance.value.uiAmount || 0);
+    } catch { setUsdcBalance(0); }
+  }
+
+  // ─── handleRegisterAgent (Camino B) ───────────────────────────────────────
+
+  async function handleRegisterAgent() {
+    if (!program || !wallet.publicKey || !agentName) return;
+    setLoading(true); setStatus("GENERATING KEYPAIR..."); setStatusType("loading");
+    try {
+      // Generate agent keypair in browser
+      const agentKeypair = Keypair.generate();
+      const agentPDA = getAgentPDA(agentKeypair.publicKey, agentName);
+      const limitLamports = parseFloat(spendLimit) * 1_000_000_000;
+      const fundLamports  = parseFloat(fundingSOL) * 1_000_000_000;
+      const bps = Math.min(10000, Math.max(1, parseInt(dailyLimitBps) || 1000));
+
+      setStatus("DEPLOYING AGENT...");
+
+      const tx = await program.methods
+        .registerAgent(agentName, new BN(limitLamports), bps, new BN(fundLamports), agentCaps, agentTier)
+        .accounts({
+          agent: agentPDA,
+          agentSigner: agentKeypair.publicKey,
+          owner: wallet.publicKey,
+          systemProgram: PublicKey.default,
+        })
+        .rpc({ skipPreflight: true, commitment: "confirmed" });
+
+      // Store agent keypair in localStorage for browser use
+      const stored = JSON.parse(localStorage.getItem("paykit_agents") || "{}");
+      stored[agentName] = Array.from(agentKeypair.secretKey);
+      localStorage.setItem("paykit_agents", JSON.stringify(stored));
+
+      setStatus(`AGENT "${agentName.toUpperCase()}" DEPLOYED`);
+      setLastTx(tx); setStatusType("ok");
+      showToast(`Agent "${agentName.toUpperCase()}" deployed — tier ${TIER_LABELS[agentTier]}`);
+      setAgentName("");
+      await fetchAgents(program);
+    } catch (e: any) {
+      setStatus(`ERR: ${e.message.slice(0, 60)}`); setStatusType("error");
+    }
+    setLoading(false);
+  }
+
+  // ─── Load agent keypair from localStorage ─────────────────────────────────
+
+  function loadBrowserAgentKeypair(agentName: string): Keypair | null {
+    try {
+      const stored = JSON.parse(localStorage.getItem("paykit_agents") || "{}");
+      if (!stored[agentName]) return null;
+      return Keypair.fromSecretKey(Uint8Array.from(stored[agentName]));
+    } catch { return null; }
+  }
+
+  // ─── handleRecordPayment ───────────────────────────────────────────────────
+
+  async function handleRecordPayment() {
+    if (!program || !wallet.publicKey || !selectedAgent || !paymentMemo) return;
+    setLoading(true); setStatus("BROADCASTING PAYMENT..."); setStatusType("loading");
+    try {
+      const agentKeypair = loadBrowserAgentKeypair(selectedAgent);
+      if (!agentKeypair) throw new Error(`Agent keypair not found for "${selectedAgent}". Use CLI for server-side agents.`);
+      const agentPDA = getAgentPDA(agentKeypair.publicKey, selectedAgent);
+      const amountLamports = parseFloat(paymentAmount) * 1_000_000_000;
+
+      const ix = await program.methods
+        .recordPayment(new BN(amountLamports), wallet.publicKey, paymentMemo, 0)
+        .accounts({ agent: agentPDA, agentSigner: agentKeypair.publicKey })
+        .instruction();
+
+      const tx = new Transaction().add(ix);
+      tx.feePayer = agentKeypair.publicKey;
+      tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+      tx.sign(agentKeypair);
+      const txId = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: true });
+      await connection.confirmTransaction(txId, "confirmed");
+
+      setStatus("PAYMENT CONFIRMED ONCHAIN");
+      setLastTx(txId); setStatusType("ok");
+      showToast("Payment confirmed — agent signed autonomously");
+      setPaymentMemo("");
+      await fetchAgents(program);
+      await fetchPaymentHistory(program);
+    } catch (e: any) {
+      setStatus(`ERR: ${e.message.slice(0, 80)}`); setStatusType("error");
+    }
+    setLoading(false);
+  }
+
+  // ─── handleAgentToAgent ────────────────────────────────────────────────────
+
+  async function handleAgentToAgent() {
+    if (!program || !wallet.publicKey || !a2aSender || !a2aReceiver || !a2aService) return;
+    setLoading(true); setStatus("EXECUTING A2A PAYMENT..."); setStatusType("loading");
+    try {
+      const senderKeypair   = loadBrowserAgentKeypair(a2aSender);
+      const receiverAgent   = agents.find(a => a.name === a2aReceiver)!;
+      if (!senderKeypair) throw new Error(`Sender keypair not found for "${a2aSender}".`);
+      const senderPDA   = getAgentPDA(senderKeypair.publicKey, a2aSender);
+      const receiverPDA = new PublicKey(receiverAgent.pda);
+
+      const ix = await program.methods
+        .agentToAgentPayment(new BN(parseFloat(a2aAmount) * 1_000_000_000), a2aService, a2aCategory)
+        .accounts({ senderAgent: senderPDA, receiverAgent: receiverPDA, agentSigner: senderKeypair.publicKey })
+        .instruction();
+
+      const tx = new Transaction().add(ix);
+      tx.feePayer = senderKeypair.publicKey;
+      tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+      tx.sign(senderKeypair);
+      const txId = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: true });
+      await connection.confirmTransaction(txId, "confirmed");
+
+      const now = new Date();
+      const time = `${now.getHours().toString().padStart(2,"0")}:${now.getMinutes().toString().padStart(2,"0")}:${now.getSeconds().toString().padStart(2,"0")}`;
+      setA2aLog(prev => [{ time, sender: a2aSender, receiver: a2aReceiver, service: a2aService, amount: a2aAmount, tx: txId.slice(0,16)+"..." }, ...prev]);
+      setStatus(`A2A CONFIRMED · ${a2aSender} → ${a2aReceiver}`);
+      setLastTx(txId); setStatusType("ok");
+      showToast(`${a2aSender} → ${a2aReceiver} · agent signed autonomously`);
+      setA2aService("");
+      await fetchAgents(program);
+      await fetchPaymentHistory(program);
+    } catch (e: any) {
+      setStatus(`ERR: ${e.message.slice(0, 80)}`); setStatusType("error");
+    }
+    setLoading(false);
+  }
+
+  // ─── handleUsdcPayment ─────────────────────────────────────────────────────
+
+  async function handleUsdcPayment() {
+    if (!program || !wallet.publicKey || !usdcRecipient || !usdcAgent || !usdcMemo) return;
+    setLoading(true); setStatus("PREPARING USDC TRANSFER..."); setStatusType("loading");
+    try {
+      const recipientPubkey = new PublicKey(usdcRecipient);
+      const amountUSDC = parseFloat(usdcAmount);
+      const amountRaw  = Math.floor(amountUSDC * 1_000_000);
+      const senderATA  = await getAssociatedTokenAddress(USDC_MINT, wallet.publicKey);
+      const recipientATA = await getAssociatedTokenAddress(USDC_MINT, recipientPubkey);
+      const agentKeypair = loadBrowserAgentKeypair(usdcAgent);
+      if (!agentKeypair) throw new Error(`Agent keypair not found for "${usdcAgent}".`);
+      const agentPDA = getAgentPDA(agentKeypair.publicKey, usdcAgent);
+
+      const createATAIx = createAssociatedTokenAccountIdempotentInstruction(
+        wallet.publicKey, recipientATA, recipientPubkey, USDC_MINT, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID
+      );
+      const transferIx = createTransferInstruction(senderATA, recipientATA, wallet.publicKey, amountRaw, [], TOKEN_PROGRAM_ID);
+      const recordIx = await program.methods
+        .recordPayment(new BN(amountRaw), recipientPubkey, usdcMemo, 0)
+        .accounts({ agent: agentPDA, agentSigner: agentKeypair.publicKey })
+        .instruction();
+
+      const tx = new Transaction().add(createATAIx, transferIx, recordIx);
+      tx.feePayer = wallet.publicKey;
+      tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+      // Owner signs for token transfer, agent signs for recordPayment
+      tx.partialSign(agentKeypair);
+      const signed = await wallet.signTransaction!(tx);
+      const txId = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: true });
+      await connection.confirmTransaction(txId, "confirmed");
+
+      setStatus(`USDC CONFIRMED · ${amountUSDC} USDC → ${usdcRecipient.slice(0,8)}...`);
+      setLastTx(txId); setStatusType("ok");
+      showToast(`${amountUSDC} USDC sent`);
+      setUsdcMemo(""); setUsdcRecipient("");
+      await fetchUsdcBalance();
+      await fetchAgents(program);
+    } catch (e: any) {
+      setStatus(`ERR: ${e.message?.slice(0,80)}`); setStatusType("error");
+    }
+    setLoading(false);
+  }
+
+  // ─── handleAudit ───────────────────────────────────────────────────────────
+
+  async function handleAudit() {
+    if (!program || !auditPDA) return;
+    setAuditLoading(true); setAuditError(""); setAuditResult(null);
+    try {
+      const agent = await (program.account as any).agentAccount.fetch(new PublicKey(auditPDA));
+      setAuditResult({
+        pda: auditPDA,
+        agentKey: agent.agentKey.toBase58(),
+        name: agent.name,
+        owner: agent.owner.toBase58(),
+        spendLimit: agent.spendLimit.toNumber(),
+        totalSpent: agent.totalSpent.toNumber(),
+        paymentCount: agent.paymentCount.toNumber(),
+        isActive: agent.isActive,
+        expiresAt: agent.expiresAt.toNumber(),
+        dailyLimitBps: agent.dailyLimitBps,
+        capabilities: agent.capabilities,
+        tier: agent.tier,
+      });
+    } catch { setAuditError("AGENT NOT FOUND OR INVALID PDA"); }
+    setAuditLoading(false);
+  }
+
+  // ─── Admin handlers ────────────────────────────────────────────────────────
+
+  async function handleRenewAgent(name: string) {
+    if (!program || !wallet.publicKey) return;
+    setStatus(`RENEWING ${name.toUpperCase()}...`); setStatusType("loading");
+    try {
+      const agent = agents.find(a => a.name === name)!;
+      const agentKeyPubkey = new PublicKey(agent.agentKey);
+      const agentPDA = getAgentPDA(agentKeyPubkey, name);
+      const tx = await program.methods.renewAgent(new BN(31_536_000))
+        .accounts({ agent: agentPDA, owner: wallet.publicKey }).rpc({ skipPreflight: true });
+      setLastTx(tx); setStatus(`"${name.toUpperCase()}" RENEWED +365D`); setStatusType("ok");
+      showToast(`${name} renewed for 365 days`);
+      await fetchAgents(program);
+    } catch (e: any) { setStatus(`ERR: ${e.message.slice(0,60)}`); setStatusType("error"); }
+  }
+
+  async function handleDeactivateAgent(name: string) {
+    if (!program || !wallet.publicKey) return;
+    setStatus(`DEACTIVATING ${name.toUpperCase()}...`); setStatusType("loading");
+    try {
+      const agent = agents.find(a => a.name === name)!;
+      const agentPDA = getAgentPDA(new PublicKey(agent.agentKey), name);
+      const tx = await program.methods.deactivateAgent()
+        .accounts({ agent: agentPDA, owner: wallet.publicKey }).rpc({ skipPreflight: true });
+      setLastTx(tx); setStatus(`"${name.toUpperCase()}" DEACTIVATED`); setStatusType("ok");
+      showToast(`${name} deactivated`, "error");
+      await fetchAgents(program);
+    } catch (e: any) { setStatus(`ERR: ${e.message.slice(0,60)}`); setStatusType("error"); }
+  }
+
+  async function handleReactivateAgent(name: string) {
+    if (!program || !wallet.publicKey) return;
+    setStatus(`REACTIVATING ${name.toUpperCase()}...`); setStatusType("loading");
+    try {
+      const agent = agents.find(a => a.name === name)!;
+      const agentPDA = getAgentPDA(new PublicKey(agent.agentKey), name);
+      const tx = await program.methods.reactivateAgent()
+        .accounts({ agent: agentPDA, owner: wallet.publicKey }).rpc({ skipPreflight: true });
+      setLastTx(tx); setStatus(`"${name.toUpperCase()}" REACTIVATED`); setStatusType("ok");
+      showToast(`${name} reactivated`);
+      await fetchAgents(program);
+    } catch (e: any) { setStatus(`ERR: ${e.message.slice(0,60)}`); setStatusType("error"); }
+  }
+
+  // ─── Derived state ─────────────────────────────────────────────────────────
+
+  const statusColor = { idle: "#6aaa80", ok: "#00ff88", error: "#ff3c5a", loading: "#ffb800" }[statusType];
+
+  const filteredPayments = payments.filter(p =>
+    paymentFilter === "all" ||
+    p.agent === paymentFilter.replace("record_payment","manual payment").replace("register_agent","system").replace("agent_to_agent","agent-to-agent")
+  );
+
+  // ─── Styles ────────────────────────────────────────────────────────────────
+
+  const card = {
+    position: "relative" as const,
+    background: "var(--bg-card)",
+    border: "1px solid var(--border)",
+    borderRadius: "4px",
+    padding: isMobile ? "14px" : "20px",
+  };
+
+  const sectionTitle = {
+    fontFamily: "'Orbitron', monospace",
+    fontSize: isMobile ? "11px" : "13px",
+    color: "#00ff88",
+    letterSpacing: "0.2em",
+    marginBottom: "16px",
+  };
+
+  const inputStyle = {
+    width: "100%",
+    padding: "11px 14px",
+    borderRadius: "3px",
+    fontSize: "15px",
+  };
+
+  const btnActive = {
+    width: "100%", padding: "11px",
+    background: "rgba(0,255,136,0.08)",
+    border: "1px solid rgba(0,255,136,0.4)",
+    color: "#00ff88",
+    fontFamily: "'Share Tech Mono', monospace",
+    fontSize: "14px", letterSpacing: "0.15em",
+    borderRadius: "3px", cursor: "pointer", transition: "all 0.2s",
+  };
+
+  const btnDisabled = {
+    ...btnActive,
+    background: "transparent",
+    borderColor: "rgba(0,255,136,0.1)",
+    color: "#3a6a4a", cursor: "not-allowed",
+  };
+
+  // ─── Render ────────────────────────────────────────────────────────────────
+
+  return (
+    <main style={{ minHeight: "100vh", maxHeight: isMobile ? "none" : "100vh", overflow: isMobile ? "auto" : "hidden", display: "grid", gridTemplateRows: "auto auto 1fr", padding: isMobile ? "12px 16px" : "24px 32px", maxWidth: "1400px", margin: "0 auto", gap: "0" }}>
+
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", flexDirection: isMobile ? "column" : "row", gap: "12px", paddingBottom: "16px", borderBottom: "1px solid rgba(0,255,136,0.08)", marginBottom: "16px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "8px" : "16px", flexWrap: "wrap" }}>
+          <a href="/" style={{ textDecoration: "none" }}>
+            <span style={{ fontFamily: "'Orbitron', monospace", fontSize: isMobile ? "18px" : "22px", fontWeight: 900, color: "#00ff88", letterSpacing: "0.05em", textShadow: "0 0 20px rgba(0,255,136,0.4)" }}>PAYKIT</span>
+          </a>
+          <a href="/docs" style={{ textDecoration: "none" }}>
+            <span style={{ fontSize: "13px", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", letterSpacing: "0.1em" }}>DOCS</span>
+          </a>
+          <span style={{ fontSize: "11px", color: "#00ff88", border: "1px solid rgba(0,255,136,0.3)", padding: "2px 8px", borderRadius: "2px", letterSpacing: "0.15em" }}>v0.2.0 DEVNET</span>
+          {!isMobile && <span style={{ fontSize: "13px", color: "#9aeab0", letterSpacing: "0.08em" }}>AUTONOMOUS AI AGENT PAYMENT PROTOCOL · SOLANA</span>}
+        </div>
+        {mounted && <WalletMultiButton />}
+      </div>
+
+      {/* Status bar */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", padding: "8px 14px", background: "rgba(0,255,136,0.02)", border: "1px solid rgba(0,255,136,0.08)", borderLeft: `3px solid ${statusColor}`, borderRadius: "2px", marginBottom: "16px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", overflow: "hidden" }}>
+          <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: statusColor, boxShadow: `0 0 8px ${statusColor}`, animation: statusType === "loading" ? "pulse-green 1s infinite" : "none", flexShrink: 0 }} />
+          <span style={{ fontSize: "13px", color: statusColor, letterSpacing: "0.1em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{status}</span>
+        </div>
+        {lastTx && (
+          <button onClick={() => openExplorer(lastTx)} style={{ background: "transparent", border: "1px solid rgba(0,255,136,0.2)", color: "#9aeab0", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", padding: "4px 10px", borderRadius: "2px", cursor: "pointer", letterSpacing: "0.1em", whiteSpace: "nowrap", transition: "all 0.2s", flexShrink: 0 }}
+            onMouseOver={e => (e.currentTarget.style.border = "1px solid rgba(0,255,136,0.5)")}
+            onMouseOut={e => (e.currentTarget.style.border = "1px solid rgba(0,255,136,0.2)")}>
+            {isMobile ? "EXPLORER ↗" : "VIEW ON EXPLORER ↗"}
+          </button>
+        )}
+      </div>
+
+      {/* Not connected */}
+      {!wallet.connected ? (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "20px", border: "1px solid rgba(0,255,136,0.08)", borderRadius: "4px", minHeight: "200px" }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "15px", color: "#3a6a4a", letterSpacing: "0.2em", marginBottom: "8px" }}>NO WALLET DETECTED</div>
+            <div style={{ fontSize: "13px", color: "#3a6a4a" }}>Connect your Phantom wallet to access the protocol</div>
+          </div>
+          {mounted && <WalletMultiButton />}
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: isMobile || isTablet ? "1fr" : "1fr 1fr", gap: isMobile ? "16px" : "32px", overflow: isMobile ? "visible" : "auto" }}>
+
+          {/* LEFT COLUMN */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+
+            {/* Register Agent + Record Payment */}
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px" }}>
+
+              {/* Register Agent — Camino B */}
+              <div className="card-corner" style={card}>
+                <div style={sectionTitle}>// DEPLOY AGENT</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <input style={inputStyle} placeholder="agent-id (max 32 chars)" value={agentName} onChange={e => setAgentName(e.target.value)} />
+                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <input style={{ ...inputStyle, flex: 1, width: "auto" }} placeholder="spend limit" type="number" value={spendLimit} onChange={e => setSpendLimit(e.target.value)} />
+                    <span style={{ color: "#9aeab0", fontSize: "13px" }}>SOL</span>
+                  </div>
+                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <input style={{ ...inputStyle, flex: 1, width: "auto" }} placeholder="daily limit" type="number" min="1" max="10000" value={dailyLimitBps} onChange={e => setDailyLimitBps(e.target.value)} />
+                    <span style={{ color: "#9aeab0", fontSize: "13px" }}>BPS</span>
+                    <span style={{ color: "#6aaa80", fontSize: "11px" }}>({(parseInt(dailyLimitBps||"0")/100).toFixed(0)}%)</span>
+                  </div>
+                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <input style={{ ...inputStyle, flex: 1, width: "auto" }} placeholder="fund agent wallet" type="number" value={fundingSOL} onChange={e => setFundingSOL(e.target.value)} />
+                    <span style={{ color: "#9aeab0", fontSize: "13px" }}>SOL</span>
+                  </div>
+
+                  {/* Tier selector */}
+                  <div style={{ display: "flex", gap: "6px" }}>
+                    {TIER_LABELS.map((t, i) => (
+                      <button key={i} onClick={() => setAgentTier(i)} style={{ flex: 1, padding: "6px", background: agentTier === i ? `${TIER_COLORS[i]}15` : "transparent", border: `1px solid ${agentTier === i ? TIER_COLORS[i] : "rgba(0,255,136,0.1)"}`, color: agentTier === i ? TIER_COLORS[i] : "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", borderRadius: "2px", cursor: "pointer", letterSpacing: "0.1em" }}>
+                        {t}
+                      </button>
                     ))}
-                </div>
+                  </div>
 
-                {/* Footer */}
-                <div style={{ marginTop: "64px", paddingTop: "24px", borderTop: "1px solid rgba(0,255,136,0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "12px", color: "#6aaa80" }}>PAYKIT · ZERO TWO LABS · 2026</span>
-                    <div style={{ display: "flex", gap: "16px" }}>
-                        <button onClick={() => router.push("/")} style={{ background: "transparent", border: "none", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", cursor: "pointer" }}>HOME</button>
-                        <button onClick={() => router.push("/dashboard")} style={{ background: "transparent", border: "none", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", cursor: "pointer" }}>DASHBOARD</button>
-                        <a href="https://github.com/usainbluntmx/paykit" target="_blank" rel="noopener noreferrer" style={{ color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", textDecoration: "none" }}>GITHUB</a>
+                  {/* Capabilities toggle */}
+                  <button onClick={() => setShowCapsPanel(!showCapsPanel)} style={{ background: "transparent", border: "1px solid rgba(0,255,136,0.15)", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", padding: "6px", borderRadius: "2px", cursor: "pointer", letterSpacing: "0.1em" }}>
+                    {showCapsPanel ? "HIDE CAPABILITIES" : `CAPABILITIES (${[0,1,2,3,4,5,6].filter(i => agentCaps & (1<<i)).length}/7 active)`}
+                  </button>
+
+                  {showCapsPanel && (
+                    <div style={{ padding: "10px", background: "rgba(0,255,136,0.02)", border: "1px solid rgba(0,255,136,0.08)", borderRadius: "3px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                      {Object.entries(CAP_LABELS).map(([key, label], i) => {
+                        const bit = 1 << i;
+                        const active = !!(agentCaps & bit);
+                        return (
+                          <div key={key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "11px" }}>
+                            <span style={{ color: active ? "#9aeab0" : "#3a6a4a", fontFamily: "'Share Tech Mono', monospace" }}>{label}</span>
+                            <button onClick={() => setAgentCaps(c => active ? c & ~bit : c | bit)} style={{ background: active ? "rgba(0,255,136,0.1)" : "transparent", border: `1px solid ${active ? "rgba(0,255,136,0.4)" : "rgba(0,255,136,0.1)"}`, color: active ? "#00ff88" : "#3a6a4a", fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", padding: "2px 8px", borderRadius: "2px", cursor: "pointer" }}>
+                              {active ? "ON" : "OFF"}
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
+                  )}
+
+                  <button onClick={handleRegisterAgent} disabled={loading || !agentName} style={loading || !agentName ? btnDisabled : btnActive}>
+                    {loading ? "DEPLOYING..." : "DEPLOY AGENT"}
+                  </button>
                 </div>
+              </div>
+
+              {/* Record Payment */}
+              <div className="card-corner" style={card}>
+                <div style={sectionTitle}>// RECORD PAYMENT</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <select style={inputStyle} value={selectedAgent} onChange={e => setSelectedAgent(e.target.value)}>
+                    <option value="">select agent</option>
+                    {agents.map(a => <option key={a.pda} value={a.name}>{a.name}</option>)}
+                  </select>
+                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <input style={{ ...inputStyle, flex: 1, width: "auto" }} placeholder="amount" type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} />
+                    <span style={{ color: "#9aeab0", fontSize: "13px" }}>SOL</span>
+                  </div>
+                  <input style={inputStyle} placeholder="memo" value={paymentMemo} onChange={e => setPaymentMemo(e.target.value)} />
+                  <div style={{ fontSize: "11px", color: "#6aaa80", padding: "6px 0" }}>
+                    Agent signs autonomously — no owner required
+                  </div>
+                  <button onClick={handleRecordPayment} disabled={loading || !selectedAgent || !paymentMemo} style={loading || !selectedAgent || !paymentMemo ? btnDisabled : btnActive}>
+                    {loading ? "BROADCASTING..." : "SEND PAYMENT"}
+                  </button>
+                </div>
+              </div>
 
             </div>
+
+            {/* Registered Agents + Payment Log */}
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px" }}>
+
+              {/* Registered Agents */}
+              <div className="card-corner" style={card}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                  <div style={sectionTitle}>// REGISTERED AGENTS</div>
+                  <button onClick={() => fetchAgents()} style={{ background: "transparent", border: "none", color: "#9aeab0", fontSize: "12px", cursor: "pointer", letterSpacing: "0.1em", fontFamily: "'Share Tech Mono', monospace" }}>REFRESH</button>
+                </div>
+                {agents.length === 0 ? (
+                  <div style={{ color: "#3a6a4a", fontSize: "13px", textAlign: "center", padding: "16px 0" }}>NO AGENTS DEPLOYED</div>
+                ) : (
+                  <>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      {agents.slice(agentPage * AGENTS_PER_PAGE, (agentPage+1)*AGENTS_PER_PAGE).map(a => {
+                        const decoded = decodeCapabilities(a.capabilities);
+                        const activeCaps = Object.values(decoded).filter(Boolean).length;
+                        return (
+                          <div key={a.pda} style={{ padding: "12px", background: "rgba(0,255,136,0.02)", border: "1px solid rgba(0,255,136,0.08)", borderRadius: "3px", fontSize: "13px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                <span style={{ color: "#00ff88", fontWeight: 600 }}>{a.name}</span>
+                                <span style={{ fontSize: "10px", color: TIER_COLORS[a.tier] || "#6aaa80", border: `1px solid ${TIER_COLORS[a.tier]}40`, padding: "1px 6px", borderRadius: "2px" }}>{TIER_LABELS[a.tier]}</span>
+                              </div>
+                              <span style={{ color: a.isActive ? "#00ff88" : "#ff3c5a", fontSize: "11px", animation: a.isActive ? "pulse-green 2s infinite" : "none" }}>● {a.isActive ? "ACTIVE" : "INACTIVE"}</span>
+                            </div>
+                            <div style={{ color: "#9aeab0", marginBottom: "4px", fontSize: "10px", cursor: "pointer", wordBreak: "break-all" }} onClick={() => navigator.clipboard.writeText(a.agentKey)} title="Click to copy agent key">
+                              KEY {a.agentKey.slice(0,20)}...
+                            </div>
+                            <div style={{ display: "flex", gap: "8px", color: "#9aeab0", fontSize: "11px", flexWrap: "wrap", marginBottom: "6px" }}>
+                              <span>LIMIT <span style={{ color: "#00cc6a" }}>{(a.spendLimit/1e9).toFixed(2)} SOL</span></span>
+                              <span>SPENT <span style={{ color: "#00cc6a" }}>{(a.totalSpent/1e9).toFixed(4)} SOL</span></span>
+                              <span>DAILY <span style={{ color: "#ffb800" }}>{(a.spendLimit/1e9 * a.dailyLimitBps/10000).toFixed(4)} SOL</span></span>
+                              <span>TXS <span style={{ color: "#00cc6a" }}>{a.paymentCount}</span></span>
+                              <span>CAPS <span style={{ color: "#6aaa80" }}>{activeCaps}/7</span></span>
+                              <span>EXPIRES <span style={{ color: a.expiresAt*1000 > Date.now() ? "#6aaa80" : "#ff3c5a" }}>{new Date(a.expiresAt*1000).toLocaleDateString()}</span></span>
+                            </div>
+                            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                              <button onClick={() => handleRenewAgent(a.name)} style={{ background: "transparent", border: "1px solid rgba(0,255,136,0.15)", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", padding: "3px 8px", borderRadius: "2px", cursor: "pointer" }}
+                                onMouseOver={e => { e.currentTarget.style.borderColor="rgba(0,255,136,0.4)"; e.currentTarget.style.color="#00ff88"; }}
+                                onMouseOut={e => { e.currentTarget.style.borderColor="rgba(0,255,136,0.15)"; e.currentTarget.style.color="#6aaa80"; }}>
+                                RENEW +365D
+                              </button>
+                              {a.isActive ? (
+                                <button onClick={() => handleDeactivateAgent(a.name)} style={{ background: "transparent", border: "1px solid rgba(255,60,90,0.15)", color: "#6a3a3a", fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", padding: "3px 8px", borderRadius: "2px", cursor: "pointer" }}
+                                  onMouseOver={e => { e.currentTarget.style.borderColor="rgba(255,60,90,0.4)"; e.currentTarget.style.color="#ff3c5a"; }}
+                                  onMouseOut={e => { e.currentTarget.style.borderColor="rgba(255,60,90,0.15)"; e.currentTarget.style.color="#6a3a3a"; }}>
+                                  DEACTIVATE
+                                </button>
+                              ) : (
+                                <button onClick={() => handleReactivateAgent(a.name)} style={{ background: "transparent", border: "1px solid rgba(255,184,0,0.15)", color: "#6a6a3a", fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", padding: "3px 8px", borderRadius: "2px", cursor: "pointer" }}
+                                  onMouseOver={e => { e.currentTarget.style.borderColor="rgba(255,184,0,0.4)"; e.currentTarget.style.color="#ffb800"; }}
+                                  onMouseOut={e => { e.currentTarget.style.borderColor="rgba(255,184,0,0.15)"; e.currentTarget.style.color="#6a6a3a"; }}>
+                                  REACTIVATE
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "12px", paddingTop: "10px", borderTop: "1px solid rgba(0,255,136,0.06)" }}>
+                      <button onClick={() => setAgentPage(p => Math.max(0, p-1))} disabled={agentPage === 0} style={{ background: "transparent", border: "1px solid", borderColor: agentPage===0?"rgba(0,255,136,0.1)":"rgba(0,255,136,0.3)", color: agentPage===0?"#3a6a4a":"#00ff88", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", padding: "4px 10px", borderRadius: "3px", cursor: agentPage===0?"not-allowed":"pointer" }}>← PREV</button>
+                      <span style={{ color: "#9aeab0", fontSize: "11px" }}>PAGE {agentPage+1} / {Math.ceil(agents.length/AGENTS_PER_PAGE)}</span>
+                      <button onClick={() => setAgentPage(p => Math.min(Math.ceil(agents.length/AGENTS_PER_PAGE)-1, p+1))} disabled={(agentPage+1)*AGENTS_PER_PAGE >= agents.length} style={{ background: "transparent", border: "1px solid", borderColor: (agentPage+1)*AGENTS_PER_PAGE>=agents.length?"rgba(0,255,136,0.1)":"rgba(0,255,136,0.3)", color: (agentPage+1)*AGENTS_PER_PAGE>=agents.length?"#3a6a4a":"#00ff88", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", padding: "4px 10px", borderRadius: "3px", cursor: (agentPage+1)*AGENTS_PER_PAGE>=agents.length?"not-allowed":"pointer" }}>NEXT →</button>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Payment Log */}
+              <div className="card-corner" style={card}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                  <div style={sectionTitle}>// PAYMENT LOG</div>
+                  <div style={{ display: "flex", gap: "6px" }}>
+                    {(["all","agent_to_agent","record_payment","register_agent"] as const).map(f => (
+                      <button key={f} onClick={() => { setPaymentFilter(f); setPaymentPage(0); }} style={{ background: paymentFilter===f?"rgba(0,255,136,0.1)":"transparent", border: "1px solid", borderColor: paymentFilter===f?"rgba(0,255,136,0.4)":"rgba(0,255,136,0.1)", color: paymentFilter===f?"#00ff88":"#9aeab0", fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", padding: "3px 7px", borderRadius: "2px", cursor: "pointer" }}>
+                        {f==="all"?"ALL":f==="agent_to_agent"?"A2A":f==="record_payment"?"PAY":"REG"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {filteredPayments.length === 0 ? (
+                  <div style={{ color: "#3a6a4a", fontSize: "13px", textAlign: "center", padding: "16px 0" }}>NO PAYMENTS RECORDED</div>
+                ) : (
+                  <>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      {filteredPayments.slice(paymentPage*PAYMENTS_PER_PAGE, (paymentPage+1)*PAYMENTS_PER_PAGE).map((p, i) => (
+                        <div key={i} style={{ padding: "10px 12px", background: "rgba(0,255,136,0.02)", border: "1px solid rgba(0,255,136,0.08)", borderRadius: "3px", fontSize: "12px" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                            <span style={{ color: "#e8f5ee" }}>{p.memo}</span>
+                            <span style={{ color: "#00ff88", fontSize: "11px" }}>{p.agent==="agent-to-agent"?"A2A":p.agent==="system"?"SYS":"PAY"}</span>
+                          </div>
+                          <div style={{ color: "#9aeab0", fontSize: "11px" }}>{p.tx}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "12px", paddingTop: "10px", borderTop: "1px solid rgba(0,255,136,0.06)" }}>
+                      <button onClick={() => setPaymentPage(p => Math.max(0,p-1))} disabled={paymentPage===0} style={{ background: "transparent", border: "1px solid", borderColor: paymentPage===0?"rgba(0,255,136,0.1)":"rgba(0,255,136,0.3)", color: paymentPage===0?"#3a6a4a":"#00ff88", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", padding: "4px 10px", borderRadius: "3px", cursor: paymentPage===0?"not-allowed":"pointer" }}>← PREV</button>
+                      <span style={{ color: "#9aeab0", fontSize: "11px" }}>PAGE {paymentPage+1} / {Math.ceil(filteredPayments.length/PAYMENTS_PER_PAGE)}</span>
+                      <button onClick={() => setPaymentPage(p => Math.min(Math.ceil(filteredPayments.length/PAYMENTS_PER_PAGE)-1, p+1))} disabled={(paymentPage+1)*PAYMENTS_PER_PAGE>=filteredPayments.length} style={{ background: "transparent", border: "1px solid", borderColor: (paymentPage+1)*PAYMENTS_PER_PAGE>=filteredPayments.length?"rgba(0,255,136,0.1)":"rgba(0,255,136,0.3)", color: (paymentPage+1)*PAYMENTS_PER_PAGE>=filteredPayments.length?"#3a6a4a":"#00ff88", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", padding: "4px 10px", borderRadius: "3px", cursor: (paymentPage+1)*PAYMENTS_PER_PAGE>=filteredPayments.length?"not-allowed":"pointer" }}>NEXT →</button>
+                    </div>
+                  </>
+                )}
+              </div>
+
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+
+            {/* USDC Transfer */}
+            <div className="card-corner" style={card}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <div style={sectionTitle}>// USDC TRANSFER</div>
+                <div style={{ fontSize: "12px", color: "#00ff88", border: "1px solid rgba(0,255,136,0.2)", padding: "3px 10px", borderRadius: "2px", fontFamily: "'Share Tech Mono', monospace" }}>
+                  {usdcBalance.toFixed(2)} USDC
+                </div>
+              </div>
+              {agents.length === 0 ? (
+                <div style={{ color: "#3a6a4a", fontSize: "13px", textAlign: "center", padding: "16px 0" }}>DEPLOY AN AGENT TO ENABLE USDC TRANSFERS</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <div style={{ display: "flex", gap: "10px", flexDirection: isMobile ? "column" : "row" }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ color: "#9aeab0", fontSize: "11px", marginBottom: "5px" }}>AGENT</div>
+                      <select style={inputStyle} value={usdcAgent} onChange={e => setUsdcAgent(e.target.value)}>
+                        <option value="">select agent</option>
+                        {agents.map(a => <option key={a.pda} value={a.name}>{a.name}</option>)}
+                      </select>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ color: "#9aeab0", fontSize: "11px", marginBottom: "5px" }}>RECIPIENT WALLET</div>
+                      <input style={inputStyle} placeholder="wallet address" value={usdcRecipient} onChange={e => setUsdcRecipient(e.target.value)} />
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <input style={{ ...inputStyle, flex: 1, width: "auto" }} placeholder="memo" value={usdcMemo} onChange={e => setUsdcMemo(e.target.value)} />
+                    <input style={{ ...inputStyle, width: "90px" }} placeholder="amount" type="number" value={usdcAmount} onChange={e => setUsdcAmount(e.target.value)} />
+                    <span style={{ color: "#9aeab0", fontSize: "13px", alignSelf: "center" }}>USDC</span>
+                  </div>
+                  <button onClick={handleUsdcPayment} disabled={loading || !usdcAgent || !usdcRecipient || !usdcMemo} style={loading || !usdcAgent || !usdcRecipient || !usdcMemo ? btnDisabled : btnActive}>
+                    {loading ? "PROCESSING..." : "SEND USDC"}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Agent-to-Agent */}
+            <div className="card-corner" style={card}>
+              <div style={sectionTitle}>// AGENT-TO-AGENT</div>
+              {agents.length < 2 ? (
+                <div style={{ color: "#3a6a4a", fontSize: "13px", textAlign: "center", padding: "16px 0" }}>DEPLOY AT LEAST 2 AGENTS</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <div style={{ display: "flex", gap: "10px", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center" }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ color: "#9aeab0", fontSize: "11px", marginBottom: "5px" }}>SENDER</div>
+                      <select style={inputStyle} value={a2aSender} onChange={e => setA2aSender(e.target.value)}>
+                        <option value="">select sender</option>
+                        {agents.filter(a => a.name !== a2aReceiver).map(a => <option key={a.pda} value={a.name}>{a.name} ({TIER_LABELS[a.tier]})</option>)}
+                      </select>
+                    </div>
+                    {!isMobile && <span style={{ color: "#00ff88", fontSize: "18px", opacity: a2aSender && a2aReceiver ? 1 : 0.2, paddingTop: "18px" }}>→</span>}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ color: "#9aeab0", fontSize: "11px", marginBottom: "5px" }}>RECEIVER</div>
+                      <select style={inputStyle} value={a2aReceiver} onChange={e => setA2aReceiver(e.target.value)}>
+                        <option value="">select receiver</option>
+                        {agents.filter(a => a.name !== a2aSender).map(a => <option key={a.pda} value={a.name}>{a.name} ({TIER_LABELS[a.tier]})</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <select style={{ ...inputStyle, flex: 1, width: "auto" }} value={a2aCategory} onChange={e => setA2aCategory(parseInt(e.target.value))}>
+                      <option value="0">no category</option>
+                      <option value="1">compute</option>
+                      <option value="2">data</option>
+                      <option value="3">storage</option>
+                      <option value="4">inference</option>
+                      <option value="5">research</option>
+                      <option value="6">content</option>
+                    </select>
+                  </div>
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <input style={{ ...inputStyle, flex: 1, width: "auto" }} placeholder="service description" value={a2aService} onChange={e => setA2aService(e.target.value)} />
+                    <input style={{ ...inputStyle, width: "90px" }} placeholder="amount" type="number" value={a2aAmount} onChange={e => setA2aAmount(e.target.value)} />
+                    <span style={{ color: "#9aeab0", fontSize: "13px", alignSelf: "center" }}>SOL</span>
+                  </div>
+                  <button onClick={handleAgentToAgent} disabled={loading || !a2aSender || !a2aReceiver || !a2aService} style={loading || !a2aSender || !a2aReceiver || !a2aService ? btnDisabled : btnActive}>
+                    {loading ? "EXECUTING..." : "EXECUTE A2A PAYMENT"}
+                  </button>
+                  {a2aLog.length > 0 && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                      {a2aLog.slice(0,3).map((entry, i) => (
+                        <div key={i} style={{ padding: "8px 12px", background: "rgba(0,255,136,0.02)", border: "1px solid rgba(0,255,136,0.06)", borderRadius: "3px", fontSize: "12px", color: "#9aeab0" }}>
+                          <span style={{ color: "#00ff88" }}>[{entry.time}]</span>{" "}
+                          <span style={{ color: "#c8f0d8" }}>{entry.sender}</span>{" → "}
+                          <span style={{ color: "#c8f0d8" }}>{entry.receiver}</span>{" · "}
+                          {entry.service}{" · "}
+                          <span style={{ color: "#00ff88" }}>{entry.amount} SOL</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Audit Mode */}
+            <div className="card-corner" style={card}>
+              <div style={sectionTitle}>// AUDIT MODE</div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <input style={{ ...inputStyle, flex: 1, width: "auto" }} placeholder="agent PDA address" value={auditPDA} onChange={e => setAuditPDA(e.target.value)} />
+                <button onClick={handleAudit} disabled={auditLoading || !auditPDA} style={{ padding: "10px 18px", background: auditLoading||!auditPDA?"transparent":"rgba(0,255,136,0.08)", border: "1px solid", borderColor: auditLoading||!auditPDA?"rgba(0,255,136,0.1)":"rgba(0,255,136,0.4)", color: auditLoading||!auditPDA?"#3a6a4a":"#00ff88", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", letterSpacing: "0.1em", borderRadius: "3px", cursor: auditLoading||!auditPDA?"not-allowed":"pointer", whiteSpace: "nowrap" }}>
+                  {auditLoading ? "SCANNING..." : "INSPECT"}
+                </button>
+              </div>
+              {auditError && <div style={{ marginTop: "10px", color: "#ff3c5a", fontSize: "13px" }}>{auditError}</div>}
+              {auditResult && (
+                <div style={{ marginTop: "12px", padding: "14px", background: "rgba(0,255,136,0.02)", border: "1px solid rgba(0,255,136,0.1)", borderRadius: "3px", fontSize: "13px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span style={{ color: "#00ff88", fontSize: "15px", fontWeight: 600 }}>{auditResult.name}</span>
+                      <span style={{ fontSize: "10px", color: TIER_COLORS[auditResult.tier], border: `1px solid ${TIER_COLORS[auditResult.tier]}40`, padding: "1px 6px", borderRadius: "2px" }}>{TIER_LABELS[auditResult.tier]}</span>
+                    </div>
+                    <span style={{ color: auditResult.isActive ? "#00ff88" : "#ff3c5a", fontSize: "12px" }}>● {auditResult.isActive ? "ACTIVE" : "INACTIVE"}</span>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", color: "#9aeab0", fontSize: "13px" }}>
+                    <div>AGENT KEY<div style={{ color: "#c8f0d8", marginTop: "3px", fontSize: "11px", wordBreak: "break-all" }}>{auditResult.agentKey.slice(0,20)}...</div></div>
+                    <div>OWNER<div style={{ color: "#c8f0d8", marginTop: "3px", fontSize: "11px", wordBreak: "break-all" }}>{auditResult.owner.slice(0,20)}...</div></div>
+                    <div>SPEND LIMIT<div style={{ color: "#00ff88", marginTop: "3px" }}>{(auditResult.spendLimit/1e9).toFixed(4)} SOL</div></div>
+                    <div>TOTAL SPENT<div style={{ color: "#00ff88", marginTop: "3px" }}>{(auditResult.totalSpent/1e9).toFixed(4)} SOL</div></div>
+                    <div>PAYMENTS<div style={{ color: "#00ff88", marginTop: "3px" }}>{auditResult.paymentCount}</div></div>
+                    <div>DAILY LIMIT<div style={{ color: "#ffb800", marginTop: "3px" }}>{(auditResult.spendLimit/1e9*auditResult.dailyLimitBps/10000).toFixed(4)} SOL ({(auditResult.dailyLimitBps/100).toFixed(0)}%)</div></div>
+                    <div>EXPIRES<div style={{ color: auditResult.expiresAt*1000>Date.now()?"#6aaa80":"#ff3c5a", marginTop: "3px" }}>{new Date(auditResult.expiresAt*1000).toLocaleDateString()}</div></div>
+                    <div>CAPABILITIES<div style={{ color: "#9aeab0", marginTop: "3px", fontSize: "11px" }}>
+                      {Object.entries(decodeCapabilities(auditResult.capabilities)).filter(([,v])=>v).map(([k])=>CAP_LABELS[k]).join(", ") || "none"}
+                    </div></div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+          </div>
         </div>
-    );
+      )}
+
+      {/* Activity Chart */}
+      {wallet.connected && agents.length > 0 && (
+        <div className="card-corner" style={{ position: "relative", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "4px", padding: isMobile ? "14px" : "20px", marginTop: "16px" }}>
+          <div style={sectionTitle}>// AGENT ACTIVITY</div>
+          <ResponsiveContainer width="100%" height={isMobile ? 120 : 160}>
+            <BarChart data={agents.map(a => ({
+              name: a.name.length > 8 ? a.name.slice(0,8)+"..." : a.name,
+              payments: a.paymentCount,
+              spent: parseFloat((a.totalSpent/1e9).toFixed(4)),
+            }))} margin={{ top: 0, right: 10, left: -20, bottom: 0 }}>
+              <XAxis dataKey="name" tick={{ fill: "#6aaa80", fontSize: isMobile?9:11, fontFamily: "'Share Tech Mono', monospace" }} axisLine={{ stroke: "rgba(0,255,136,0.1)" }} tickLine={false} />
+              <YAxis yAxisId="left" tick={{ fill: "#6aaa80", fontSize: isMobile?9:11, fontFamily: "'Share Tech Mono', monospace" }} axisLine={false} tickLine={false} />
+              <YAxis yAxisId="right" orientation="right" tick={{ fill: "#ffb800", fontSize: isMobile?9:11, fontFamily: "'Share Tech Mono', monospace" }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ background: "#0d1410", border: "1px solid rgba(0,255,136,0.2)", borderRadius: "3px", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", color: "#00ff88" }} labelStyle={{ color: "#c8f0d8" }} cursor={{ fill: "rgba(0,255,136,0.05)" }} />
+              <Bar yAxisId="left" dataKey="payments" name="Payments" radius={[2,2,0,0]} maxBarSize={28}>
+                {agents.map((_,i) => <Cell key={`p-${i}`} fill="#00ff88" opacity={0.7} />)}
+              </Bar>
+              <Bar yAxisId="right" dataKey="spent" name="SOL Spent" radius={[2,2,0,0]} maxBarSize={28}>
+                {agents.map((_,i) => <Cell key={`s-${i}`} fill="#ffb800" opacity={0.7} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          <div style={{ display: "flex", justifyContent: "center", gap: "24px", marginTop: "8px" }}>
+            <span style={{ fontSize: "11px", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace" }}>■ <span style={{ color: "#00ff88" }}>PAYMENTS</span></span>
+            <span style={{ fontSize: "11px", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace" }}>■ <span style={{ color: "#ffb800" }}>SOL SPENT</span></span>
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <div style={{ paddingTop: "12px", borderTop: "1px solid rgba(0,255,136,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "16px", flexWrap: "wrap", gap: "8px" }}>
+        <span style={{ fontSize: "12px", color: "#6aaa80", letterSpacing: "0.1em" }}>PAYKIT · ZERO TWO LABS · 2026</span>
+        {!isMobile && <span style={{ fontSize: "12px", color: "#6aaa80" }}>{PROGRAM_ID.toBase58().slice(0,20)}...</span>}
+      </div>
+
+      {/* Toasts */}
+      <div style={{ position: "fixed", bottom: isMobile?"12px":"24px", right: isMobile?"12px":"24px", left: isMobile?"12px":"auto", display: "flex", flexDirection: "column", gap: "8px", zIndex: 9999 }}>
+        {toasts.map(t => (
+          <div key={t.id} style={{ padding: "12px 20px", background: t.type==="ok"?"rgba(0,20,10,0.95)":"rgba(20,0,5,0.95)", border: `1px solid ${t.type==="ok"?"rgba(0,255,136,0.4)":"rgba(255,60,90,0.4)"}`, borderLeft: `3px solid ${t.type==="ok"?"#00ff88":"#ff3c5a"}`, borderRadius: "3px", fontFamily: "'Share Tech Mono', monospace", fontSize: "13px", color: t.type==="ok"?"#00ff88":"#ff3c5a", letterSpacing: "0.08em", boxShadow: `0 4px 20px ${t.type==="ok"?"rgba(0,255,136,0.1)":"rgba(255,60,90,0.1)"}`, animation: "fade-in-up 0.3s ease forwards" }}>
+            {t.type==="ok"?"✓ ":"✗ "}{t.message}
+          </div>
+        ))}
+      </div>
+
+    </main>
+  );
 }
