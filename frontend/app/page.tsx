@@ -41,7 +41,7 @@ export default function Landing() {
             padding: "4px 12px",
             borderRadius: "2px",
             letterSpacing: "0.15em",
-          }}>v0.1.0 · DEVNET</span>
+          }}>v0.2.0 · DEVNET</span>
         </div>
         <p style={{ fontSize: "20px", color: "#e8f5ee", marginBottom: "10px", fontWeight: 500 }}>
           The payments SDK for autonomous AI agents on Solana.
@@ -51,7 +51,7 @@ export default function Landing() {
         </p>
         <div style={{ display: "flex", gap: "14px", justifyContent: "center" }}>
           <button
-            onClick={() => router.push("/dashboard")}
+            onClick={() => router.push("/demo")}
             style={{
               padding: "12px 36px",
               background: "rgba(0,255,136,0.08)",
@@ -101,10 +101,10 @@ export default function Landing() {
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
               {[
-                { title: "ON-CHAIN IDENTITY", desc: "Each agent gets a unique PDA on Solana." },
-                { title: "SPEND LIMITS", desc: "Enforced by the contract. Cannot be exceeded." },
-                { title: "PAYMENT HISTORY", desc: "Every transaction recorded immutably." },
-                { title: "AGENT-TO-AGENT", desc: "Agents pay agents. No human required." },
+                { title: "AUTONOMOUS KEYPAIRS", desc: "Each agent has its own keypair and signs its own transactions." },
+                { title: "SPEND LIMITS + BPS", desc: "Total and daily limits enforced at the protocol level." },
+                { title: "CAPABILITIES", desc: "Granular permissions per agent — tier, category limits, custom caps." },
+                { title: "AGENT-TO-AGENT", desc: "Agents pay agents autonomously. No owner involvement." },
               ].map((item) => (
                 <div key={item.title} style={{
                   padding: "16px",
@@ -142,17 +142,19 @@ export default function Landing() {
               <div style={{ color: "#9aeab0" }}>{"// install"}</div>
               <div style={{ color: "#e8f5ee" }}>{"npm install @paykit/sdk"}</div>
               <br />
-              <div style={{ color: "#9aeab0" }}>{"// register agent"}</div>
+              <div style={{ color: "#9aeab0" }}>{"// create autonomous agent"}</div>
               <div>
                 <span style={{ color: "#00ff88" }}>{"await "}</span>
                 <span style={{ color: "#e8f5ee" }}>{"client."}</span>
-                <span style={{ color: "#00ff88" }}>{"registerAgent"}</span>
+                <span style={{ color: "#00ff88" }}>{"createAutonomousAgent"}</span>
                 <span style={{ color: "#e8f5ee" }}>{"("}</span>
+              </div>
+              <div style={{ paddingLeft: "20px" }}>
                 <span style={{ color: "#ffb800" }}>{'"my-agent"'}</span>
-                <span style={{ color: "#e8f5ee" }}>{", 1_000_000_000);"}</span>
+                <span style={{ color: "#e8f5ee" }}>{", 1_000_000_000, 1000);"}</span>
               </div>
               <br />
-              <div style={{ color: "#9aeab0" }}>{"// agent pays agent"}</div>
+              <div style={{ color: "#9aeab0" }}>{"// agent signs autonomously"}</div>
               <div>
                 <span style={{ color: "#00ff88" }}>{"await "}</span>
                 <span style={{ color: "#e8f5ee" }}>{"client."}</span>
@@ -163,10 +165,12 @@ export default function Landing() {
                 <span style={{ color: "#ffb800" }}>{'"agent-a"'}</span>
                 <span style={{ color: "#e8f5ee" }}>{", "}</span>
                 <span style={{ color: "#ffb800" }}>{'"agent-b"'}</span>
-                <span style={{ color: "#e8f5ee" }}>{", 250_000, "}</span>
-                <span style={{ color: "#ffb800" }}>{'"API call"'}</span>
+                <span style={{ color: "#e8f5ee" }}>{", 250_000,"}</span>
               </div>
-              <div><span style={{ color: "#e8f5ee" }}>{")"}</span></div>
+              <div style={{ paddingLeft: "20px" }}>
+                <span style={{ color: "#ffb800" }}>{'"inference task"'}</span>
+                <span style={{ color: "#e8f5ee" }}>{", CATEGORIES.INFERENCE);"}</span>
+              </div>
             </div>
           </div>
 
