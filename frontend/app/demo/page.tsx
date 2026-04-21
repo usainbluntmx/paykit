@@ -20,40 +20,40 @@ const AGENT_ACCOUNT_SIZE = 371;
 const OWNER_OFFSET = 8 + 32;
 
 const CAP_DEFS = [
-  { key: "canPayAgents",    bit: 0, label: "PAY AGENTS",    desc: "Agent can pay other registered agents" },
-  { key: "canHireBasic",    bit: 1, label: "HIRE BASIC",    desc: "Can hire tier-0 (basic) agents" },
+  { key: "canPayAgents", bit: 0, label: "PAY AGENTS", desc: "Agent can pay other registered agents" },
+  { key: "canHireBasic", bit: 1, label: "HIRE BASIC", desc: "Can hire tier-0 (basic) agents" },
   { key: "canHireStandard", bit: 2, label: "HIRE STANDARD", desc: "Can hire tier-1 (standard) agents" },
-  { key: "canHirePremium",  bit: 3, label: "HIRE PREMIUM",  desc: "Can hire tier-2 (premium) agents" },
-  { key: "canTransferSOL",  bit: 4, label: "TRANSFER SOL",  desc: "Can transfer SOL between agent wallets" },
-  { key: "canTransferSPL",  bit: 5, label: "TRANSFER SPL",  desc: "Can transfer SPL tokens (USDC, etc.)" },
-  { key: "canBatchPay",     bit: 6, label: "BATCH PAY",     desc: "Can send up to 5 payments in one TX" },
+  { key: "canHirePremium", bit: 3, label: "HIRE PREMIUM", desc: "Can hire tier-2 (premium) agents" },
+  { key: "canTransferSOL", bit: 4, label: "TRANSFER SOL", desc: "Can transfer SOL between agent wallets" },
+  { key: "canTransferSPL", bit: 5, label: "TRANSFER SPL", desc: "Can transfer SPL tokens (USDC, etc.)" },
+  { key: "canBatchPay", bit: 6, label: "BATCH PAY", desc: "Can send up to 5 payments in one TX" },
 ];
 
 const TIER_DEFS = [
-  { label: "BASIC",    color: "#6aaa80", desc: "Hirable by any agent" },
+  { label: "BASIC", color: "#6aaa80", desc: "Hirable by any agent" },
   { label: "STANDARD", color: "#00ff88", desc: "Hirable by standard+ agents" },
-  { label: "PREMIUM",  color: "#ffb800", desc: "Hirable by premium agents only" },
+  { label: "PREMIUM", color: "#ffb800", desc: "Hirable by premium agents only" },
 ];
 
 const CATEGORIES = [
-  { id: 0, label: "none",      color: "#6aaa80" },
-  { id: 1, label: "compute",   color: "#00ff88" },
-  { id: 2, label: "data",      color: "#00cc6a" },
-  { id: 3, label: "storage",   color: "#9aeab0" },
+  { id: 0, label: "none", color: "#6aaa80" },
+  { id: 1, label: "compute", color: "#00ff88" },
+  { id: 2, label: "data", color: "#00cc6a" },
+  { id: 3, label: "storage", color: "#9aeab0" },
   { id: 4, label: "inference", color: "#ffb800" },
-  { id: 5, label: "research",  color: "#ff9900" },
-  { id: 6, label: "content",   color: "#ff6600" },
+  { id: 5, label: "research", color: "#ff9900" },
+  { id: 6, label: "content", color: "#ff6600" },
 ];
 
 // ─── Step definitions ─────────────────────────────────────────────────────────
 
 const STEPS = [
-  { id: 1, label: "CONNECT",     short: "CONNECT WALLET" },
-  { id: 2, label: "DEPLOY",      short: "DEPLOY AGENT" },
-  { id: 3, label: "CONFIGURE",   short: "CAPABILITIES" },
-  { id: 4, label: "PAYMENT",     short: "FIRST PAYMENT" },
+  { id: 1, label: "CONNECT", short: "CONNECT WALLET" },
+  { id: 2, label: "DEPLOY", short: "DEPLOY AGENT" },
+  { id: 3, label: "CONFIGURE", short: "CAPABILITIES" },
+  { id: 4, label: "PAYMENT", short: "FIRST PAYMENT" },
   { id: 5, label: "AGENT→AGENT", short: "A2A PAYMENT" },
-  { id: 6, label: "AUDIT",       short: "VERIFY ONCHAIN" },
+  { id: 6, label: "AUDIT", short: "VERIFY ONCHAIN" },
 ];
 
 // ─── Typing effect hook ───────────────────────────────────────────────────────
@@ -162,8 +162,8 @@ function ProgressBar({ current, completed, onGoTo }: { current: number; complete
       <div style={{ maxWidth: "900px", margin: "0 auto", display: "flex", alignItems: "center", gap: "0" }}>
         {STEPS.map((step, i) => {
           const isCompleted = completed.has(step.id);
-          const isCurrent   = current === step.id;
-          const canClick    = isCompleted && !isCurrent;
+          const isCurrent = current === step.id;
+          const canClick = isCompleted && !isCurrent;
           return (
             <div key={step.id} style={{ display: "flex", alignItems: "center", flex: i < STEPS.length - 1 ? 1 : 0 }}>
               <button
@@ -214,10 +214,10 @@ export default function Demo() {
   const [mounted, setMounted] = useState(false);
 
   // Navigation state
-  const [currentStep, setCurrentStep]   = useState(1);
+  const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
-  const [slideDir, setSlideDir]         = useState<"left" | "right">("right");
-  const [animating, setAnimating]       = useState(false);
+  const [slideDir, setSlideDir] = useState<"left" | "right">("right");
+  const [animating, setAnimating] = useState(false);
 
   // Program
   const [program, setProgram] = useState<Program | null>(null);
@@ -225,28 +225,28 @@ export default function Demo() {
   const [txBurst, setTxBurst] = useState(false);
 
   // Step 2 — Deploy agent
-  const [agentName, setAgentName]     = useState("my-first-agent");
-  const [spendLimit, setSpendLimit]   = useState("1");
-  const [fundingSOL, setFundingSOL]   = useState("0.01");
-  const [deployedAgent, setDeployedAgent] = useState<{name:string;pda:string;agentKey:string;keypair:number[]} | null>(null);
+  const [agentName, setAgentName] = useState("my-first-agent");
+  const [spendLimit, setSpendLimit] = useState("1");
+  const [fundingSOL, setFundingSOL] = useState("0.01");
+  const [deployedAgent, setDeployedAgent] = useState<{ name: string; pda: string; agentKey: string; keypair: number[] } | null>(null);
 
   // Step 3 — Capabilities
   const [capabilities, setCapabilities] = useState(CAP_ALL_DEFAULT);
-  const [agentTier, setAgentTier]       = useState(0);
+  const [agentTier, setAgentTier] = useState(0);
   const [capsConfirmed, setCapsConfirmed] = useState(false);
 
   // Step 4 — First payment
-  const [payMemo, setPayMemo]       = useState("OpenAI API call");
-  const [payAmount, setPayAmount]   = useState("0.001");
+  const [payMemo, setPayMemo] = useState("OpenAI API call");
+  const [payAmount, setPayAmount] = useState("0.001");
   const [payCategory, setPayCategory] = useState(1);
-  const [payTx, setPayTx]           = useState("");
+  const [payTx, setPayTx] = useState("");
 
   // Step 5 — A2A
-  const [agent2Name, setAgent2Name]   = useState("my-second-agent");
-  const [agent2Deployed, setAgent2Deployed] = useState<{name:string;pda:string;agentKey:string;keypair:number[]} | null>(null);
-  const [a2aService, setA2aService]   = useState("Data analysis task");
+  const [agent2Name, setAgent2Name] = useState("my-second-agent");
+  const [agent2Deployed, setAgent2Deployed] = useState<{ name: string; pda: string; agentKey: string; keypair: number[] } | null>(null);
+  const [a2aService, setA2aService] = useState("Data analysis task");
   const [a2aCategory, setA2aCategory] = useState(4);
-  const [a2aTx, setA2aTx]           = useState("");
+  const [a2aTx, setA2aTx] = useState("");
   const [a2aAnimating, setA2aAnimating] = useState(false);
 
   // Step 6 — Audit
@@ -254,8 +254,8 @@ export default function Demo() {
   const [historyResult, setHistoryResult] = useState<any[]>([]);
 
   // Status
-  const [statusMsg, setStatusMsg]   = useState("");
-  const [statusType, setStatusType] = useState<"idle"|"ok"|"error"|"loading">("idle");
+  const [statusMsg, setStatusMsg] = useState("");
+  const [statusType, setStatusType] = useState<"idle" | "ok" | "error" | "loading">("idle");
   const statusColor = { idle: "#6aaa80", ok: "#00ff88", error: "#ff3c5a", loading: "#ffb800" }[statusType];
 
   useEffect(() => { setMounted(true); }, []);
@@ -334,7 +334,7 @@ export default function Demo() {
       const agentKeypair = Keypair.generate();
       const agentPDA = getAgentPDA(agentKeypair.publicKey, agentName);
       const limitLamports = parseFloat(spendLimit) * 1_000_000_000;
-      const fundLamports  = parseFloat(fundingSOL) * 1_000_000_000;
+      const fundLamports = parseFloat(fundingSOL) * 1_000_000_000;
 
       setStatusMsg("DEPLOYING ONCHAIN...");
       const tx = await program.methods
@@ -344,12 +344,12 @@ export default function Demo() {
 
       saveAgent(agentName, agentKeypair, agentPDA);
       setDeployedAgent({ name: agentName, pda: agentPDA.toBase58(), agentKey: agentKeypair.publicKey.toBase58(), keypair: Array.from(agentKeypair.secretKey) });
-      setStatusMsg(`AGENT "${agentName.toUpperCase()}" DEPLOYED · ${tx.slice(0,16)}...`);
+      setStatusMsg(`AGENT "${agentName.toUpperCase()}" DEPLOYED · ${tx.slice(0, 16)}...`);
       setStatusType("ok");
       showBurst();
       completeStep(2);
     } catch (e: any) {
-      setStatusMsg(`ERR: ${e.message.slice(0,80)}`); setStatusType("error");
+      setStatusMsg(`ERR: ${e.message.slice(0, 80)}`); setStatusType("error");
     }
     setLoading(false);
   }
@@ -386,12 +386,12 @@ export default function Demo() {
       await connection.confirmTransaction(txId, "confirmed");
 
       setPayTx(txId);
-      setStatusMsg(`PAYMENT CONFIRMED · ${txId.slice(0,16)}...`);
+      setStatusMsg(`PAYMENT CONFIRMED · ${txId.slice(0, 16)}...`);
       setStatusType("ok");
       showBurst();
       completeStep(4);
     } catch (e: any) {
-      setStatusMsg(`ERR: ${e.message.slice(0,80)}`); setStatusType("error");
+      setStatusMsg(`ERR: ${e.message.slice(0, 80)}`); setStatusType("error");
     }
     setLoading(false);
   }
@@ -411,11 +411,11 @@ export default function Demo() {
 
       saveAgent(agent2Name, agentKeypair, agentPDA);
       setAgent2Deployed({ name: agent2Name, pda: agentPDA.toBase58(), agentKey: agentKeypair.publicKey.toBase58(), keypair: Array.from(agentKeypair.secretKey) });
-      setStatusMsg(`"${agent2Name.toUpperCase()}" DEPLOYED · ${tx.slice(0,16)}...`);
+      setStatusMsg(`"${agent2Name.toUpperCase()}" DEPLOYED · ${tx.slice(0, 16)}...`);
       setStatusType("ok");
       showBurst();
     } catch (e: any) {
-      setStatusMsg(`ERR: ${e.message.slice(0,80)}`); setStatusType("error");
+      setStatusMsg(`ERR: ${e.message.slice(0, 80)}`); setStatusType("error");
     }
     setLoading(false);
   }
@@ -426,8 +426,8 @@ export default function Demo() {
     setA2aAnimating(true);
     try {
       const senderKeypair = Keypair.fromSecretKey(Uint8Array.from(deployedAgent.keypair));
-      const senderPDA     = new PublicKey(deployedAgent.pda);
-      const receiverPDA   = new PublicKey(agent2Deployed.pda);
+      const senderPDA = new PublicKey(deployedAgent.pda);
+      const receiverPDA = new PublicKey(agent2Deployed.pda);
 
       const ix = await program.methods
         .agentToAgentPayment(new BN(250_000), a2aService, a2aCategory)
@@ -443,13 +443,13 @@ export default function Demo() {
 
       setTimeout(() => setA2aAnimating(false), 1500);
       setA2aTx(txId);
-      setStatusMsg(`A2A CONFIRMED · ${txId.slice(0,16)}...`);
+      setStatusMsg(`A2A CONFIRMED · ${txId.slice(0, 16)}...`);
       setStatusType("ok");
       showBurst();
       completeStep(5);
     } catch (e: any) {
       setA2aAnimating(false);
-      setStatusMsg(`ERR: ${e.message.slice(0,80)}`); setStatusType("error");
+      setStatusMsg(`ERR: ${e.message.slice(0, 80)}`); setStatusType("error");
     }
     setLoading(false);
   }
@@ -479,14 +479,14 @@ export default function Demo() {
       const sigs = await connection.getSignaturesForAddress(new PublicKey(deployedAgent.pda), { limit: 10 });
       const hist = sigs.map(s => {
         const time = new Date((s.blockTime || 0) * 1000);
-        return `[${time.getHours().toString().padStart(2,"0")}:${time.getMinutes().toString().padStart(2,"0")}] ${s.signature.slice(0,20)}...`;
+        return `[${time.getHours().toString().padStart(2, "0")}:${time.getMinutes().toString().padStart(2, "0")}] ${s.signature.slice(0, 20)}...`;
       });
       setHistoryResult(hist);
       setStatusMsg("ONCHAIN DATA VERIFIED");
       setStatusType("ok");
       completeStep(6);
     } catch (e: any) {
-      setStatusMsg(`ERR: ${e.message.slice(0,80)}`); setStatusType("error");
+      setStatusMsg(`ERR: ${e.message.slice(0, 80)}`); setStatusType("error");
     }
     setLoading(false);
   }
@@ -599,13 +599,13 @@ export default function Demo() {
                   <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#00ff88", boxShadow: "0 0 12px rgba(0,255,136,0.6)", animation: "pulse-green 2s infinite", flexShrink: 0 }} />
                   <div>
                     <div style={{ color: "#00ff88", fontFamily: "'Orbitron', monospace", fontSize: "13px", marginBottom: "4px" }}>{deployedAgent.name.toUpperCase()} · LIVE</div>
-                    <div style={{ color: "#9aeab0", fontSize: "11px", wordBreak: "break-all" }}>KEY {deployedAgent.agentKey.slice(0,32)}...</div>
-                    <div style={{ color: "#6aaa80", fontSize: "11px", wordBreak: "break-all" }}>PDA {deployedAgent.pda.slice(0,32)}...</div>
+                    <div style={{ color: "#9aeab0", fontSize: "11px", wordBreak: "break-all" }}>KEY {deployedAgent.agentKey.slice(0, 32)}...</div>
+                    <div style={{ color: "#6aaa80", fontSize: "11px", wordBreak: "break-all" }}>PDA {deployedAgent.pda.slice(0, 32)}...</div>
                   </div>
                 </div>
                 <div style={{ fontSize: "13px", color: "#9aeab0", marginBottom: "16px" }}>
-                  ✓ Keypair generated and stored locally<br/>
-                  ✓ PDA registered onchain via <code style={{ color: "#ffb800" }}>registerAgent</code><br/>
+                  ✓ Keypair generated and stored locally<br />
+                  ✓ PDA registered onchain via <code style={{ color: "#ffb800" }}>registerAgent</code><br />
                   ✓ Agent wallet funded with {fundingSOL} SOL for transaction fees
                 </div>
                 <button onClick={nextStep} style={btnGreen}>CONFIGURE CAPABILITIES →</button>
@@ -686,7 +686,7 @@ export default function Demo() {
                 {CAP_DEFS.map(cap => {
                   const active = !!(capabilities & (1 << cap.bit));
                   return (
-                    <div key={cap.key} onClick={() => !capsConfirmed && setCapabilities(c => active ? c & ~(1<<cap.bit) : c | (1<<cap.bit))}
+                    <div key={cap.key} onClick={() => !capsConfirmed && setCapabilities(c => active ? c & ~(1 << cap.bit) : c | (1 << cap.bit))}
                       style={{
                         display: "flex", alignItems: "center", justifyContent: "space-between",
                         padding: "10px 14px",
@@ -730,7 +730,7 @@ export default function Demo() {
             {capsConfirmed ? (
               <div>
                 <div style={{ color: "#00ff88", marginBottom: "16px", fontSize: "13px" }}>
-                  ✓ {[0,1,2,3,4,5,6].filter(i => capabilities & (1<<i)).length}/7 capabilities active · tier {TIER_DEFS[agentTier].label}
+                  ✓ {[0, 1, 2, 3, 4, 5, 6].filter(i => capabilities & (1 << i)).length}/7 capabilities active · tier {TIER_DEFS[agentTier].label}
                 </div>
                 <button onClick={nextStep} style={btnGreen}>RECORD FIRST PAYMENT →</button>
               </div>
@@ -758,7 +758,7 @@ export default function Demo() {
               <div>
                 <div style={{ padding: "16px", background: "rgba(0,255,136,0.05)", border: "1px solid rgba(0,255,136,0.2)", borderRadius: "3px", marginBottom: "20px", animation: "fade-in-up 0.4s ease forwards" }}>
                   <div style={{ color: "#00ff88", fontSize: "13px", marginBottom: "8px" }}>✓ PAYMENT CONFIRMED ONCHAIN</div>
-                  <div style={{ fontSize: "12px", color: "#9aeab0", marginBottom: "4px" }}>Signed by: <span style={{ color: "#c8f0d8" }}>{deployedAgent?.agentKey.slice(0,20)}... (agent keypair)</span></div>
+                  <div style={{ fontSize: "12px", color: "#9aeab0", marginBottom: "4px" }}>Signed by: <span style={{ color: "#c8f0d8" }}>{deployedAgent?.agentKey.slice(0, 20)}... (agent keypair)</span></div>
                   <div style={{ fontSize: "12px", color: "#9aeab0", marginBottom: "4px" }}>Memo: <span style={{ color: "#c8f0d8" }}>{payMemo}</span></div>
                   <div style={{ fontSize: "12px", color: "#9aeab0", marginBottom: "4px" }}>Category: <span style={{ color: CATEGORIES[payCategory]?.color || "#9aeab0" }}>{CATEGORIES[payCategory]?.label}</span></div>
                   <div style={{ fontSize: "11px", color: "#6aaa80", marginTop: "8px", wordBreak: "break-all" }}>TX: {payTx}</div>
@@ -915,14 +915,14 @@ export default function Demo() {
               <div style={{ animation: "fade-in-up 0.4s ease forwards" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "20px" }}>
                   {[
-                    { label: "AGENT NAME",    value: auditResult.name, color: "#00ff88" },
-                    { label: "STATUS",        value: auditResult.isActive ? "ACTIVE" : "INACTIVE", color: auditResult.isActive ? "#00ff88" : "#ff3c5a" },
-                    { label: "SPEND LIMIT",   value: `${(auditResult.spendLimit/1e9).toFixed(2)} SOL`, color: "#c8f0d8" },
-                    { label: "TOTAL SPENT",   value: `${(auditResult.totalSpent/1e9).toFixed(6)} SOL`, color: "#ffb800" },
-                    { label: "PAYMENTS",      value: auditResult.paymentCount, color: "#9aeab0" },
-                    { label: "DAILY BPS",     value: `${auditResult.dailyLimitBps} (${(auditResult.dailyLimitBps/100).toFixed(0)}%)`, color: "#9aeab0" },
-                    { label: "CAPABILITIES",  value: `${[0,1,2,3,4,5,6].filter(i=>auditResult.capabilities&(1<<i)).length}/7 active`, color: "#6aaa80" },
-                    { label: "EXPIRES",       value: new Date(auditResult.expiresAt*1000).toLocaleDateString(), color: "#6aaa80" },
+                    { label: "AGENT NAME", value: auditResult.name, color: "#00ff88" },
+                    { label: "STATUS", value: auditResult.isActive ? "ACTIVE" : "INACTIVE", color: auditResult.isActive ? "#00ff88" : "#ff3c5a" },
+                    { label: "SPEND LIMIT", value: `${(auditResult.spendLimit / 1e9).toFixed(2)} SOL`, color: "#c8f0d8" },
+                    { label: "TOTAL SPENT", value: `${(auditResult.totalSpent / 1e9).toFixed(6)} SOL`, color: "#ffb800" },
+                    { label: "PAYMENTS", value: auditResult.paymentCount, color: "#9aeab0" },
+                    { label: "DAILY BPS", value: `${auditResult.dailyLimitBps} (${(auditResult.dailyLimitBps / 100).toFixed(0)}%)`, color: "#9aeab0" },
+                    { label: "CAPABILITIES", value: `${[0, 1, 2, 3, 4, 5, 6].filter(i => auditResult.capabilities & (1 << i)).length}/7 active`, color: "#6aaa80" },
+                    { label: "EXPIRES", value: new Date(auditResult.expiresAt * 1000).toLocaleDateString(), color: "#6aaa80" },
                   ].map(item => (
                     <div key={item.label} style={{ padding: "10px 14px", background: "rgba(0,255,136,0.02)", border: "1px solid rgba(0,255,136,0.08)", borderRadius: "2px" }}>
                       <div style={{ fontSize: "10px", color: "#3a6a4a", letterSpacing: "0.1em", marginBottom: "4px" }}>{item.label}</div>
@@ -931,11 +931,40 @@ export default function Demo() {
                   ))}
                 </div>
 
+                {/* Capabilities pills */}
+                <div style={{ gridColumn: "1 / -1", padding: "10px 14px", background: "rgba(0,255,136,0.02)", border: "1px solid rgba(0,255,136,0.08)", borderRadius: "2px" }}>
+                  <div style={{ fontSize: "10px", color: "#3a6a4a", letterSpacing: "0.1em", marginBottom: "8px" }}>CAPABILITIES</div>
+                  <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+                    {[
+                      { bit: 0, label: "PAY AGENTS" },
+                      { bit: 1, label: "HIRE BASIC" },
+                      { bit: 2, label: "HIRE STANDARD" },
+                      { bit: 3, label: "HIRE PREMIUM" },
+                      { bit: 4, label: "TRANSFER SOL" },
+                      { bit: 5, label: "TRANSFER SPL" },
+                      { bit: 6, label: "BATCH PAY" },
+                    ].map(cap => {
+                      const active = !!(auditResult.capabilities & (1 << cap.bit));
+                      return (
+                        <span key={cap.bit} style={{
+                          fontSize: "10px", padding: "3px 8px", borderRadius: "2px",
+                          fontFamily: "'Share Tech Mono', monospace", letterSpacing: "0.05em",
+                          background: active ? "rgba(0,255,136,0.08)" : "transparent",
+                          border: `1px solid ${active ? "rgba(0,255,136,0.3)" : "rgba(0,255,136,0.06)"}`,
+                          color: active ? "#00ff88" : "#3a6a4a",
+                        }}>
+                          {active ? "✓ " : "○ "}{cap.label}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {historyResult.length > 0 && (
                   <div style={{ marginBottom: "20px" }}>
                     <div style={{ fontSize: "11px", color: "#6aaa80", marginBottom: "8px", letterSpacing: "0.1em" }}>TRANSACTION HISTORY</div>
                     <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                      {historyResult.slice(0,5).map((h, i) => (
+                      {historyResult.slice(0, 5).map((h, i) => (
                         <div key={i} style={{ fontSize: "11px", color: "#9aeab0", fontFamily: "'Share Tech Mono', monospace", padding: "6px 10px", background: "rgba(0,255,136,0.02)", borderRadius: "2px" }}>
                           {h}
                         </div>
@@ -985,7 +1014,7 @@ export default function Demo() {
             </a>
             <span style={{ fontSize: "11px", color: "#00ff88", border: "1px solid rgba(0,255,136,0.3)", padding: "2px 8px", borderRadius: "2px", letterSpacing: "0.15em" }}>INTERACTIVE DEMO</span>
             <span style={{ fontSize: "12px", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace" }}>
-              {STEPS[currentStep-1]?.short}
+              {STEPS[currentStep - 1]?.short}
             </span>
           </div>
           {mounted && <WalletMultiButton />}
@@ -996,7 +1025,7 @@ export default function Demo() {
       {statusMsg && (
         <div style={{ maxWidth: "900px", margin: "0 auto", padding: "0 24px 16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 14px", background: "rgba(0,255,136,0.02)", border: "1px solid rgba(0,255,136,0.08)", borderLeft: `3px solid ${statusColor}`, borderRadius: "2px" }}>
-            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: statusColor, boxShadow: `0 0 8px ${statusColor}`, animation: statusType==="loading"?"pulse-green 1s infinite":"none", flexShrink: 0 }} />
+            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: statusColor, boxShadow: `0 0 8px ${statusColor}`, animation: statusType === "loading" ? "pulse-green 1s infinite" : "none", flexShrink: 0 }} />
             <span style={{ fontSize: "13px", color: statusColor, letterSpacing: "0.1em" }}>{statusMsg}</span>
           </div>
         </div>
@@ -1020,11 +1049,11 @@ export default function Demo() {
             style={{
               background: "transparent",
               border: "1px solid",
-              borderColor: currentStep===1?"rgba(0,255,136,0.1)":"rgba(0,255,136,0.3)",
-              color: currentStep===1?"#3a6a4a":"#6aaa80",
+              borderColor: currentStep === 1 ? "rgba(0,255,136,0.1)" : "rgba(0,255,136,0.3)",
+              color: currentStep === 1 ? "#3a6a4a" : "#6aaa80",
               fontFamily: "'Share Tech Mono', monospace",
               fontSize: "12px", padding: "8px 20px",
-              borderRadius: "2px", cursor: currentStep===1?"not-allowed":"pointer",
+              borderRadius: "2px", cursor: currentStep === 1 ? "not-allowed" : "pointer",
               letterSpacing: "0.1em", transition: "all 0.2s",
             }}
           >
@@ -1034,13 +1063,13 @@ export default function Demo() {
           <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
             {STEPS.map(s => (
               <div key={s.id} style={{
-                width: currentStep===s.id?"24px":"8px",
+                width: currentStep === s.id ? "24px" : "8px",
                 height: "8px",
                 borderRadius: "4px",
-                background: currentStep===s.id?"#00ff88":completedSteps.has(s.id)?"rgba(0,204,106,0.6)":"rgba(0,255,136,0.15)",
+                background: currentStep === s.id ? "#00ff88" : completedSteps.has(s.id) ? "rgba(0,204,106,0.6)" : "rgba(0,255,136,0.15)",
                 transition: "all 0.3s",
-                cursor: completedSteps.has(s.id)&&currentStep!==s.id?"pointer":"default",
-              }} onClick={() => completedSteps.has(s.id) && currentStep!==s.id && prevStep(s.id)} />
+                cursor: completedSteps.has(s.id) && currentStep !== s.id ? "pointer" : "default",
+              }} onClick={() => completedSteps.has(s.id) && currentStep !== s.id && prevStep(s.id)} />
             ))}
           </div>
 
