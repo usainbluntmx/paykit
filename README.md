@@ -8,7 +8,8 @@ Built for the **Solana Frontier Hackathon 2026** by [Zero Two Labs](https://gith
 
 **Live demo:** https://paykit-sigma.vercel.app/demo  
 **Docs:** https://paykit-sigma.vercel.app/docs  
-**Dashboard:** https://paykit-sigma.vercel.app/dashboard
+**Dashboard:** https://paykit-sigma.vercel.app/dashboard  
+**Network Explorer:** https://paykit-sigma.vercel.app/network
 
 ---
 
@@ -46,7 +47,7 @@ When a developer integrates PayKit, their AI agents get:
 
 9. **Automatic expiration** — Agents expire after 365 days. Expired agents cannot transact. Renewable by the owner.
 
-10. **Reversible lifecycle** — Agents can be deactivated and reactivated. History and identity remain intact onchain.
+10. **Reversible lifecycle** — Agents can be deactivated, reactivated, and closed. On close, rent (~0.003 SOL) is recovered by the owner.
 
 11. **Immutable payment history** — Every payment emits rich onchain events with agent names, amounts, categories, and timestamps. Anyone can audit any agent with just a PDA address.
 
@@ -80,7 +81,7 @@ This means the agent's identity is cryptographically tied to its keypair — not
 ```
 1. Developer creates an autonomous agent
    → SDK generates a Solana keypair
-   → Keypair saved to ~/.paykit/agents/<name>.json
+   → Keypair saved to ~/.paykit/agents/<n>.json
    → Agent PDA registered onchain with spend limit, BPS, capabilities, tier
    → Agent wallet funded with SOL for transaction fees
    → Owner signs this registration — only this once
@@ -106,10 +107,15 @@ This means the agent's identity is cryptographically tied to its keypair — not
    → watchAgent: polling (development/testing, no external service)
    → createWebhook: Helius webhook to your HTTP endpoint (production)
    → getAgentHistory: agent-specific TX history from onchain
+   → /network: live network explorer showing all agents on Devnet
 
 6. Anyone audits
    → Any PDA address → full agent state + payment history
    → No API key, no permission, no database
+
+7. Developer closes an agent
+   → closeAgent: closes the PDA, recovers ~0.003 SOL rent
+   → Local keypair file removed automatically
 ```
 
 ---
@@ -127,12 +133,15 @@ paykit/
 │   ├── src/server.js              ← HTTP sidecar — 24 REST endpoints
 │   ├── src/agent-demo.js          ← Autonomous agent demo (Anthropic API)
 │   ├── src/patch-idl.js           ← IDL patcher for Anchor 0.31 format
-│   └── src/__tests__/             ← Jest unit tests (45 passing)
+│   ├── src/__tests__/             ← Jest unit tests (45 passing)
+│   └── examples/
+│       └── basic-usage.js         ← Camino B usage example
 └── frontend/
     └── app/
         ├── page.tsx               ← Landing page (/)
         ├── demo/page.tsx          ← Interactive guided demo (/demo)
         ├── dashboard/page.tsx     ← Developer dashboard (/dashboard)
+        ├── network/page.tsx       ← Live network explorer (/network)
         └── docs/page.tsx          ← Full documentation (/docs)
 ```
 
@@ -152,6 +161,7 @@ paykit/
 | `register_agent` | owner | Creates agent PDA with keypair, spend limit, BPS, capabilities, tier, funding |
 | `record_payment` | agent_key | Logs a payment. Enforces spend limit, daily BPS, and category limit |
 | `agent_to_agent_payment` | agent_key | Payment between agents. Verifies capabilities and tier compatibility |
+| `batch_payment` | agent_key | Up to 5 A2A payments in a single transaction |
 | `set_capabilities` | owner | Updates the capabilities bitmask |
 | `set_tier` | owner | Updates the agent tier (0=basic, 1=standard, 2=premium) |
 | `set_category_limit` | owner | Sets max spend per payment category |
@@ -160,6 +170,7 @@ paykit/
 | `deactivate_agent` | owner | Disables agent. Reversible |
 | `reactivate_agent` | owner | Re-enables a deactivated agent |
 | `renew_agent` | owner | Extends expiration by specified seconds |
+| `close_agent` | owner | Closes PDA and recovers rent (~0.003 SOL) |
 
 ### Agent Account Schema
 
@@ -211,15 +222,22 @@ pub struct AgentAccount {
 
 | Code | Description |
 |---|---|
+| `NameTooLong` | Agent name exceeds 32 characters |
+| `InvalidSpendLimit` | Spend limit must be greater than zero |
+| `InvalidAmount` | Payment amount must be greater than zero |
 | `SpendLimitExceeded` | Payment would exceed the agent's total spend limit |
+| `AgentInactive` | Agent has been deactivated |
+| `MemoTooLong` | Memo or service description exceeds 64 characters |
 | `DailyLimitExceeded` | Payment would exceed the agent's daily BPS limit |
+| `AgentExpired` | Agent has expired. Use `renewAgent` |
+| `InvalidDailyLimit` | `dailyLimitBps` must be between 1 and 10000 |
 | `CapabilityDenied` | Agent does not have the required capability |
 | `TierNotAllowed` | Agent cannot hire agents of this tier |
+| `InvalidTier` | Tier must be 0, 1, or 2 |
 | `CategoryLimitExceeded` | Payment exceeds category limit |
-| `AgentExpired` | Agent has expired. Use renewAgent |
-| `AgentInactive` | Agent has been deactivated |
-| `InvalidDailyLimit` | dailyLimitBps must be between 1 and 10000 |
+| `InvalidCategory` | Invalid category ID |
 | `CategorySlotsFull` | All 8 category slots are in use |
+| `InvalidCapabilitySlot` | Capability slot must be 0–7 |
 
 ---
 
@@ -243,7 +261,7 @@ const { agentPDA, agentPublicKey, keypairPath } = await client.createAutonomousA
     "my-agent",
     1_000_000_000,   // 1 SOL spend limit
     1000,            // 10% daily limit (1000 BPS)
-    10_000_000,      // fund with 0.01 SOL for fees
+    50_000_000,      // fund with 0.05 SOL for fees
     CAP_ALL_DEFAULT, // all 7 default capabilities
     1                // tier: standard
 );
@@ -263,8 +281,8 @@ await client.agentToAgentPayment("my-agent", "executor", 250_000, "inference tas
 
 // Batch payment — up to 5 agents in one TX
 await client.batchPayment("orchestrator", [
-    { receiverName: "agent-a", amountLamports: 100_000, service: "research" },
-    { receiverName: "agent-b", amountLamports: 150_000, service: "writing" },
+    { receiverName: "agent-a", amountLamports: 100_000, service: "research",  categoryId: CATEGORIES.RESEARCH },
+    { receiverName: "agent-b", amountLamports: 150_000, service: "writing",   categoryId: CATEGORIES.CONTENT },
 ]);
 
 // Configure capabilities (owner only)
@@ -291,6 +309,10 @@ stop();
 // Helius webhook (production)
 const { webhookId } = await client.createWebhook("my-agent", "https://your-api.com/wh", process.env.HELIUS_API_KEY);
 await client.deleteWebhook(webhookId, process.env.HELIUS_API_KEY);
+
+// Close agent and recover rent
+const { tx, rentRecovered } = await client.closeAgent("my-agent");
+// rentRecovered: "~0.003 SOL" — keypair file also removed locally
 ```
 
 ### Granular Error Handling
@@ -340,7 +362,7 @@ curl -X POST http://localhost:3333/pay/agent-to-agent \
   -d '{"sender":"my-agent","receiver":"executor","amountSOL":0.0005,"service":"analysis","categoryId":4}'
 ```
 
-**Key endpoints:** `POST /agent/create` · `GET /agent/:name` · `POST /pay/agent-to-agent` · `POST /pay/sol` · `POST /pay/usdc` · `POST /pay/batch` · `GET /balance/:name/sol` · `GET /history/:name` · `POST /agent/:name/capabilities`
+**Key endpoints:** `POST /agent/create` · `GET /agent/:name` · `POST /pay/agent-to-agent` · `POST /pay/sol` · `POST /pay/usdc` · `POST /pay/batch` · `GET /balance/:name/sol` · `GET /history/:name` · `POST /agent/:name/capabilities` · `DELETE /agent/:name`
 
 ### Browser Wallet Support
 
@@ -353,6 +375,12 @@ const client = createClientFromWallet(wallet, connection); // Phantom, Backpack,
 
 ```bash
 cd sdk && npm test   # 45 Jest tests
+```
+
+### Example Usage
+
+```bash
+cd sdk && npm run example   # runs examples/basic-usage.js on Devnet
 ```
 
 ---
@@ -438,17 +466,27 @@ cd sdk && node src/patch-idl.js && cd ..
 # Deploy to Devnet
 anchor deploy
 
-# Test SDK
+# Install SDK dependencies and run tests
 cd sdk && npm install && npm test
 
+# Run usage example
+npm run example
+
 # Start sidecar (optional)
-node src/server.js
+npm run server
 
 # Run frontend
 cd ../frontend && npm install && npm run dev
+# → http://localhost:3000
 # → http://localhost:3000/demo
 # → http://localhost:3000/dashboard
+# → http://localhost:3000/network
+# → http://localhost:3000/docs
 ```
+
+> **Note:** First build of a new Anchor project on this toolchain requires running
+> `cargo update toml_datetime@1.1.1 --precise 0.6.8 2>/dev/null` before `anchor build`.
+> Subsequent builds only need `anchor build`.
 
 ---
 
@@ -456,22 +494,25 @@ cd ../frontend && npm install && npm run dev
 
 ### ✅ Completed — Camino B
 
-- Smart contract — 11 instructions, capabilities bitmask, tier system, category limits, configurable BPS, expiration, renewal, reactivation, rich onchain events, 371-byte account
-- SDK — `createAutonomousAgent`, autonomous keypairs, `transferSOL`, `transferSPL`, `transferUSDC`, `setCapabilities`, `setCategoryLimit`, `setTier`, `setCustomCapability`, `decodeCapabilities`, `getAgentHistory`, `watchAgent`, `createWebhook`, `batchPayment`, `listLocalAgents`, 45 Jest tests
+- Smart contract — 13 instructions, capabilities bitmask, tier system, category limits, configurable BPS, expiration, renewal, reactivation, `closeAgent` with rent recovery, rich onchain events, 371-byte account
+- SDK — `createAutonomousAgent`, autonomous keypairs, `transferSOL`, `transferSPL`, `transferUSDC`, `setCapabilities`, `setCategoryLimit`, `setTier`, `setCustomCapability`, `decodeCapabilities`, `getAgentHistory`, `watchAgent`, `createWebhook`, `batchPayment`, `closeAgent`, `listLocalAgents`, 45 Jest tests
 - CLI wizard — interactive `paykit agent create` with capabilities, tier, category limit configuration
 - HTTP sidecar — 24 REST endpoints, any-language integration
 - Browser wallet support — Phantom, Backpack, Solflare
-- Granular error handling — `PayKitError` with named codes
+- Granular error handling — `PayKitError` with 16 named codes
 - Interactive guided demo — 6-step tour at `/demo`
-- Developer dashboard — capabilities pills, tier badges, SOL transfer agent-signs
-- Autonomous AI agent demo — Anthropic API + PayKit
+- Developer dashboard — focused SDK narrative, agents grid, A2A payments, onchain log, activity chart
+- Live network explorer — `/network` shows all PayKit agents on Devnet in real time
+- QR wallet modal — agent wallet address as scannable QR
+- Fee estimator — real-time transaction fee estimation before A2A execution
+- Autonomous AI agent demo — Anthropic API + PayKit (Camino B)
 - LangChain and CrewAI integration guides
+- Vercel deployment — Camino B live at https://paykit-sigma.vercel.app
 
 ### 🔄 In Progress
 
 - npm package publication (`@paykit/sdk`)
 - Video demo for Colosseum submission
-- Vercel deployment of Camino B
 
 ### 📋 Future
 

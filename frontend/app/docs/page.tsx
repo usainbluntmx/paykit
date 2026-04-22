@@ -164,6 +164,9 @@ export default function Docs() {
           <button onClick={() => router.push("/dashboard")} style={{ background: "transparent", border: "1px solid rgba(0,255,136,0.1)", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", padding: "8px 12px", borderRadius: "3px", cursor: "pointer", letterSpacing: "0.1em" }}>
             DASHBOARD
           </button>
+          <button onClick={() => router.push("/network")} style={{ background: "transparent", border: "1px solid rgba(0,255,136,0.1)", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", padding: "8px 12px", borderRadius: "3px", cursor: "pointer", letterSpacing: "0.1em" }}>
+            NETWORK
+          </button>
         </div>
       </div>
 
@@ -199,7 +202,7 @@ export default function Docs() {
 // Camino B (current):
 // Each agent has its own Solana keypair
 // Agent signs its own record_payment and agentToAgentPayment transactions
-// Owner wallet only signs: register_agent, set_capabilities, set_tier, renew_agent
+// Owner wallet only signs: register_agent, set_capabilities, set_tier, renew_agent, close_agent
 
 // PDA derived from the agent's own keypair:
 [b"agent", agent_keypair.pubkey, agent_name]`}</Code>
@@ -210,7 +213,7 @@ export default function Docs() {
         {/* Installation */}
         <SectionTitle id="installation">INSTALLATION</SectionTitle>
         <Code>{`npm install @paykit/sdk`}</Code>
-        <P>Requires Node.js 18+. For browser usage, see <strong style={{ color: "#c8f0d8" }}>Browser Wallet</strong> section.</P>
+        <P>Requires Node.js 18+. For browser usage, see the <strong style={{ color: "#c8f0d8" }}>Browser Wallet</strong> section.</P>
 
         {/* Quickstart */}
         <SectionTitle id="quickstart">QUICKSTART</SectionTitle>
@@ -223,7 +226,7 @@ const { agentPDA, agentPublicKey } = await client.createAutonomousAgent(
     "my-agent",
     1_000_000_000,   // 1 SOL spend limit
     1000,            // 10% daily limit (BPS)
-    10_000_000,      // fund with 0.01 SOL for TX fees
+    50_000_000,      // fund with 0.05 SOL for TX fees
     CAP_ALL_DEFAULT, // all 7 capabilities enabled
     1                // tier: standard
 );
@@ -236,31 +239,35 @@ await client.recordPayment("my-agent", 1_000_000, recipientPubkey, "API call", C
 await client.agentToAgentPayment("my-agent", "executor", 250_000, "analysis task", CATEGORIES.INFERENCE);
 
 // 4. Transfer SOL between agent wallets — agent signs
-await client.transferSOL("my-agent", "other-agent", 0.001, "service fee");`}</Code>
+await client.transferSOL("my-agent", "other-agent", 0.001, "service fee");
+
+// 5. Close agent and recover rent when done
+const { rentRecovered } = await client.closeAgent("my-agent");
+// rentRecovered: "~0.003 SOL"`}</Code>
 
         {/* createAutonomousAgent */}
         <SectionTitle id="create-agent">createAutonomousAgent</SectionTitle>
         <div style={{ marginBottom: "16px" }}><Badge text="async" /><Badge text="onchain" color="#ffb800" /><Badge text="generates keypair" color="#6aaa80" /></div>
         <P>The primary way to create an agent in Camino B. Generates a Solana keypair, saves it locally, registers the agent onchain, and funds the agent wallet — all in one operation. The owner wallet signs this registration once; the agent signs all subsequent payments.</P>
         <Code>{`const result = await client.createAutonomousAgent(
-    name,            // string — agent identifier (max 32 chars)
+    name,               // string — agent identifier (max 32 chars)
     spendLimitLamports, // number — total spend limit
-    dailyLimitBps,   // number — daily limit (1000 = 10%, 500 = 5%, 10000 = 100%)
-    fundingLamports, // number — SOL to send to agent wallet for TX fees
-    capabilities,    // number — bitmask (use CAP_ALL_DEFAULT for all enabled)
-    tier             // number — 0=basic, 1=standard, 2=premium
+    dailyLimitBps,      // number — daily limit (1000 = 10%, 10000 = 100%)
+    fundingLamports,    // number — SOL to send to agent wallet for TX fees
+    capabilities,       // number — bitmask (use CAP_ALL_DEFAULT for all enabled)
+    tier                // number — 0=basic, 1=standard, 2=premium
 );
 // result: { tx, agentPDA, agentPublicKey, keypairPath, capabilities, tier }`}</Code>
         <SubTitle>// PARAMETERS</SubTitle>
         <Param name="name" type="string" required desc="Unique agent identifier. Max 32 chars." />
         <Param name="spendLimitLamports" type="number" required desc="Maximum total spend in lamports. 1 SOL = 1,000,000,000." />
         <Param name="dailyLimitBps" type="number" required desc="Daily limit in basis points. 1000 = 10%, 500 = 5%, 10000 = 100%. Range: 1–10000." />
-        <Param name="fundingLamports" type="number" required desc="SOL to transfer to the agent wallet to cover transaction fees. Recommended minimum: 10,000,000 (0.01 SOL)." />
+        <Param name="fundingLamports" type="number" required desc="SOL to transfer to the agent wallet to cover transaction fees. Recommended minimum: 50,000,000 (0.05 SOL)." />
         <Param name="capabilities" type="number" required desc="Capability bitmask. Use CAP_ALL_DEFAULT (127) to enable all 7 predefined capabilities." />
         <Param name="tier" type="number" required desc="Agent tier. 0=basic, 1=standard, 2=premium. Determines who can hire this agent." />
         <SubTitle>// KEYPAIR STORAGE</SubTitle>
         <Code>{`// Keypair is saved automatically to:
-~/.paykit/agents/<name>.json
+~/.paykit/agents/<n>.json
 
 // You can load it manually if needed:
 const { loadAgentKeypair, agentKeypairExists } = require("@paykit/sdk");
@@ -299,11 +306,11 @@ await client.recordPayment(
         <div style={{ marginBottom: "16px" }}><Badge text="async" /><Badge text="onchain" color="#ffb800" /><Badge text="agent signs" color="#00ff88" /><Badge text="verifies capabilities + tier" color="#6aaa80" /></div>
         <P>Records a direct payment from one registered agent to another. The sender agent signs with its own keypair. The contract verifies three things before executing: the sender has <code style={{ color: "#ffb800" }}>CAN_PAY_AGENTS</code>, the sender has the capability to hire the receiver's tier, and the sender has sufficient budget. If any check fails, the transaction reverts.</P>
         <Code>{`const { tx } = await client.agentToAgentPayment(
-    senderName,    // string — sender agent (must have keypair locally)
-    receiverName,  // string — receiver agent (must be registered onchain)
+    senderName,     // string — sender agent (must have keypair locally)
+    receiverName,   // string — receiver agent (must be registered onchain)
     amountLamports, // number
-    service,       // string — service description (max 64 chars)
-    categoryId     // number — CATEGORIES.COMPUTE, .DATA, .INFERENCE, etc.
+    service,        // string — service description (max 64 chars)
+    categoryId      // number — CATEGORIES.COMPUTE, .DATA, .INFERENCE, etc.
 );`}</Code>
         <SubTitle>// EXAMPLE</SubTitle>
         <Code>{`await client.agentToAgentPayment(
@@ -327,12 +334,12 @@ await client.recordPayment(
 );
 
 // Each payment object:
-// { receiverName: string, amountLamports: number, service: string }`}</Code>
+// { receiverName: string, amountLamports: number, service: string, categoryId?: number }`}</Code>
         <SubTitle>// EXAMPLE</SubTitle>
         <Code>{`const { tx, count } = await client.batchPayment("orchestrator", [
-    { receiverName: "agent-researcher", amountLamports: 100_000, service: "Web research" },
-    { receiverName: "agent-writer",     amountLamports: 150_000, service: "Content generation" },
-    { receiverName: "agent-reviewer",   amountLamports: 50_000,  service: "Quality review" },
+    { receiverName: "agent-researcher", amountLamports: 100_000, service: "Web research",       categoryId: CATEGORIES.RESEARCH },
+    { receiverName: "agent-writer",     amountLamports: 150_000, service: "Content generation", categoryId: CATEGORIES.CONTENT },
+    { receiverName: "agent-reviewer",   amountLamports: 50_000,  service: "Quality review",     categoryId: CATEGORIES.DATA },
 ]);
 console.log(\`\${count} payments in 1 TX: \${tx}\`);`}</Code>
 
@@ -364,9 +371,9 @@ const { tx } = await client.transferUSDC(fromAgentName, toAgentName, amountUSDC,
 const { tx } = await client.transferSPL(
     fromAgentName,
     toAgentName,
-    amount,    // human-readable (e.g. 1.5)
-    mintPubkey, // PublicKey of the token mint
-    decimals,   // token decimals (6 for USDC, 9 for most others)
+    amount,      // human-readable (e.g. 1.5)
+    mintPubkey,  // PublicKey of the token mint
+    decimals,    // token decimals (6 for USDC, 9 for most others)
     memo
 );
 
@@ -387,7 +394,7 @@ console.log(\`Agent USDC balance: \${ui}\`);`}</Code>
             ["4", "CAN_TRANSFER_SOL", "Can transfer SOL between agent wallets"],
             ["5", "CAN_TRANSFER_SPL", "Can transfer SPL tokens (USDC, etc.)"],
             ["6", "CAN_BATCH_PAY", "Can send up to 5 payments in one TX"],
-            ["8–15", "Custom slots", "Owner-defined capabilities (set_custom_capability)"],
+            ["8–15", "Custom slots", "Owner-defined capabilities (setCustomCapability)"],
           ]}
         />
         <Code>{`const { CAPABILITIES, CAP_ALL_DEFAULT } = require("@paykit/sdk");
@@ -511,7 +518,7 @@ await client.deleteWebhook(webhookId, process.env.HELIUS_API_KEY);`}</Code>
 
         {/* Lifecycle */}
         <SectionTitle id="lifecycle">AGENT LIFECYCLE</SectionTitle>
-        <P>All lifecycle operations are owner-signed — the agent keypair is not required for these. Agents can be deactivated and reactivated without losing their onchain history.</P>
+        <P>All lifecycle operations are owner-signed — the agent keypair is not required for these. Agents can be deactivated and reactivated without losing their onchain history. When an agent is no longer needed, <code style={{ color: "#ffb800" }}>closeAgent</code> recovers the rent.</P>
         <Code>{`// Deactivate — agent cannot transact, but history is preserved
 await client.deactivateAgent("my-agent");
 
@@ -527,7 +534,15 @@ await client.updateSpendLimit("my-agent", 2_000_000_000); // 2 SOL
 
 // Estimate fee before executing
 const { feeSOL } = await client.estimateFee("my-agent", 250_000, "record");
-console.log(\`Fee: \${feeSOL} SOL\`); // ~0.000005000 SOL`}</Code>
+console.log(\`Fee: \${feeSOL} SOL\`); // ~0.000005000 SOL
+
+// Close agent and recover rent (~0.003 SOL)
+// Owner signs — local keypair file is also removed automatically
+const { tx, rentRecovered } = await client.closeAgent("my-agent");
+console.log(\`Rent recovered: \${rentRecovered}\`); // ~0.003 SOL`}</Code>
+        <Callout type="info">
+          <strong style={{ color: "#00ff88" }}>Full lifecycle:</strong> create → activate → transact → deactivate → reactivate → renew → close. Each state is enforced at the contract level — a deactivated agent cannot send or receive payments.
+        </Callout>
 
         {/* Browser Wallet */}
         <SectionTitle id="browser-wallet">BROWSER WALLET SUPPORT</SectionTitle>
@@ -550,7 +565,7 @@ function MyApp() {
             "my-browser-agent",
             1_000_000_000,
             1000,
-            10_000_000
+            50_000_000
         );
         // Agent keypair stored in localStorage["paykit_agents"]
     }
@@ -634,6 +649,7 @@ cd sdk && npm run server`}</Code>
             ["POST", "/agent/:name/deactivate", "Deactivate agent"],
             ["POST", "/agent/:name/reactivate", "Reactivate agent"],
             ["POST", "/agent/:name/renew", "Renew expiration"],
+            ["DELETE", "/agent/:name", "Close agent and recover rent"],
             ["GET", "/health", "Server status"],
             ["GET", "/capabilities", "Constants reference"],
           ]}
@@ -669,15 +685,22 @@ print(f"TX: {res.json()['tx']}")`}</Code>
         <Table
           headers={["Code", "Source", "Description"]}
           rows={[
+            ["NameTooLong", "contract", "Agent name exceeds 32 characters"],
+            ["InvalidSpendLimit", "contract", "Spend limit must be greater than zero"],
+            ["InvalidAmount", "contract", "Payment amount must be greater than zero"],
             ["SpendLimitExceeded", "contract", "Payment exceeds agent's total spend limit"],
+            ["AgentInactive", "contract", "Agent is deactivated — use reactivateAgent"],
+            ["MemoTooLong", "contract", "Memo or service description exceeds 64 characters"],
             ["DailyLimitExceeded", "contract", "Payment exceeds agent's daily BPS limit"],
+            ["AgentExpired", "contract", "Agent has expired — use renewAgent"],
+            ["InvalidDailyLimit", "contract", "dailyLimitBps must be 1–10000"],
             ["CapabilityDenied", "contract", "Agent missing required capability"],
             ["TierNotAllowed", "contract", "Sender cannot hire receiver's tier"],
+            ["InvalidTier", "contract", "Tier must be 0, 1, or 2"],
             ["CategoryLimitExceeded", "contract", "Payment exceeds category limit"],
-            ["AgentExpired", "contract", "Agent has expired — use renewAgent"],
-            ["AgentInactive", "contract", "Agent is deactivated — use reactivateAgent"],
-            ["InvalidDailyLimit", "contract", "dailyLimitBps must be 1–10000"],
+            ["InvalidCategory", "contract", "Invalid category ID"],
             ["CategorySlotsFull", "contract", "All 8 category slots are in use"],
+            ["InvalidCapabilitySlot", "contract", "Capability slot must be 0–7"],
             ["BlockhashExpired", "network", "TX blockhash expired — retry"],
             ["InsufficientFunds", "network", "Not enough SOL for TX fees"],
             ["AccountNotFound", "network", "Agent account not found"],
@@ -753,8 +776,8 @@ const checkBudgetTool = new DynamicStructuredTool({
     description: "Check an agent's remaining budget and status before making payments.",
     schema: z.object({ agentName: z.string() }),
     func: async ({ agentName }) => {
-        const agent  = await paykit.fetchAgent(agentName);
-        const expiry = await paykit.checkAgentExpiry(agentName);
+        const agent   = await paykit.fetchAgent(agentName);
+        const expiry  = await paykit.checkAgentExpiry(agentName);
         const balance = await paykit.getSOLBalance(agentName);
         const remaining = agent.spendLimit.toNumber() - agent.totalSpent.toNumber();
         return JSON.stringify({
@@ -804,14 +827,13 @@ class CheckBudgetTool(BaseTool):
             f"Agent: {agent_name} | "
             f"Remaining: {limit - spent:.4f} SOL | "
             f"Wallet: {data['solBalance']:.6f} SOL | "
-            f"Daily limit: {data['capabilitiesDecoded']['canBatchPay']} | "
             f"Tier: {data['tier']} | "
             f"Days until expiry: {data['daysRemaining']}"
         )`}</Code>
 
         {/* Smart Contract */}
         <SectionTitle id="contract">SMART CONTRACT</SectionTitle>
-        <P>The PayKit program is written in Rust using Anchor and deployed on Solana Devnet. All 11 instructions emit rich onchain events with agent names, amounts, categories, and timestamps.</P>
+        <P>The PayKit program is written in Rust using Anchor and deployed on Solana Devnet. All 13 instructions emit rich onchain events with agent names, amounts, categories, and timestamps.</P>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "24px" }}>
           {[
             { label: "PROGRAM ID", value: "F27DrerUQGnkmVhqkEy9m46zDkni2m37Df4ogxkoDhUF" },
@@ -825,6 +847,24 @@ class CheckBudgetTool(BaseTool):
             </div>
           ))}
         </div>
+        <SubTitle>// INSTRUCTIONS</SubTitle>
+        <Table
+          headers={["Instruction", "Signer", "Description"]}
+          rows={[
+            ["register_agent", "owner", "Creates agent PDA with keypair, spend limit, BPS, capabilities, tier, funding"],
+            ["record_payment", "agent_key", "Logs a payment. Enforces spend limit, daily BPS, and category limit"],
+            ["agent_to_agent_payment", "agent_key", "Payment between agents. Verifies capabilities and tier compatibility"],
+            ["set_capabilities", "owner", "Updates the capabilities bitmask"],
+            ["set_tier", "owner", "Updates the agent tier (0=basic, 1=standard, 2=premium)"],
+            ["set_category_limit", "owner", "Sets max spend per payment category"],
+            ["set_custom_capability", "owner", "Defines a custom capability in bits 8–15"],
+            ["update_spend_limit", "owner", "Updates the total spend limit"],
+            ["deactivate_agent", "owner", "Disables agent. Reversible"],
+            ["reactivate_agent", "owner", "Re-enables a deactivated agent"],
+            ["renew_agent", "owner", "Extends expiration by specified seconds"],
+            ["close_agent", "owner", "Closes PDA and recovers rent (~0.003 SOL)"],
+          ]}
+        />
         <SubTitle>// ACCOUNT SCHEMA</SubTitle>
         <Code>{`pub struct AgentAccount {
     pub agent_key: Pubkey,                    // Agent's own keypair (signs payments)
@@ -858,11 +898,11 @@ class CheckBudgetTool(BaseTool):
 │  createAutonomousAgent · recordPayment · agentToAgentPayment      │
 │  batchPayment · transferSOL · transferUSDC · transferSPL          │
 │  setCapabilities · setTier · setCategoryLimit · decodeCapabilities│
-│  getAgentHistory · watchAgent · createWebhook · listLocalAgents   │
+│  getAgentHistory · watchAgent · createWebhook · closeAgent        │
 │  CLI wizard · HTTP sidecar (24 endpoints, any language)           │
 ├──────────────────────────────────────────────────────────────────┤
 │                 PayKit Program (Solana / Anchor)                   │
-│  11 instructions · Capabilities bitmask · Tier system             │
+│  13 instructions · Capabilities bitmask · Tier system             │
 │  Category limits · BPS rate limiting · Expiration                 │
 │  Rich onchain events · 371-byte account · Camino B architecture   │
 ├──────────────────────────────────────────────────────────────────┤
@@ -904,6 +944,7 @@ const [agentPDA] = PublicKey.findProgramAddressSync(
             <button onClick={() => router.push("/")} style={{ background: "transparent", border: "none", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", cursor: "pointer" }}>HOME</button>
             <button onClick={() => router.push("/demo")} style={{ background: "transparent", border: "none", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", cursor: "pointer" }}>DEMO</button>
             <button onClick={() => router.push("/dashboard")} style={{ background: "transparent", border: "none", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", cursor: "pointer" }}>DASHBOARD</button>
+            <button onClick={() => router.push("/network")} style={{ background: "transparent", border: "none", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", cursor: "pointer" }}>NETWORK</button>
             <a href="https://github.com/usainbluntmx/paykit" target="_blank" rel="noopener noreferrer" style={{ color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", textDecoration: "none" }}>GITHUB</a>
           </div>
         </div>

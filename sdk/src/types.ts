@@ -3,7 +3,13 @@ import BN from "bn.js";
 
 // ─── Agent Account ────────────────────────────────────────────────────────────
 
+export interface CategoryLimit {
+    categoryId: number;
+    limit: BN;
+}
+
 export interface AgentAccount {
+    agentKey: PublicKey;
     owner: PublicKey;
     name: string;
     spendLimit: BN;
@@ -11,6 +17,15 @@ export interface AgentAccount {
     paymentCount: BN;
     isActive: boolean;
     bump: number;
+    lastPaymentAt: BN;
+    dailySpent: BN;
+    dailyResetAt: BN;
+    expiresAt: BN;
+    dailyLimitBps: number;
+    capabilities: number;
+    tier: number;                          // 0=basic, 1=standard, 2=premium
+    categoryLimits: CategoryLimit[];       // 8 slots
+    customCapabilityNames: number[][];     // 8 × [u8; 16]
 }
 
 export interface AgentWithPDA extends AgentAccount {
@@ -101,6 +116,11 @@ export interface ReactivateAgentResult {
     tx: string;
 }
 
+export interface CloseAgentResult {
+    tx: string;
+    rentRecovered: string;
+}
+
 export interface BrowserWalletAdapter {
     publicKey: PublicKey;
     signTransaction: (tx: Transaction) => Promise<Transaction>;
@@ -121,6 +141,7 @@ export declare class PayKitClient {
     deactivateAgent(agentName: string): Promise<TransactionResult>;
     reactivateAgent(agentName: string): Promise<TransactionResult>;
     renewAgent(agentName: string, extensionSeconds: number): Promise<TransactionResult>;
+    closeAgent(agentName: string): Promise<CloseAgentResult>;
     checkAgentExpiry(agentName: string, ownerPubkey?: PublicKey): Promise<AgentExpiryInfo>;
     estimateFee(agentName: string, amountLamports: number, type?: string): Promise<{ fee: number; feeSOL: string }>;
     fetchAgent(agentName: string, ownerPubkey?: PublicKey): Promise<AgentWithPDA>;

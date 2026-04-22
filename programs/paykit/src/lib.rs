@@ -365,6 +365,15 @@ pub mod paykit {
         }
         Ok(())
     }
+
+    pub fn close_agent(ctx: Context<CloseAgent>) -> Result<()> {
+    emit!(AgentClosed {
+        agent: ctx.accounts.agent.key(),
+        agent_name: ctx.accounts.agent.name.clone(),
+        owner: ctx.accounts.agent.owner,
+    });
+    Ok(())
+}
 }
 
 // ─── Account Struct ───────────────────────────────────────────────────────────
@@ -486,6 +495,23 @@ pub struct OwnerSigns<'info> {
     pub owner: Signer<'info>,
 }
 
+#[derive(Accounts)]
+pub struct CloseAgent<'info> {
+    #[account(
+        mut,
+        seeds = [b"agent", agent.agent_key.as_ref(), agent.name.as_bytes()],
+        bump = agent.bump,
+        has_one = owner,
+        close = owner
+    )]
+    pub agent: Account<'info, AgentAccount>,
+
+    #[account(mut)]
+    pub owner: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
 // ─── Events ───────────────────────────────────────────────────────────────────
 
 #[event]
@@ -530,6 +556,13 @@ pub struct CapabilitiesUpdated {
     pub agent: Pubkey,
     pub agent_name: String,
     pub capabilities: u16,
+}
+
+#[event]
+pub struct AgentClosed {
+    pub agent: Pubkey,
+    pub agent_name: String,
+    pub owner: Pubkey,
 }
 
 // ─── Errors ───────────────────────────────────────────────────────────────────

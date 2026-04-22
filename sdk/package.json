@@ -10,7 +10,8 @@
     "build": "cd .. && anchor build && cd sdk && node src/patch-idl.js",
     "server": "node src/server.js",
     "server:mainnet": "node src/server.js 3333 ~/.config/solana/id.json mainnet-beta",
-    "server:pm2": "pm2 start src/server.js --name paykit-sidecar"
+    "server:pm2": "pm2 start src/server.js --name paykit-sidecar",
+    "example": "node examples/basic-usage.js"
   },
   "jest": {
     "testMatch": [
