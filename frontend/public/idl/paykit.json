@@ -97,6 +97,62 @@
       ]
     },
     {
+      "name": "close_agent",
+      "discriminator": [
+        52,
+        185,
+        104,
+        145,
+        157,
+        30,
+        87,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "agent",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "agent.agent_key",
+                "account": "AgentAccount"
+              },
+              {
+                "kind": "account",
+                "path": "agent.name",
+                "account": "AgentAccount"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "agent"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "deactivate_agent",
       "discriminator": [
         205,
@@ -700,6 +756,19 @@
   ],
   "events": [
     {
+      "name": "AgentClosed",
+      "discriminator": [
+        72,
+        133,
+        207,
+        59,
+        220,
+        188,
+        201,
+        165
+      ]
+    },
+    {
       "name": "AgentPaymentSent",
       "discriminator": [
         216,
@@ -835,6 +904,26 @@
     }
   ],
   "types": [
+    {
+      "name": "AgentClosed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "agent",
+            "type": "pubkey"
+          },
+          {
+            "name": "agent_name",
+            "type": "string"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
     {
       "name": "AgentPaymentSent",
       "type": {

@@ -10,6 +10,13 @@ const PAYKIT_ERRORS = {
     6006: { code: "DailyLimitExceeded", message: "Agent has exceeded its daily spend limit." },
     6007: { code: "AgentExpired", message: "Agent has expired. Use renewAgent() to extend." },
     6008: { code: "InvalidDailyLimit", message: "Daily limit must be between 1 and 10000 basis points." },
+    6009: { code: "CapabilityDenied", message: "Agent does not have the required capability for this operation." },
+    6010: { code: "TierNotAllowed", message: "Agent cannot hire agents of this tier." },
+    6011: { code: "InvalidTier", message: "Invalid tier — must be 0 (basic), 1 (standard), or 2 (premium)." },
+    6012: { code: "CategoryLimitExceeded", message: "Payment exceeds the category spend limit for this agent." },
+    6013: { code: "InvalidCategory", message: "Invalid category ID." },
+    6014: { code: "CategorySlotsFull", message: "All category limit slots are in use (max 8)." },
+    6015: { code: "InvalidCapabilitySlot", message: "Invalid capability slot — must be 0-7." },
 };
 
 // ─── PayKit Error Class ───────────────────────────────────────────────────────

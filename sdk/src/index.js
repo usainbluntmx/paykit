@@ -255,7 +255,8 @@ class PayKitClient {
                 const ix = await this.program.methods
                     .agentToAgentPayment(
                         new anchor.BN(payment.amountLamports),
-                        payment.service
+                        payment.service,
+                        payment.categoryId ?? 0
                     )
                     .accounts({
                         senderAgent: senderPDA,
@@ -549,6 +550,33 @@ class PayKitClient {
                 .rpc();
 
             return { tx };
+        });
+    }
+
+    /**
+ * Close an agent account and recover rent (~0.003 SOL). Owner signs.
+ * The agent keypair file is also removed from ~/.paykit/agents/.
+ * @param {string} agentName - Name of the agent to close
+ * @returns {Promise<{tx: string, rentRecovered: string}>}
+ */
+    async closeAgent(agentName) {
+        return withPayKitError(async () => {
+            const agentKeypair = loadAgentKeypair(agentName);
+            const agentPDA = this.getAgentPDA(agentKeypair.publicKey, agentName);
+
+            const tx = await this.program.methods
+                .closeAgent()
+                .accounts({
+                    agent: agentPDA,
+                    owner: this.wallet.publicKey,
+                    systemProgram: anchor.web3.SystemProgram.programId,
+                })
+                .rpc();
+
+            // Remove local keypair file
+            try { fs.unlinkSync(getAgentKeypairPath(agentName)); } catch { }
+
+            return { tx, rentRecovered: "~0.003 SOL" };
         });
     }
 
@@ -909,11 +937,11 @@ class PayKitClient {
 // ─── Constants for dataSize filter ───────────────────────────────────────────
 
 const AgentAccount = {
-    LEN: 8 + 32 + 32 + (4 + 32) + 8 + 8 + 8 + 1 + 1 + 8 + 8 + 8 + 8 + 2 + 2 + 1 + (9 * 8) + (16 * 8),
+    LEN: 8 + 32 + 32 + (4 + 32) + 8 + 8 + 8 + 1 + 1 + 8 + 8 + 8 + 8 + 2 + 2 + 1 + ((1 + 8) * 8) + (16 * 8),
     // discriminator + agent_key + owner + name + spend_limit + total_spent +
     // payment_count + is_active + bump + last_payment_at + daily_spent +
     // daily_reset_at + expires_at + daily_limit_bps + capabilities + tier +
-    // category_limits(9*8) + custom_capability_names(16*8)
+    // category_limits: 8 × (u8 + u64) = (1+8)*8 + custom_capability_names: 8 × [u8;16] = 16*8
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

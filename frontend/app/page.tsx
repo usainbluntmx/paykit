@@ -71,6 +71,7 @@ export default function Landing() {
           </button>
           <a href="/docs" style={{ padding: "11px 32px", background: "transparent", border: "1px solid rgba(0,255,136,0.2)", color: "#c8f0d8", fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", letterSpacing: "0.15em", borderRadius: "3px", cursor: "pointer", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>DOCS</a>
           <a href="https://github.com/usainbluntmx/paykit" target="_blank" rel="noopener noreferrer" style={{ padding: "12px 36px", background: "transparent", border: "1px solid rgba(0,255,136,0.3)", color: "#c8f0d8", fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", letterSpacing: "0.15em", borderRadius: "3px", cursor: "pointer", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>GITHUB</a>
+          <a href="/network" style={{ padding: "11px 32px", background: "transparent", border: "1px solid rgba(0,255,136,0.2)", color: "#c8f0d8", fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", letterSpacing: "0.15em", borderRadius: "3px", cursor: "pointer", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>NETWORK</a>
         </div>
       </div>
 
