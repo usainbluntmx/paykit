@@ -60,7 +60,6 @@ const CATEGORY_NAMES = {
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const PROGRAM_ID = new PublicKey("F27DrerUQGnkmVhqkEy9m46zDkni2m37Df4ogxkoDhUF");
-const IDL_PATH = path.resolve(__dirname, "../../target/idl/paykit.json");
 const AGENTS_DIR = path.join(os.homedir(), ".paykit", "agents");
 
 // ─── Keypair Storage ──────────────────────────────────────────────────────────
@@ -101,7 +100,7 @@ class PayKitClient {
         const provider = new anchor.AnchorProvider(connection, wallet, {
             commitment: "confirmed",
         });
-        const idl = JSON.parse(fs.readFileSync(IDL_PATH, "utf8"));
+        const idl = require("../idl/paykit.json");
         this.program = new anchor.Program(idl, provider);
     }
 
