@@ -754,6 +754,21 @@
       ]
     }
   ],
+  "accounts": [
+    {
+      "name": "AgentAccount",
+      "discriminator": [
+        241,
+        119,
+        69,
+        140,
+        233,
+        9,
+        112,
+        50
+      ]
+    }
+  ],
   "events": [
     {
       "name": "AgentClosed",
@@ -1178,21 +1193,6 @@
           }
         ]
       }
-    }
-  ],
-  "accounts": [
-    {
-      "name": "AgentAccount",
-      "discriminator": [
-        241,
-        119,
-        69,
-        140,
-        233,
-        9,
-        112,
-        50
-      ]
     }
   ]
 }

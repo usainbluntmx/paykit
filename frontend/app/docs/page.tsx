@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 
 const sections = [
   { id: "overview",            title: "Overview" },
-  { id: "camino-b",            title: "Camino B Architecture" },
+  { id: "camino-b",            title: "Agent-Native Architecture" },
   { id: "installation",        title: "Installation" },
   { id: "quickstart",          title: "Quickstart" },
   { id: "create-agent",        title: "createAutonomousAgent" },
@@ -150,7 +150,7 @@ export default function Docs() {
           <button onClick={() => router.push("/")} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, marginBottom: "4px" }}>
             <span style={{ fontFamily: "'Orbitron', monospace", fontSize: "18px", fontWeight: 900, color: "#00ff88", textShadow: "0 0 20px rgba(0,255,136,0.4)" }}>PAYKIT</span>
           </button>
-          <div style={{ fontSize: "10px", color: "#6aaa80", letterSpacing: "0.15em" }}>SDK DOCS · v0.2.0</div>
+          <div style={{ fontSize: "10px", color: "#6aaa80", letterSpacing: "0.15em" }}>SDK DOCS · OPEN BETA</div>
         </div>
         {sections.map(s => (
           <button key={s.id} onClick={() => scrollTo(s.id)} style={{ background: activeSection === s.id ? "rgba(0,255,136,0.08)" : "transparent", border: "none", borderLeft: `2px solid ${activeSection === s.id ? "#00ff88" : "transparent"}`, color: activeSection === s.id ? "#00ff88" : "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", padding: "7px 12px", cursor: "pointer", textAlign: "left", letterSpacing: "0.05em", transition: "all 0.15s", borderRadius: "0 3px 3px 0" }}>
@@ -183,7 +183,7 @@ export default function Docs() {
             {[
               { label: "PROGRAM ID", value: "F27DrerUQGnk..." },
               { label: "NETWORK", value: "Solana Devnet" },
-              { label: "VERSION", value: "v0.2.0 · Camino B" },
+              { label: "VERSION", value: "AGENT-NATIVE · DEVNET" },
             ].map(item => (
               <div key={item.label} style={{ padding: "14px", background: "rgba(0,255,136,0.02)", border: "1px solid rgba(0,255,136,0.1)", borderRadius: "3px" }}>
                 <div style={{ fontSize: "10px", color: "#6aaa80", letterSpacing: "0.15em", marginBottom: "6px", fontFamily: "'Orbitron', monospace" }}>{item.label}</div>
@@ -193,13 +193,13 @@ export default function Docs() {
           </div>
         </div>
 
-        {/* Camino B */}
+        {/* Agent-Native Architecture */}
         <SectionTitle id="camino-b">CAMINO B ARCHITECTURE</SectionTitle>
-        <P>PayKit v0.2.0 operates in Camino B — the key architectural difference from every other agent payment system:</P>
-        <Code>{`// Camino A (deprecated):
+        <P>PayKit takes an agent-native approach — the key architectural difference from every other agent payment system:</P>
+        <Code>{`// Other SDKs:
 // Owner wallet signs every payment → agents have no real autonomy
 
-// Camino B (current):
+// PayKit (agent-native):
 // Each agent has its own Solana keypair
 // Agent signs its own record_payment and agentToAgentPayment transactions
 // Owner wallet only signs: register_agent, set_capabilities, set_tier, renew_agent, close_agent
@@ -248,7 +248,7 @@ const { rentRecovered } = await client.closeAgent("my-agent");
         {/* createAutonomousAgent */}
         <SectionTitle id="create-agent">createAutonomousAgent</SectionTitle>
         <div style={{ marginBottom: "16px" }}><Badge text="async" /><Badge text="onchain" color="#ffb800" /><Badge text="generates keypair" color="#6aaa80" /></div>
-        <P>The primary way to create an agent in Camino B. Generates a Solana keypair, saves it locally, registers the agent onchain, and funds the agent wallet — all in one operation. The owner wallet signs this registration once; the agent signs all subsequent payments.</P>
+        <P>The primary way to create an agent in PayKit. Generates a Solana keypair, saves it locally, registers the agent onchain, and funds the agent wallet — all in one operation. The owner wallet signs this registration once; the agent signs all subsequent payments.</P>
         <Code>{`const result = await client.createAutonomousAgent(
     name,               // string — agent identifier (max 32 chars)
     spendLimitLamports, // number — total spend limit
@@ -904,7 +904,7 @@ class CheckBudgetTool(BaseTool):
 │                 PayKit Program (Solana / Anchor)                   │
 │  13 instructions · Capabilities bitmask · Tier system             │
 │  Category limits · BPS rate limiting · Expiration                 │
-│  Rich onchain events · 371-byte account · Camino B architecture   │
+│  Rich onchain events · 371-byte account · agent-native design    │
 ├──────────────────────────────────────────────────────────────────┤
 │                       Solana Blockchain                            │
 │              ~400ms finality · ~$0.00025/tx                       │

@@ -206,23 +206,33 @@ await client
             </div>
           </div>
 
-          {/* What makes it agent-native */}
+          {/* Any language */}
           <div style={{ padding: "18px", background: "rgba(0,255,136,0.03)", border: "1px solid rgba(0,255,136,0.1)", borderRadius: "3px" }}>
             <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "11px", color: "#00ff88", letterSpacing: "0.15em", marginBottom: "12px" }}>
-              // WHAT AGENT-NATIVE MEANS
+    // USE FROM ANY LANGUAGE
             </div>
-            {[
-              "Agent holds its own Solana keypair from creation",
-              "Agent signs payment transactions — owner wallet not required",
-              "Spend limits enforced at the protocol level, not application level",
-              "Every payment emits an immutable onchain event",
-              "Compatible with LangChain, CrewAI, and any HTTP client",
-            ].map((line, i) => (
-              <div key={i} style={{ display: "flex", gap: "10px", alignItems: "flex-start", marginBottom: "8px", fontSize: "13px" }}>
-                <span style={{ color: "#00ff88", flexShrink: 0 }}>→</span>
-                <span style={{ color: "#9aeab0", lineHeight: 1.6 }}>{line}</span>
-              </div>
-            ))}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "12px" }}>
+              {[
+                { lang: "Node.js", snippet: "npm install @paykit/sdk" },
+                { lang: "Python", snippet: "requests.post('/pay/a2a')" },
+                { lang: "Go", snippet: "http.Post('/pay/a2a')" },
+                { lang: "Ruby", snippet: "Net::HTTP.post('/pay/a2a')" },
+              ].map(item => (
+                <div key={item.lang} style={{ padding: "8px 10px", background: "#060a08", border: "1px solid rgba(0,255,136,0.08)", borderRadius: "2px" }}>
+                  <div style={{ fontSize: "10px", color: "#00ff88", fontFamily: "'Orbitron', monospace", letterSpacing: "0.1em", marginBottom: "4px" }}>{item.lang}</div>
+                  <div style={{ fontSize: "10px", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace" }}>{item.snippet}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: "12px", color: "#9aeab0", lineHeight: 1.7 }}>
+              The SDK includes an HTTP sidecar with 24 REST endpoints — run it locally and call PayKit from Python, Go, Ruby, or any language. No Node.js required in your agent stack.
+            </div>
+            <div style={{ marginTop: "10px", display: "flex", gap: "16px", fontSize: "11px", color: "#6aaa80" }}>
+              <span>✓ LangChain</span>
+              <span>✓ CrewAI</span>
+              <span>✓ AutoGen</span>
+              <span>✓ Any HTTP client</span>
+            </div>
           </div>
 
         </div>
