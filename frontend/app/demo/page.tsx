@@ -559,7 +559,7 @@ export default function Demo() {
                   <div style={{ color: "#c8f0d8", fontFamily: "'Share Tech Mono', monospace", fontSize: "13px", wordBreak: "break-all" }}>{wallet.publicKey?.toBase58()}</div>
                 </div>
                 <div style={{ fontSize: "13px", color: "#9aeab0", lineHeight: 1.8, marginBottom: "24px" }}>
-                  Your wallet is the <strong style={{ color: "#c8f0d8" }}>owner</strong> — it controls agents but doesn't sign their payments. Agents sign their own transactions using their own keypair. This is the Camino B architecture.
+                  Your wallet is the <strong style={{ color: "#c8f0d8" }}>owner</strong> — it controls agents but doesn't sign their payments. Agents sign their own transactions using their own keypair. This is the agent-native approach.
                 </div>
                 <button onClick={nextStep} style={btnGreen}>
                   DEPLOY YOUR FIRST AGENT →
@@ -587,8 +587,8 @@ export default function Demo() {
         <div>
           <ContextPanel
             visible={currentStep === 2}
-            title="// CAMINO B — AUTONOMOUS KEYPAIRS"
-            text="In Camino B, each agent generates its own Solana keypair. The SDK stores it locally and uses it to sign payment transactions autonomously. The owner wallet only signs the initial registration — never individual payments. This is what makes PayKit different from every other agent payment system."
+            title="// AGENT-NATIVE — AUTONOMOUS KEYPAIRS"
+            text="PayKit takes an agent-native approach: each agent generates its own Solana keypair at creation. The SDK stores it locally and uses it to sign payment transactions autonomously. The owner wallet only signs the initial registration — never individual payments. This is what makes PayKit different from every other agent payment system."
           />
           <div style={card}>
             <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "13px", color: "#00ff88", letterSpacing: "0.2em", marginBottom: "20px" }}>// STEP 2 — DEPLOY AUTONOMOUS AGENT</div>

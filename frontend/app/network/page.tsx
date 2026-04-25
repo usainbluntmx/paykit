@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
-import { Program, AnchorProvider, BN } from "@coral-xyz/anchor";
+import { Program, AnchorProvider } from "@coral-xyz/anchor";
 import { useRouter } from "next/navigation";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -12,16 +12,11 @@ const PROGRAM_ID = new PublicKey("F27DrerUQGnkmVhqkEy9m46zDkni2m37Df4ogxkoDhUF")
 const AGENT_ACCOUNT_SIZE = 371;
 const TIER_LABELS = ["BASIC", "STANDARD", "PREMIUM"];
 const TIER_COLORS = ["#6aaa80", "#00ff88", "#ffb800"];
-const REFRESH_INTERVAL = 15_000; // 15s
+const REFRESH_INTERVAL = 15_000;
 
 const CAP_LABELS: Record<number, string> = {
-    0: "PAY",
-    1: "HIRE·B",
-    2: "HIRE·S",
-    3: "HIRE·P",
-    4: "SOL",
-    5: "SPL",
-    6: "BATCH",
+    0: "PAY", 1: "HIRE·B", 2: "HIRE·S", 3: "HIRE·P",
+    4: "SOL", 5: "SPL", 6: "BATCH",
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -39,6 +34,14 @@ interface NetworkAgent {
     dailyLimitBps: number;
     capabilities: number;
     tier: number;
+}
+
+interface NetworkActivity {
+    a2aCount24h: number;
+    a2aVolume24h: number;   // lamports
+    totalTxCount: number;
+    lastA2aTx: string | null;
+    loading: boolean;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -76,6 +79,67 @@ export default function NetworkPage() {
     const [filterTier, setFilterTier] = useState<number | "all">("all");
     const [filterActive, setFilterActive] = useState<boolean | "all">("all");
     const [countdown, setCountdown] = useState(REFRESH_INTERVAL / 1000);
+
+    const [activity, setActivity] = useState<NetworkActivity>({
+        a2aCount24h: 0,
+        a2aVolume24h: 0,
+        totalTxCount: 0,
+        lastA2aTx: null,
+        loading: true,
+    });
+
+    // ─── Fetch A2A activity from onchain tx history ─────────────────────────────
+
+    const fetchActivity = useCallback(async () => {
+        try {
+            const cutoff = Date.now() / 1000 - 86400; // 24h ago
+            const sigs = await connection.getSignaturesForAddress(PROGRAM_ID, { limit: 100 });
+
+            let a2aCount = 0;
+            let a2aVolume = 0;
+            let lastA2aTx: string | null = null;
+
+            for (const sig of sigs) {
+                if (!sig.blockTime) continue;
+
+                const tx = await connection.getParsedTransaction(sig.signature, {
+                    commitment: "confirmed",
+                    maxSupportedTransactionVersion: 0,
+                });
+                if (!tx?.meta?.logMessages) continue;
+
+                const logs = tx.meta.logMessages;
+                const isA2A = logs.some(l => l.includes("Instruction: AgentToAgentPayment"));
+
+                if (isA2A) {
+                    if (!lastA2aTx) lastA2aTx = sig.signature;
+                    if (sig.blockTime > cutoff) {
+                        a2aCount++;
+                        // Extract volume from postBalances delta
+                        const preBalances = tx.meta.preBalances || [];
+                        const postBalances = tx.meta.postBalances || [];
+                        const maxDelta = preBalances.reduce((max, pre, i) => {
+                            const delta = pre - (postBalances[i] || 0);
+                            return delta > max ? delta : max;
+                        }, 0);
+                        if (maxDelta > 0 && maxDelta < 1_000_000_000) {
+                            a2aVolume += maxDelta;
+                        }
+                    }
+                }
+            }
+
+            setActivity({
+                a2aCount24h: a2aCount,
+                a2aVolume24h: a2aVolume,
+                totalTxCount: sigs.length,
+                lastA2aTx,
+                loading: false,
+            });
+        } catch {
+            setActivity(prev => ({ ...prev, loading: false }));
+        }
+    }, [connection]);
 
     // ─── Fetch all agents network-wide ─────────────────────────────────────────
 
@@ -130,9 +194,13 @@ export default function NetworkPage() {
 
     useEffect(() => {
         fetchNetworkAgents();
-        const interval = setInterval(fetchNetworkAgents, REFRESH_INTERVAL);
+        fetchActivity();
+        const interval = setInterval(() => {
+            fetchNetworkAgents();
+            fetchActivity();
+        }, REFRESH_INTERVAL);
         return () => clearInterval(interval);
-    }, [fetchNetworkAgents]);
+    }, [fetchNetworkAgents, fetchActivity]);
 
     // Countdown ticker
     useEffect(() => {
@@ -200,10 +268,7 @@ export default function NetworkPage() {
             {/* Nav */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "28px", flexWrap: "wrap", gap: "12px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                    <span
-                        onClick={() => router.push("/")}
-                        style={{ fontFamily: "'Orbitron', monospace", fontSize: "18px", fontWeight: 900, color: "#00ff88", letterSpacing: "0.1em", cursor: "pointer", textShadow: "0 0 20px rgba(0,255,136,0.3)" }}
-                    >
+                    <span onClick={() => router.push("/")} style={{ fontFamily: "'Orbitron', monospace", fontSize: "18px", fontWeight: 900, color: "#00ff88", letterSpacing: "0.1em", cursor: "pointer", textShadow: "0 0 20px rgba(0,255,136,0.3)" }}>
                         PAYKIT
                     </span>
                     <span style={{ color: "rgba(0,255,136,0.3)" }}>·</span>
@@ -225,14 +290,60 @@ export default function NetworkPage() {
             {/* Header */}
             <div style={{ marginBottom: "24px" }}>
                 <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "22px", fontWeight: 700, color: "#00ff88", letterSpacing: "0.12em", marginBottom: "6px", textShadow: "0 0 24px rgba(0,255,136,0.3)" }}>
-          // NETWORK EXPLORER
+                    // NETWORK EXPLORER
                 </div>
                 <div style={{ fontSize: "14px", color: "#9aeab0" }}>
                     All PayKit agents registered on Solana Devnet · live data
                 </div>
             </div>
 
-            {/* Stats row */}
+            {/* ── LIVE ACTIVITY — 24h A2A stats ──────────────────────────────── */}
+            <div style={{ marginBottom: "16px", padding: "16px 20px", background: "rgba(0,255,136,0.02)", border: "1px solid rgba(0,255,136,0.12)", borderRadius: "4px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#00ff88", boxShadow: "0 0 8px rgba(0,255,136,0.6)", animation: "pulse-green 2s infinite", display: "inline-block" }} />
+                        <span style={{ fontFamily: "'Orbitron', monospace", fontSize: "11px", color: "#00ff88", letterSpacing: "0.2em" }}>LIVE PROTOCOL ACTIVITY</span>
+                    </div>
+                    <div style={{ display: "flex", gap: "28px", flexWrap: "wrap" }}>
+                        <div style={{ textAlign: "center" }}>
+                            <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "22px", fontWeight: 700, color: "#00ff88", textShadow: "0 0 16px rgba(0,255,136,0.4)", lineHeight: 1 }}>
+                                {activity.loading ? "..." : activity.a2aCount24h}
+                            </div>
+                            <div style={{ fontSize: "10px", color: "#6aaa80", letterSpacing: "0.12em", marginTop: "4px" }}>A2A PAYMENTS · 24H</div>
+                        </div>
+                        <div style={{ width: "1px", background: "rgba(0,255,136,0.1)" }} />
+                        <div style={{ textAlign: "center" }}>
+                            <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "22px", fontWeight: 700, color: "#ffb800", textShadow: "0 0 16px rgba(255,184,0,0.3)", lineHeight: 1 }}>
+                                {activity.loading ? "..." : `${fmtSOL(activity.a2aVolume24h)} SOL`}
+                            </div>
+                            <div style={{ fontSize: "10px", color: "#6aaa80", letterSpacing: "0.12em", marginTop: "4px" }}>A2A VOLUME · 24H</div>
+                        </div>
+                        <div style={{ width: "1px", background: "rgba(0,255,136,0.1)" }} />
+                        <div style={{ textAlign: "center" }}>
+                            <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "22px", fontWeight: 700, color: "#9aeab0", lineHeight: 1 }}>
+                                {activity.loading ? "..." : activity.totalTxCount}
+                            </div>
+                            <div style={{ fontSize: "10px", color: "#6aaa80", letterSpacing: "0.12em", marginTop: "4px" }}>RECENT TXS SCANNED</div>
+                        </div>
+                        {activity.lastA2aTx && (
+                            <>
+                                <div style={{ width: "1px", background: "rgba(0,255,136,0.1)" }} />
+                                <div style={{ textAlign: "center" }}>
+                                    <button
+                                        onClick={() => window.open(`https://explorer.solana.com/tx/${activity.lastA2aTx}?cluster=devnet`, "_blank")}
+                                        style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "#6aaa80", background: "transparent", border: "1px solid rgba(0,255,136,0.15)", padding: "4px 10px", borderRadius: "2px", cursor: "pointer", letterSpacing: "0.08em" }}
+                                    >
+                                        LAST A2A TX ↗
+                                    </button>
+                                    <div style={{ fontSize: "10px", color: "#3a6a4a", letterSpacing: "0.1em", marginTop: "4px" }}>VIEW ON EXPLORER</div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* ── AGGREGATE STATS ─────────────────────────────────────────────── */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px", marginBottom: "20px" }}>
                 {[
                     { label: "TOTAL AGENTS", value: loading ? "..." : agents.length.toString(), color: "#00ff88" },
@@ -270,7 +381,7 @@ export default function NetworkPage() {
                             {s.toUpperCase()}
                         </button>
                     ))}
-                    <button onClick={fetchNetworkAgents} style={{ ...btnStyle, marginLeft: "8px" }}>
+                    <button onClick={() => { fetchNetworkAgents(); fetchActivity(); }} style={{ ...btnStyle, marginLeft: "8px" }}>
                         ↻ REFRESH
                     </button>
                 </div>
@@ -283,7 +394,7 @@ export default function NetworkPage() {
                 {error && <span style={{ color: "#ff3c5a" }}>✗ {error}</span>}
             </div>
 
-            {/* Agent table */}
+            {/* Agent list */}
             {loading ? (
                 <div style={{ textAlign: "center", padding: "60px", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", letterSpacing: "0.1em" }}>
                     SCANNING DEVNET...

@@ -3,6 +3,22 @@
   "version": "0.1.0",
   "description": "PayKit SDK - Autonomous AI Agent Payments on Solana",
   "main": "src/index.js",
+  "types": "src/types.ts",
+  "files": [
+    "src/",
+    "idl/",
+    "examples/"
+  ],
+  "exports": {
+    ".": {
+      "require": "./src/index.js",
+      "types": "./src/types.ts"
+    },
+    "./errors": {
+      "require": "./src/errors.js",
+      "types": "./src/types.ts"
+    }
+  },
   "scripts": {
     "test": "jest --testTimeout=30000 --forceExit",
     "test:integration": "node src/test.js",
@@ -25,7 +41,9 @@
     "solana",
     "payments",
     "ai-agents",
-    "web3"
+    "web3",
+    "autonomous-agents",
+    "anchor"
   ],
   "author": "Zero Two Labs",
   "license": "MIT",

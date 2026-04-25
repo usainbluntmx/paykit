@@ -21,7 +21,7 @@ const anthropic = new Anthropic.default({ apiKey: process.env.ANTHROPIC_API_KEY 
 const paykit = createClient(KEYPAIR_PATH, "devnet");
 
 // ─── Bootstrap agents ─────────────────────────────────────────────────────────
-// Creates agents if they don't exist yet. Camino B — agents have own keypairs.
+// Creates agents if they don't exist yet. Agent-native — each agent has its own keypair.
 
 async function bootstrapAgents() {
     console.log("\n  Checking agents...");
@@ -215,17 +215,17 @@ async function runAgentDemo(task) {
     };
 
     console.log("\n" + C.green("  " + "─".repeat(58)));
-    console.log(C.green(C.bold("  ⚡ PAYKIT — AUTONOMOUS AGENT DEMO · CAMINO B")));
+    console.log(C.green(C.bold("  ⚡ PAYKIT — AUTONOMOUS AGENT DEMO · AGENT-NATIVE")));
     console.log(C.green("  " + "─".repeat(58)));
     console.log(`\n  ${C.dim("Task:")} ${task.trim().split("\n")[0]}`);
     console.log(`  ${C.dim("Orchestrator:")} ${C.cyan(ORCHESTRATOR)}`);
     console.log(`  ${C.dim("Executor:")}     ${C.cyan(EXECUTOR)}`);
-    console.log(`  ${C.dim("Architecture:")} ${C.yellow("Camino B — agents sign their own transactions")}`);
+    console.log(`  ${C.dim("Architecture:")} ${C.yellow("Agent-native — each agent signs its own transactions")}`);
     console.log("\n" + C.green("  " + "─".repeat(58)) + "\n");
 
     const systemPrompt = `You are ${ORCHESTRATOR}, an autonomous AI agent orchestrator running on the PayKit protocol on Solana.
 
-Architecture: Camino B — you and ${EXECUTOR} each have your own keypair and wallet. You sign your own transactions. No human owner is involved in payments.
+Architecture: Agent-native — you and ${EXECUTOR} each have your own keypair and wallet. You sign your own transactions. No human owner is involved in payments.
 
 Available agents:
 - ${ORCHESTRATOR} (you): orchestrator — tier standard, full capabilities
@@ -240,7 +240,7 @@ Your workflow:
 
 Payment amounts: 100000–500000 lamports (0.0001–0.0005 SOL) per service.
 Always use the most specific category for each payment.
-You sign payments autonomously — no owner approval needed. This is Camino B.`;
+You sign payments autonomously — no owner approval needed. This is agent-native architecture.`;
 
     const messages = [{ role: "user", content: task }];
     let continueLoop = true;
