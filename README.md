@@ -53,15 +53,15 @@ When a developer integrates PayKit, their AI agents get:
 
 ---
 
-## Architecture — Camino B
+## Architecture — Agent-Native
 
-PayKit currently operates in **Camino B** architecture. This is the key distinction from every other agent payment system:
+PayKit takes an **agent-native** approach. This is the key distinction from every other agent payment system:
 
 ```
-Camino A (deprecated):
+Other SDKs:
   Owner signs every payment → agents have no autonomy
 
-Camino B (current):
+PayKit (agent-native):
   Agent has its own keypair → agent signs its own transactions
   Owner only registers and configures → never signs individual payments
 ```
@@ -135,7 +135,7 @@ paykit/
 │   ├── src/patch-idl.js           ← IDL patcher for Anchor 0.31 format
 │   ├── src/__tests__/             ← Jest unit tests (45 passing)
 │   └── examples/
-│       └── basic-usage.js         ← Camino B usage example
+│       └── basic-usage.js         ← Agent-native usage example
 └── frontend/
     └── app/
         ├── page.tsx               ← Landing page (/)
@@ -249,7 +249,7 @@ pub struct AgentAccount {
 npm install @paykit/sdk
 ```
 
-### Quickstart — Camino B
+### Quickstart — Agent-Native
 
 ```javascript
 const { createClient, CAPABILITIES, CAP_ALL_DEFAULT, CATEGORIES } = require("@paykit/sdk");
@@ -492,7 +492,7 @@ cd ../frontend && npm install && npm run dev
 
 ## Roadmap
 
-### ✅ Completed — Camino B
+### ✅ Completed
 
 - Smart contract — 13 instructions, capabilities bitmask, tier system, category limits, configurable BPS, expiration, renewal, reactivation, `closeAgent` with rent recovery, rich onchain events, 371-byte account
 - SDK — `createAutonomousAgent`, autonomous keypairs, `transferSOL`, `transferSPL`, `transferUSDC`, `setCapabilities`, `setCategoryLimit`, `setTier`, `setCustomCapability`, `decodeCapabilities`, `getAgentHistory`, `watchAgent`, `createWebhook`, `batchPayment`, `closeAgent`, `listLocalAgents`, 45 Jest tests
@@ -505,9 +505,9 @@ cd ../frontend && npm install && npm run dev
 - Live network explorer — `/network` shows all PayKit agents on Devnet in real time
 - QR wallet modal — agent wallet address as scannable QR
 - Fee estimator — real-time transaction fee estimation before A2A execution
-- Autonomous AI agent demo — Anthropic API + PayKit (Camino B)
+- Autonomous AI agent demo — Anthropic API + PayKit (agent-native)
 - LangChain and CrewAI integration guides
-- Vercel deployment — Camino B live at https://paykit-sigma.vercel.app
+- Vercel deployment — live at https://paykit-sigma.vercel.app
 
 ### 🔄 In Progress
 

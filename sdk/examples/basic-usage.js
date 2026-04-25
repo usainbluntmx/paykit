@@ -17,13 +17,13 @@ const FUNDING = 0.02 * 1_000_000_000; // 0.02 SOL per agent
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-    console.log("PayKit SDK — Basic Usage Example (Camino B)\n");
+    console.log("PayKit SDK — Basic Usage Example (Agent-Native)\n");
 
     const client = createClient(KEYPAIR_PATH, "devnet");
     console.log("✓ Client created");
     console.log("  Owner:", client.wallet.publicKey.toBase58(), "\n");
 
-    // 1. Create autonomous agents (Camino B — each has its own keypair)
+    // 1. Create autonomous agents — each has its own keypair and signs its own transactions
     for (const name of [AGENT_A, AGENT_B]) {
         if (agentKeypairExists(name)) {
             console.log(`  ${name} already exists — skipping`);

@@ -9,6 +9,7 @@ const path = require("path");
 const IDL_PATH = path.resolve(__dirname, "../../target/idl/paykit.json");
 const IDL_OUT = path.resolve(__dirname, "../../target/idl/paykit.json");
 const FRONTEND_IDL = path.resolve(__dirname, "../../frontend/public/idl/paykit.json");
+const SDK_IDL = path.resolve(__dirname, "../idl/paykit.json");
 
 const idl = JSON.parse(fs.readFileSync(IDL_PATH, "utf8"));
 
@@ -91,9 +92,11 @@ if (!existingTypeNames.includes("CategoryLimit")) {
 const patched = JSON.stringify(idl, null, 2);
 fs.writeFileSync(IDL_OUT, patched);
 fs.writeFileSync(FRONTEND_IDL, patched);
+fs.writeFileSync(SDK_IDL, patched);
 
 console.log("✓ IDL patched — AgentAccount and CategoryLimit added");
 console.log("✓ Frontend IDL updated");
+console.log("✓ SDK IDL updated");
 
 // ─── Discriminator ────────────────────────────────────────────────────────────
 

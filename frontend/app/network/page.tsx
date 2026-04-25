@@ -92,42 +92,53 @@ export default function NetworkPage() {
 
     const fetchActivity = useCallback(async () => {
         try {
-            const cutoff = Date.now() / 1000 - 86400; // 24h ago
+            const cutoff = Date.now() / 1000 - 86400;
             const sigs = await connection.getSignaturesForAddress(PROGRAM_ID, { limit: 100 });
+            if (sigs.length === 0) {
+                setActivity({ a2aCount24h: 0, a2aVolume24h: 0, totalTxCount: 0, lastA2aTx: null, loading: false });
+                return;
+            }
+
+            // Batch fetch — one round-trip instead of N sequential calls
+            const BATCH = 25;
+            const allTxs: (any | null)[] = [];
+            for (let i = 0; i < sigs.length; i += BATCH) {
+                const batch = sigs.slice(i, i + BATCH).map(s => s.signature);
+                const results = await connection.getParsedTransactions(batch, {
+                    commitment: "confirmed",
+                    maxSupportedTransactionVersion: 0,
+                });
+                allTxs.push(...results);
+            }
 
             let a2aCount = 0;
             let a2aVolume = 0;
             let lastA2aTx: string | null = null;
 
-            for (const sig of sigs) {
-                if (!sig.blockTime) continue;
+            allTxs.forEach((tx, idx) => {
+                if (!tx?.meta?.logMessages) return;
+                const sig = sigs[idx];
+                if (!sig?.blockTime) return;
 
-                const tx = await connection.getParsedTransaction(sig.signature, {
-                    commitment: "confirmed",
-                    maxSupportedTransactionVersion: 0,
-                });
-                if (!tx?.meta?.logMessages) continue;
+                const isA2A = tx.meta.logMessages.some((l: string) =>
+                    l.includes("Instruction: AgentToAgentPayment")
+                );
+                if (!isA2A) return;
 
-                const logs = tx.meta.logMessages;
-                const isA2A = logs.some(l => l.includes("Instruction: AgentToAgentPayment"));
-
-                if (isA2A) {
-                    if (!lastA2aTx) lastA2aTx = sig.signature;
-                    if (sig.blockTime > cutoff) {
-                        a2aCount++;
-                        // Extract volume from postBalances delta
-                        const preBalances = tx.meta.preBalances || [];
-                        const postBalances = tx.meta.postBalances || [];
-                        const maxDelta = preBalances.reduce((max, pre, i) => {
-                            const delta = pre - (postBalances[i] || 0);
-                            return delta > max ? delta : max;
-                        }, 0);
-                        if (maxDelta > 0 && maxDelta < 1_000_000_000) {
-                            a2aVolume += maxDelta;
-                        }
+                if (!lastA2aTx) lastA2aTx = sig.signature;
+                if (sig.blockTime > cutoff) {
+                    a2aCount++;
+                    const pre = tx.meta.preBalances || [];
+                    const post = tx.meta.postBalances || [];
+                    const maxDelta = pre.reduce((max: number, val: number, i: number) => {
+                        const delta = val - (post[i] || 0);
+                        return delta > max ? delta : max;
+                    }, 0);
+                    if (maxDelta > 0 && maxDelta < 1_000_000_000) {
+                        a2aVolume += maxDelta;
                     }
                 }
-            }
+            });
 
             setActivity({
                 a2aCount24h: a2aCount,
