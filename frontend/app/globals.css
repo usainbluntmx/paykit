@@ -80,40 +80,64 @@ body::before {
   border-width: 0 1px 1px 0;
 }
 
-/* Pulse animation */
+/* ── Keyframes ─────────────────────────────────────────────────────────────── */
+
 @keyframes pulse-green {
-
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.4;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
 @keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes fade-in-up-lg {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes scan {
-  0% {
-    transform: translateY(-100%);
-  }
-
-  100% {
-    transform: translateY(100vh);
-  }
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
 }
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(0,255,136,0); }
+  50%       { box-shadow: 0 0 32px rgba(0,255,136,0.12); }
+}
+
+@keyframes border-glow {
+  0%, 100% { border-color: rgba(0,255,136,0.1); }
+  50%       { border-color: rgba(0,255,136,0.3); }
+}
+
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Animation classes ─────────────────────────────────────────────────────── */
 
 .animate-pulse-green {
   animation: pulse-green 2s ease-in-out infinite;
@@ -122,6 +146,67 @@ body::before {
 .animate-fade-in {
   animation: fade-in-up 0.4s ease forwards;
 }
+
+.animate-fade-in-lg {
+  animation: fade-in-up-lg 0.6s ease forwards;
+}
+
+.animate-slide-left {
+  animation: slide-in-left 0.5s ease forwards;
+}
+
+.animate-slide-right {
+  animation: slide-in-right 0.5s ease forwards;
+}
+
+/* Staggered delays for children */
+.stagger-1 { animation-delay: 0.1s; opacity: 0; }
+.stagger-2 { animation-delay: 0.2s; opacity: 0; }
+.stagger-3 { animation-delay: 0.3s; opacity: 0; }
+.stagger-4 { animation-delay: 0.4s; opacity: 0; }
+.stagger-5 { animation-delay: 0.5s; opacity: 0; }
+.stagger-6 { animation-delay: 0.6s; opacity: 0; }
+
+/* Shimmer text */
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    #00ff88 0%,
+    #00ff88 40%,
+    #ffffff 50%,
+    #00ff88 60%,
+    #00ff88 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s linear infinite;
+}
+
+/* Bento card hover */
+.bento-card {
+  transition: border-color 0.3s ease, background 0.3s ease, transform 0.2s ease;
+}
+.bento-card:hover {
+  border-color: rgba(0, 255, 136, 0.35) !important;
+  background: #111a15 !important;
+}
+
+/* Scroll reveal — starts hidden, JS adds .revealed */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+.reveal-delay-4 { transition-delay: 0.4s; }
 
 /* Input styles */
 input,

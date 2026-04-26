@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 
 const sections = [
   { id: "overview",            title: "Overview" },
-  { id: "camino-b",            title: "Agent-Native Architecture" },
+  { id: "agent-native",        title: "Agent-Native Architecture" },
   { id: "installation",        title: "Installation" },
   { id: "quickstart",          title: "Quickstart" },
   { id: "create-agent",        title: "createAutonomousAgent" },
@@ -46,7 +46,7 @@ function Code({ children }: { children: string }) {
       <button onClick={copy} style={{ position: "absolute", top: "10px", right: "10px", background: "transparent", border: "1px solid rgba(0,255,136,0.2)", color: copied ? "#00ff88" : "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", padding: "3px 8px", borderRadius: "2px", cursor: "pointer", letterSpacing: "0.1em", transition: "all 0.2s" }}>
         {copied ? "COPIED" : "COPY"}
       </button>
-      <pre style={{ background: "#060a08", border: "1px solid rgba(0,255,136,0.12)", borderRadius: "4px", padding: "20px", fontFamily: "'Share Tech Mono', monospace", fontSize: "13px", lineHeight: 1.8, color: "#c8f0d8", overflowX: "auto", whiteSpace: "pre" }}>
+      <pre style={{ background: "#060a08", border: "1px solid rgba(0,255,136,0.12)", borderRadius: "4px", padding: "22px", fontFamily: "'Share Tech Mono', monospace", fontSize: "14px", lineHeight: 1.85, color: "#c8f0d8", overflowX: "auto", whiteSpace: "pre" }}>
         {children}
       </pre>
     </div>
@@ -55,7 +55,7 @@ function Code({ children }: { children: string }) {
 
 function Badge({ text, color = "#00ff88" }: { text: string; color?: string }) {
   return (
-    <span style={{ display: "inline-block", fontSize: "11px", color, border: `1px solid ${color}40`, background: `${color}10`, padding: "2px 8px", borderRadius: "2px", fontFamily: "'Share Tech Mono', monospace", letterSpacing: "0.1em", marginRight: "8px" }}>
+    <span style={{ display: "inline-block", fontSize: "13px", color, border: `1px solid ${color}50`, background: `${color}10`, padding: "3px 10px", borderRadius: "2px", fontFamily: "'Share Tech Mono', monospace", letterSpacing: "0.1em", marginRight: "8px" }}>
       {text}
     </span>
   );
@@ -63,7 +63,7 @@ function Badge({ text, color = "#00ff88" }: { text: string; color?: string }) {
 
 function Param({ name, type, required, desc }: { name: string; type: string; required?: boolean; desc: string }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "180px 120px 1fr", gap: "16px", padding: "12px 0", borderBottom: "1px solid rgba(0,255,136,0.06)", fontSize: "14px", alignItems: "start" }}>
+    <div style={{ display: "grid", gridTemplateColumns: "180px 120px 1fr", gap: "16px", padding: "14px 0", borderBottom: "1px solid rgba(0,255,136,0.06)", fontSize: "15px", alignItems: "start" }}>
       <span style={{ color: "#00ff88", fontFamily: "'Share Tech Mono', monospace" }}>{name}</span>
       <span style={{ color: "#ffb800", fontFamily: "'Share Tech Mono', monospace" }}>{type}</span>
       <span style={{ color: "#9aeab0" }}>{desc} {required && <span style={{ color: "#ff3c5a", fontSize: "12px" }}>required</span>}</span>
@@ -73,7 +73,7 @@ function Param({ name, type, required, desc }: { name: string; type: string; req
 
 function SectionTitle({ id, children }: { id: string; children: string }) {
   return (
-    <h2 id={id} style={{ fontFamily: "'Orbitron', monospace", fontSize: "16px", color: "#00ff88", letterSpacing: "0.15em", marginBottom: "16px", marginTop: "48px", paddingTop: "16px", borderTop: "1px solid rgba(0,255,136,0.1)" }}>
+    <h2 id={id} style={{ fontFamily: "'Orbitron', monospace", fontSize: "18px", color: "#00ff88", letterSpacing: "0.15em", marginBottom: "16px", marginTop: "48px", paddingTop: "16px", borderTop: "1px solid rgba(0,255,136,0.1)" }}>
       {children}
     </h2>
   );
@@ -81,7 +81,7 @@ function SectionTitle({ id, children }: { id: string; children: string }) {
 
 function SubTitle({ children }: { children: string }) {
   return (
-    <h3 style={{ fontFamily: "'Orbitron', monospace", fontSize: "12px", color: "#6aaa80", letterSpacing: "0.2em", marginBottom: "12px", marginTop: "24px" }}>
+    <h3 style={{ fontFamily: "'Orbitron', monospace", fontSize: "13px", color: "#9aeab0", letterSpacing: "0.2em", marginBottom: "12px", marginTop: "24px" }}>
       {children}
     </h3>
   );
@@ -89,7 +89,7 @@ function SubTitle({ children }: { children: string }) {
 
 function P({ children }: { children: React.ReactNode }) {
   return (
-    <p style={{ fontSize: "15px", color: "#9aeab0", lineHeight: 1.8, marginBottom: "16px" }}>
+    <p style={{ fontSize: "16px", color: "#c8f0d8", lineHeight: 1.85, marginBottom: "16px" }}>
       {children}
     </p>
   );
@@ -99,7 +99,7 @@ function Callout({ type = "info", children }: { type?: "info" | "warning" | "dan
   const colors = { info: "#00ff88", warning: "#ffb800", danger: "#ff3c5a" };
   const color = colors[type];
   return (
-    <div style={{ padding: "14px 18px", background: `${color}08`, border: `1px solid ${color}30`, borderLeft: `3px solid ${color}`, borderRadius: "3px", marginBottom: "20px", fontSize: "14px", color: "#9aeab0", lineHeight: 1.7 }}>
+    <div style={{ padding: "16px 20px", background: `${color}08`, border: `1px solid ${color}30`, borderLeft: `3px solid ${color}`, borderRadius: "3px", marginBottom: "20px", fontSize: "15px", color: "#c8f0d8", lineHeight: 1.75 }}>
       {children}
     </div>
   );
@@ -112,7 +112,7 @@ function Table({ headers, rows }: { headers: string[]; rows: string[][] }) {
         <thead>
           <tr style={{ borderBottom: "1px solid rgba(0,255,136,0.2)" }}>
             {headers.map(h => (
-              <th key={h} style={{ padding: "10px 14px", color: "#00ff88", textAlign: "left", letterSpacing: "0.1em", fontFamily: "'Orbitron', monospace", fontSize: "11px" }}>{h}</th>
+              <th key={h} style={{ padding: "12px 16px", color: "#00ff88", textAlign: "left", letterSpacing: "0.1em", fontFamily: "'Orbitron', monospace", fontSize: "13px" }}>{h}</th>
             ))}
           </tr>
         </thead>
@@ -120,7 +120,7 @@ function Table({ headers, rows }: { headers: string[]; rows: string[][] }) {
           {rows.map((row, i) => (
             <tr key={i} style={{ borderBottom: "1px solid rgba(0,255,136,0.06)", background: i % 2 === 0 ? "transparent" : "rgba(0,255,136,0.01)" }}>
               {row.map((cell, j) => (
-                <td key={j} style={{ padding: "10px 14px", color: j === 0 ? "#c8f0d8" : "#9aeab0", verticalAlign: "top" }}>{cell}</td>
+                <td key={j} style={{ padding: "12px 16px", color: j === 0 ? "#e8f5ee" : "#c8f0d8", verticalAlign: "top", fontSize: "14px" }}>{cell}</td>
               ))}
             </tr>
           ))}
@@ -150,15 +150,15 @@ export default function Docs() {
           <button onClick={() => router.push("/")} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, marginBottom: "4px" }}>
             <span style={{ fontFamily: "'Orbitron', monospace", fontSize: "18px", fontWeight: 900, color: "#00ff88", textShadow: "0 0 20px rgba(0,255,136,0.4)" }}>PAYKIT</span>
           </button>
-          <div style={{ fontSize: "10px", color: "#6aaa80", letterSpacing: "0.15em" }}>SDK DOCS · OPEN BETA</div>
+          <div style={{ fontSize: "13px", color: "#9aeab0", letterSpacing: "0.12em" }}>SDK DOCS · OPEN BETA</div>
         </div>
         {sections.map(s => (
-          <button key={s.id} onClick={() => scrollTo(s.id)} style={{ background: activeSection === s.id ? "rgba(0,255,136,0.08)" : "transparent", border: "none", borderLeft: `2px solid ${activeSection === s.id ? "#00ff88" : "transparent"}`, color: activeSection === s.id ? "#00ff88" : "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", padding: "7px 12px", cursor: "pointer", textAlign: "left", letterSpacing: "0.05em", transition: "all 0.15s", borderRadius: "0 3px 3px 0" }}>
+          <button key={s.id} onClick={() => scrollTo(s.id)} style={{ background: activeSection === s.id ? "rgba(0,255,136,0.08)" : "transparent", border: "none", borderLeft: `2px solid ${activeSection === s.id ? "#00ff88" : "transparent"}`, color: activeSection === s.id ? "#00ff88" : "#c8f0d8", fontFamily: "'Share Tech Mono', monospace", fontSize: "13px", padding: "8px 14px", cursor: "pointer", textAlign: "left", letterSpacing: "0.05em", transition: "all 0.15s", borderRadius: "0 3px 3px 0" }}>
             {s.title}
           </button>
         ))}
         <div style={{ marginTop: "auto", paddingTop: "24px", borderTop: "1px solid rgba(0,255,136,0.06)", display: "flex", flexDirection: "column", gap: "8px" }}>
-          <button onClick={() => router.push("/demo")} style={{ background: "rgba(0,255,136,0.06)", border: "1px solid rgba(0,255,136,0.2)", color: "#00ff88", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", padding: "8px 12px", borderRadius: "3px", cursor: "pointer", letterSpacing: "0.1em" }}>
+          <button onClick={() => router.push("/demo")} style={{ background: "rgba(0,255,136,0.08)", border: "1px solid rgba(0,255,136,0.35)", color: "#00ff88", fontFamily: "'Share Tech Mono', monospace", fontSize: "14px", padding: "11px 14px", borderRadius: "3px", cursor: "pointer", letterSpacing: "0.1em" }}>
             LIVE DEMO →
           </button>
           <button onClick={() => router.push("/dashboard")} style={{ background: "transparent", border: "1px solid rgba(0,255,136,0.1)", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", padding: "8px 12px", borderRadius: "3px", cursor: "pointer", letterSpacing: "0.1em" }}>
@@ -175,8 +175,8 @@ export default function Docs() {
 
         {/* Overview */}
         <div id="overview">
-          <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "11px", color: "#6aaa80", letterSpacing: "0.2em", marginBottom: "12px" }}>// SDK REFERENCE</div>
-          <h1 style={{ fontFamily: "'Orbitron', monospace", fontSize: "28px", fontWeight: 900, color: "#00ff88", letterSpacing: "0.05em", textShadow: "0 0 20px rgba(0,255,136,0.3)", marginBottom: "20px" }}>PayKit SDK</h1>
+          <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "13px", color: "#9aeab0", letterSpacing: "0.2em", marginBottom: "12px" }}>// SDK REFERENCE</div>
+          <h1 style={{ fontFamily: "'Orbitron', monospace", fontSize: "32px", fontWeight: 900, color: "#00ff88", letterSpacing: "0.05em", textShadow: "0 0 20px rgba(0,255,136,0.3)", marginBottom: "24px" }}>PayKit SDK</h1>
           <P>PayKit is an accountability layer for autonomous AI agents on Solana. Agents get their own keypair, their own wallet, and enforced spend limits — all at the protocol level. Agents sign their own transactions. The owner wallet is never involved in individual payments.</P>
           <P>PayKit is <strong style={{ color: "#c8f0d8" }}>not a payment processor</strong>. It records accountability onchain with immutable events, enforced budgets, granular capabilities, tier-based hiring, and category limits.</P>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginTop: "24px" }}>
@@ -186,15 +186,15 @@ export default function Docs() {
               { label: "VERSION", value: "AGENT-NATIVE · DEVNET" },
             ].map(item => (
               <div key={item.label} style={{ padding: "14px", background: "rgba(0,255,136,0.02)", border: "1px solid rgba(0,255,136,0.1)", borderRadius: "3px" }}>
-                <div style={{ fontSize: "10px", color: "#6aaa80", letterSpacing: "0.15em", marginBottom: "6px", fontFamily: "'Orbitron', monospace" }}>{item.label}</div>
-                <div style={{ fontSize: "13px", color: "#c8f0d8", fontFamily: "'Share Tech Mono', monospace" }}>{item.value}</div>
+                <div style={{ fontSize: "12px", color: "#9aeab0", letterSpacing: "0.15em", marginBottom: "8px", fontFamily: "'Orbitron', monospace" }}>{item.label}</div>
+                <div style={{ fontSize: "14px", color: "#c8f0d8", fontFamily: "'Share Tech Mono', monospace" }}>{item.value}</div>
               </div>
             ))}
           </div>
         </div>
 
         {/* Agent-Native Architecture */}
-        <SectionTitle id="camino-b">CAMINO B ARCHITECTURE</SectionTitle>
+        <SectionTitle id="agent-native">AGENT-NATIVE ARCHITECTURE</SectionTitle>
         <P>PayKit takes an agent-native approach — the key architectural difference from every other agent payment system:</P>
         <Code>{`// Other SDKs:
 // Owner wallet signs every payment → agents have no real autonomy
@@ -909,7 +909,7 @@ class CheckBudgetTool(BaseTool):
 │                       Solana Blockchain                            │
 │              ~400ms finality · ~$0.00025/tx                       │
 └──────────────────────────────────────────────────────────────────┘`}</Code>
-        <SubTitle>// PDA DERIVATION — CAMINO B</SubTitle>
+        <SubTitle>// PDA DERIVATION — AGENT-NATIVE</SubTitle>
         <Code>{`// PDA is derived from the agent's own keypair, not the owner
 const [agentPDA] = PublicKey.findProgramAddressSync(
   [Buffer.from("agent"), agentKeypair.publicKey.toBuffer(), Buffer.from(agentName)],
@@ -931,21 +931,21 @@ const [agentPDA] = PublicKey.findProgramAddressSync(
             { rule: "Tier", desc: "Contract verifies sender can hire receiver's tier before every A2A payment." },
           ].map(item => (
             <div key={item.rule} style={{ display: "grid", gridTemplateColumns: "180px 1fr", gap: "16px", padding: "12px 0", borderBottom: "1px solid rgba(0,255,136,0.06)", fontSize: "14px" }}>
-              <span style={{ color: "#ffb800", fontFamily: "'Share Tech Mono', monospace" }}>{item.rule}</span>
-              <span style={{ color: "#9aeab0" }}>{item.desc}</span>
+              <span style={{ color: "#ffb800", fontFamily: "'Share Tech Mono', monospace", fontSize: "15px" }}>{item.rule}</span>
+              <span style={{ color: "#c8f0d8", fontSize: "15px" }}>{item.desc}</span>
             </div>
           ))}
         </div>
 
         {/* Footer */}
         <div style={{ marginTop: "64px", paddingTop: "24px", borderTop: "1px solid rgba(0,255,136,0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontSize: "12px", color: "#6aaa80" }}>PAYKIT · ZERO TWO LABS · 2026</span>
+          <span style={{ fontSize: "15px", color: "#c8f0d8" }}>PAYKIT · ZERO TWO LABS · 2026</span>
           <div style={{ display: "flex", gap: "16px" }}>
-            <button onClick={() => router.push("/")} style={{ background: "transparent", border: "none", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", cursor: "pointer" }}>HOME</button>
-            <button onClick={() => router.push("/demo")} style={{ background: "transparent", border: "none", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", cursor: "pointer" }}>DEMO</button>
-            <button onClick={() => router.push("/dashboard")} style={{ background: "transparent", border: "none", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", cursor: "pointer" }}>DASHBOARD</button>
-            <button onClick={() => router.push("/network")} style={{ background: "transparent", border: "none", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", cursor: "pointer" }}>NETWORK</button>
-            <a href="https://github.com/usainbluntmx/paykit" target="_blank" rel="noopener noreferrer" style={{ color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", textDecoration: "none" }}>GITHUB</a>
+            <button onClick={() => router.push("/")} style={{ background: "transparent", border: "none", color: "#c8f0d8", fontFamily: "'Share Tech Mono', monospace", fontSize: "14px", cursor: "pointer" }}>HOME</button>
+            <button onClick={() => router.push("/demo")} style={{ background: "transparent", border: "none", color: "#c8f0d8", fontFamily: "'Share Tech Mono', monospace", fontSize: "14px", cursor: "pointer" }}>DEMO</button>
+            <button onClick={() => router.push("/dashboard")} style={{ background: "transparent", border: "none", color: "#c8f0d8", fontFamily: "'Share Tech Mono', monospace", fontSize: "14px", cursor: "pointer" }}>DASHBOARD</button>
+            <button onClick={() => router.push("/network")} style={{ background: "transparent", border: "none", color: "#c8f0d8", fontFamily: "'Share Tech Mono', monospace", fontSize: "14px", cursor: "pointer" }}>NETWORK</button>
+            <a href="https://github.com/usainbluntmx/paykit" target="_blank" rel="noopener noreferrer" style={{ color: "#c8f0d8", fontFamily: "'Share Tech Mono', monospace", fontSize: "14px", textDecoration: "none" }}>GITHUB</a>
           </div>
         </div>
 

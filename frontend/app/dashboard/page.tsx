@@ -389,7 +389,7 @@ export default function Dashboard() {
 
   const sectionTitle: React.CSSProperties = {
     fontFamily: "'Orbitron', monospace",
-    fontSize: "12px",
+    fontSize: "14px",
     color: "#00ff88",
     letterSpacing: "0.2em",
     marginBottom: "18px",
@@ -424,7 +424,7 @@ export default function Dashboard() {
     border: `1px solid ${color}`,
     color: textColor,
     fontFamily: "'Share Tech Mono', monospace",
-    fontSize: "10px", padding: "3px 9px",
+    fontSize: "13px", padding: "6px 12px",
     borderRadius: "2px", cursor: "pointer",
   });
 
@@ -439,9 +439,15 @@ export default function Dashboard() {
           <a href="/" style={{ textDecoration: "none" }}>
             <span style={{ fontFamily: "'Orbitron', monospace", fontSize: "20px", fontWeight: 900, color: "#00ff88", letterSpacing: "0.06em", textShadow: "0 0 20px rgba(0,255,136,0.35)" }}>PAYKIT</span>
           </a>
-          <a href="/network" style={{ textDecoration: "none" }}><span style={{ fontSize: "12px", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", letterSpacing: "0.1em" }}>NETWORK</span></a>
-          <a href="/docs" style={{ textDecoration: "none" }}><span style={{ fontSize: "12px", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", letterSpacing: "0.1em" }}>DOCS</span></a>
-          <span style={{ fontSize: "11px", color: "#00ff88", border: "1px solid rgba(0,255,136,0.3)", padding: "2px 8px", borderRadius: "2px", letterSpacing: "0.12em" }}>v0.2.0 · DEVNET</span>
+          <a href="/demo" style={{ textDecoration: "none", color: "#c8f0d8", fontFamily: "'Share Tech Mono', monospace", fontSize: "14px", letterSpacing: "0.1em", transition: "color 0.2s" }}
+            onMouseOver={e => ((e.currentTarget as HTMLElement).style.color = "#00ff88")}
+            onMouseOut={e => ((e.currentTarget as HTMLElement).style.color = "#c8f0d8")}>DEMO</a>
+          <a href="/network" style={{ textDecoration: "none", color: "#c8f0d8", fontFamily: "'Share Tech Mono', monospace", fontSize: "14px", letterSpacing: "0.1em", transition: "color 0.2s" }}
+            onMouseOver={e => ((e.currentTarget as HTMLElement).style.color = "#00ff88")}
+            onMouseOut={e => ((e.currentTarget as HTMLElement).style.color = "#c8f0d8")}>NETWORK</a>
+          <a href="/docs" style={{ textDecoration: "none", color: "#c8f0d8", fontFamily: "'Share Tech Mono', monospace", fontSize: "14px", letterSpacing: "0.1em", transition: "color 0.2s" }}
+            onMouseOver={e => ((e.currentTarget as HTMLElement).style.color = "#00ff88")}
+            onMouseOut={e => ((e.currentTarget as HTMLElement).style.color = "#c8f0d8")}>DOCS</a>
         </div>
         {mounted && <WalletMultiButton />}
       </div>
@@ -450,7 +456,7 @@ export default function Dashboard() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 14px", background: "rgba(0,255,136,0.02)", border: "1px solid rgba(0,255,136,0.07)", borderLeft: `3px solid ${statusColor}`, borderRadius: "2px", marginBottom: "24px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: statusColor, boxShadow: `0 0 8px ${statusColor}`, animation: statusType === "loading" ? "pulse-green 1s infinite" : "none", flexShrink: 0 }} />
-          <span style={{ fontSize: "12px", color: statusColor, letterSpacing: "0.1em" }}>{status}</span>
+          <span style={{ fontSize: "15px", color: statusColor, letterSpacing: "0.1em" }}>{status}</span>
         </div>
         {lastTx && (
           <button onClick={() => openExplorer(lastTx)} style={{ background: "transparent", border: "1px solid rgba(0,255,136,0.2)", color: "#9aeab0", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", padding: "3px 10px", borderRadius: "2px", cursor: "pointer", letterSpacing: "0.08em" }}>
@@ -463,8 +469,8 @@ export default function Dashboard() {
       {!wallet.connected ? (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "20px", border: "1px solid rgba(0,255,136,0.08)", borderRadius: "4px", minHeight: "260px" }}>
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "14px", color: "#3a6a4a", letterSpacing: "0.2em", marginBottom: "8px" }}>NO WALLET DETECTED</div>
-            <div style={{ fontSize: "13px", color: "#3a6a4a" }}>Connect your Phantom wallet to access the protocol</div>
+            <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "18px", color: "#6aaa80", letterSpacing: "0.2em", marginBottom: "10px" }}>NO WALLET DETECTED</div>
+            <div style={{ fontSize: "16px", color: "#6aaa80" }}>Connect your Phantom wallet to access the protocol</div>
           </div>
           {mounted && <WalletMultiButton />}
         </div>
@@ -490,28 +496,28 @@ export default function Dashboard() {
                   <input style={inputStyle} placeholder="agent-id (max 32 chars)" value={agentName} onChange={e => setAgentName(e.target.value)} />
                   <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
                     <input style={{ ...inputStyle, flex: 1, width: "auto" }} placeholder="spend limit" type="number" value={spendLimit} onChange={e => setSpendLimit(e.target.value)} />
-                    <span style={{ color: "#9aeab0", fontSize: "12px", whiteSpace: "nowrap" }}>SOL</span>
+                    <span style={{ color: "#9aeab0", fontSize: "14px", whiteSpace: "nowrap" }}>SOL</span>
                   </div>
                   <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
                     <input style={{ ...inputStyle, flex: 1, width: "auto" }} placeholder="fund wallet" type="number" value={fundingSOL} onChange={e => setFundingSOL(e.target.value)} />
-                    <span style={{ color: "#9aeab0", fontSize: "12px", whiteSpace: "nowrap" }}>SOL</span>
+                    <span style={{ color: "#9aeab0", fontSize: "14px", whiteSpace: "nowrap" }}>SOL</span>
                   </div>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "10px", marginBottom: "12px" }}>
                   <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
                     <input style={{ ...inputStyle, flex: 1, width: "auto" }} placeholder="daily limit" type="number" value={dailyLimitBps} onChange={e => setDailyLimitBps(e.target.value)} />
-                    <span style={{ color: "#9aeab0", fontSize: "12px" }}>BPS ({(parseInt(dailyLimitBps || "0") / 100).toFixed(0)}%)</span>
+                    <span style={{ color: "#9aeab0", fontSize: "14px" }}>BPS ({(parseInt(dailyLimitBps || "0") / 100).toFixed(0)}%)</span>
                   </div>
                   <div style={{ display: "flex", gap: "6px" }}>
                     {TIER_LABELS.map((t, i) => (
-                      <button key={i} onClick={() => setAgentTier(i)} style={{ flex: 1, padding: "6px", background: agentTier === i ? `${TIER_COLORS[i]}15` : "transparent", border: `1px solid ${agentTier === i ? TIER_COLORS[i] : "rgba(0,255,136,0.1)"}`, color: agentTier === i ? TIER_COLORS[i] : "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", borderRadius: "2px", cursor: "pointer", letterSpacing: "0.08em" }}>
+                      <button key={i} onClick={() => setAgentTier(i)} style={{ flex: 1, padding: "6px", background: agentTier === i ? `${TIER_COLORS[i]}15` : "transparent", border: `1px solid ${agentTier === i ? TIER_COLORS[i] : "rgba(0,255,136,0.1)"}`, color: agentTier === i ? TIER_COLORS[i] : "#9aeab0", fontFamily: "'Share Tech Mono', monospace", fontSize: "13px", borderRadius: "2px", cursor: "pointer", letterSpacing: "0.08em" }}>
                         {t}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                  <button onClick={() => setShowCapsPanel(v => !v)} style={{ background: "transparent", border: "1px solid rgba(0,255,136,0.12)", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", padding: "6px 12px", borderRadius: "2px", cursor: "pointer" }}>
+                  <button onClick={() => setShowCapsPanel(v => !v)} style={{ background: "transparent", border: "1px solid rgba(0,255,136,0.12)", color: "#9aeab0", fontFamily: "'Share Tech Mono', monospace", fontSize: "13px", padding: "8px 14px", borderRadius: "2px", cursor: "pointer" }}>
                     CAPABILITIES · {[0,1,2,3,4,5,6].filter(i => agentCaps & (1 << i)).length}/7
                   </button>
                   <button onClick={handleDeployAgent} disabled={loading || !agentName} style={{ ...(loading || !agentName ? btnOff : btnPrimary), width: "auto", padding: "8px 24px" }}>
@@ -524,7 +530,7 @@ export default function Dashboard() {
                       const bit = 1 << i;
                       const active = !!(agentCaps & bit);
                       return (
-                        <button key={key} onClick={() => setAgentCaps(c => active ? c & ~bit : c | bit)} style={{ background: active ? "rgba(0,255,136,0.1)" : "transparent", border: `1px solid ${active ? "rgba(0,255,136,0.35)" : "rgba(0,255,136,0.1)"}`, color: active ? "#00ff88" : "#3a6a4a", fontFamily: "'Share Tech Mono', monospace", fontSize: "10px", padding: "4px 8px", borderRadius: "2px", cursor: "pointer" }}>
+                        <button key={key} onClick={() => setAgentCaps(c => active ? c & ~bit : c | bit)} style={{ background: active ? "rgba(0,255,136,0.1)" : "transparent", border: `1px solid ${active ? "rgba(0,255,136,0.35)" : "rgba(0,255,136,0.1)"}`, color: active ? "#00ff88" : "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "13px", padding: "6px 10px", borderRadius: "2px", cursor: "pointer" }}>
                           {active ? "✓ " : ""}{label}
                         </button>
                       );
@@ -536,7 +542,7 @@ export default function Dashboard() {
 
             {/* Agent grid */}
             {agents.length === 0 ? (
-              <div style={{ color: "#3a6a4a", fontSize: "13px", textAlign: "center", padding: "32px 0" }}>
+              <div style={{ color: "#6aaa80", fontSize: "14px", textAlign: "center", padding: "32px 0" }}>
                 NO AGENTS DEPLOYED · click + DEPLOY AGENT to get started
               </div>
             ) : (
@@ -550,14 +556,14 @@ export default function Dashboard() {
                       <div key={a.pda} style={{ padding: "16px", background: "rgba(0,255,136,0.02)", border: `1px solid ${a.isActive && !expired ? "rgba(0,255,136,0.1)" : "rgba(255,60,90,0.12)"}`, borderRadius: "3px" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ fontFamily: "'Orbitron', monospace", fontSize: "13px", color: "#00ff88" }}>{a.name}</span>
-                            <span style={{ fontSize: "9px", color: TIER_COLORS[a.tier], border: `1px solid ${TIER_COLORS[a.tier]}40`, padding: "1px 5px", borderRadius: "2px" }}>{TIER_LABELS[a.tier]}</span>
+                            <span style={{ fontFamily: "'Orbitron', monospace", fontSize: "16px", color: "#00ff88" }}>{a.name}</span>
+                            <span style={{ fontSize: "12px", color: TIER_COLORS[a.tier], border: `1px solid ${TIER_COLORS[a.tier]}50`, padding: "2px 7px", borderRadius: "2px" }}>{TIER_LABELS[a.tier]}</span>
                           </div>
-                          <span style={{ fontSize: "11px", color: a.isActive && !expired ? "#00ff88" : "#ff3c5a", animation: a.isActive && !expired ? "pulse-green 2s infinite" : "none" }}>
+                          <span style={{ fontSize: "13px", color: a.isActive && !expired ? "#00ff88" : "#ff3c5a", animation: a.isActive && !expired ? "pulse-green 2s infinite" : "none" }}>
                             ● {expired ? "EXPIRED" : a.isActive ? "ACTIVE" : "INACTIVE"}
                           </span>
                         </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5px", fontSize: "11px", color: "#9aeab0", marginBottom: "10px" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5px", fontSize: "13px", color: "#c8f0d8", marginBottom: "10px" }}>
                           <div>LIMIT <span style={{ color: "#00cc6a" }}>{(a.spendLimit / 1e9).toFixed(2)} SOL</span></div>
                           <div>SPENT <span style={{ color: "#00cc6a" }}>{(a.totalSpent / 1e9).toFixed(4)} SOL</span></div>
                           <div>TXS <span style={{ color: "#00cc6a" }}>{a.paymentCount}</span></div>
@@ -568,12 +574,12 @@ export default function Dashboard() {
                         </div>
                         <div style={{ display: "flex", gap: "3px", flexWrap: "wrap", marginBottom: "10px" }}>
                           {Object.entries(decoded).map(([key, active]) => (
-                            <span key={key} style={{ fontSize: "9px", padding: "2px 5px", borderRadius: "2px", fontFamily: "'Share Tech Mono', monospace", background: active ? "rgba(0,255,136,0.07)" : "transparent", border: `1px solid ${active ? "rgba(0,255,136,0.2)" : "rgba(0,255,136,0.05)"}`, color: active ? "#9aeab0" : "#2a4a3a" }}>
+                            <span key={key} style={{ fontSize: "11px", padding: "3px 7px", borderRadius: "2px", fontFamily: "'Share Tech Mono', monospace", background: active ? "rgba(0,255,136,0.07)" : "transparent", border: `1px solid ${active ? "rgba(0,255,136,0.2)" : "rgba(0,255,136,0.05)"}`, color: active ? "#c8f0d8" : "#3a6a4a" }}>
                               {CAP_LABELS[key]}
                             </span>
                           ))}
                         </div>
-                        <div style={{ fontSize: "10px", color: "#4a7a5a", marginBottom: "10px", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace" }}
+                        <div style={{ fontSize: "13px", color: "#9aeab0", marginBottom: "10px", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace" }}
                           onClick={() => { navigator.clipboard.writeText(a.agentKey); showToast("Address copied"); }}
                           title="Click to copy">
                           {a.agentKey.slice(0, 14)}...{a.agentKey.slice(-4)}
@@ -592,7 +598,7 @@ export default function Dashboard() {
                 {totalPages > 1 && (
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "16px", paddingTop: "12px", borderTop: "1px solid rgba(0,255,136,0.06)" }}>
                     <button onClick={() => setAgentPage(p => Math.max(0, p - 1))} disabled={agentPage === 0} style={{ ...btnSmall(), opacity: agentPage === 0 ? 0.3 : 1 }}>← PREV</button>
-                    <span style={{ fontSize: "11px", color: "#6aaa80" }}>{agentPage + 1} / {totalPages}</span>
+                    <span style={{ fontSize: "13px", color: "#9aeab0" }}>{agentPage + 1} / {totalPages}</span>
                     <button onClick={() => setAgentPage(p => Math.min(totalPages - 1, p + 1))} disabled={agentPage >= totalPages - 1} style={{ ...btnSmall(), opacity: agentPage >= totalPages - 1 ? 0.3 : 1 }}>NEXT →</button>
                   </div>
                 )}
@@ -607,12 +613,12 @@ export default function Dashboard() {
             <div className="card-corner" style={card}>
               <div style={sectionTitle}>// AGENT-TO-AGENT PAYMENT</div>
               {agents.length < 2 ? (
-                <div style={{ color: "#3a6a4a", fontSize: "13px", textAlign: "center", padding: "24px 0" }}>DEPLOY AT LEAST 2 AGENTS TO ENABLE A2A PAYMENTS</div>
+                <div style={{ color: "#6aaa80", fontSize: "14px", textAlign: "center", padding: "24px 0" }}>DEPLOY AT LEAST 2 AGENTS TO ENABLE A2A PAYMENTS</div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: "8px", alignItems: "end" }}>
                     <div>
-                      <div style={{ fontSize: "10px", color: "#6aaa80", letterSpacing: "0.1em", marginBottom: "5px" }}>SENDER</div>
+                      <div style={{ fontSize: "14px", color: "#c8f0d8", letterSpacing: "0.1em", marginBottom: "6px" }}>SENDER</div>
                       <select style={inputStyle} value={a2aSender} onChange={e => { setA2aSender(e.target.value); setEstimatedFee(null); }}>
                         <option value="">select sender</option>
                         {agents.filter(a => a.name !== a2aReceiver).map(a => <option key={a.pda} value={a.name}>{a.name} · {TIER_LABELS[a.tier]}</option>)}
@@ -620,7 +626,7 @@ export default function Dashboard() {
                     </div>
                     <span style={{ color: "#00ff88", fontSize: "18px", opacity: a2aSender && a2aReceiver ? 1 : 0.15, paddingBottom: "2px" }}>→</span>
                     <div>
-                      <div style={{ fontSize: "10px", color: "#6aaa80", letterSpacing: "0.1em", marginBottom: "5px" }}>RECEIVER</div>
+                      <div style={{ fontSize: "14px", color: "#c8f0d8", letterSpacing: "0.1em", marginBottom: "6px" }}>RECEIVER</div>
                       <select style={inputStyle} value={a2aReceiver} onChange={e => { setA2aReceiver(e.target.value); setEstimatedFee(null); }}>
                         <option value="">select receiver</option>
                         {agents.filter(a => a.name !== a2aSender).map(a => <option key={a.pda} value={a.name}>{a.name} · {TIER_LABELS[a.tier]}</option>)}
@@ -641,11 +647,11 @@ export default function Dashboard() {
                     <input style={{ ...inputStyle, width: "80px" }} placeholder="SOL" type="number" value={a2aAmount} onChange={e => { setA2aAmount(e.target.value); setEstimatedFee(null); }} />
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <button onClick={handleEstimateFee} disabled={feeLoading || !a2aSender || !a2aReceiver} style={{ padding: "7px 14px", background: "transparent", border: `1px solid ${!a2aSender || !a2aReceiver ? "rgba(0,255,136,0.08)" : "rgba(0,255,136,0.2)"}`, color: !a2aSender || !a2aReceiver ? "#3a6a4a" : "#9aeab0", fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", letterSpacing: "0.08em", borderRadius: "3px", cursor: !a2aSender || !a2aReceiver ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
+                    <button onClick={handleEstimateFee} disabled={feeLoading || !a2aSender || !a2aReceiver} style={{ padding: "7px 14px", background: "transparent", border: `1px solid ${!a2aSender || !a2aReceiver ? "rgba(0,255,136,0.08)" : "rgba(0,255,136,0.2)"}`, color: !a2aSender || !a2aReceiver ? "#3a6a4a" : "#9aeab0", fontFamily: "'Share Tech Mono', monospace", fontSize: "14px", letterSpacing: "0.08em", borderRadius: "3px", cursor: !a2aSender || !a2aReceiver ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
                       {feeLoading ? "ESTIMATING..." : "⚡ ESTIMATE FEE"}
                     </button>
                     {estimatedFee && (
-                      <span style={{ fontSize: "11px", color: estimatedFee.startsWith("ERR") ? "#ff3c5a" : "#6aaa80", fontFamily: "'Share Tech Mono', monospace" }}>
+                      <span style={{ fontSize: "13px", color: estimatedFee.startsWith("ERR") ? "#ff3c5a" : "#9aeab0", fontFamily: "'Share Tech Mono', monospace" }}>
                         {estimatedFee}
                       </span>
                     )}
@@ -656,7 +662,7 @@ export default function Dashboard() {
                   {a2aLog.length > 0 && (
                     <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "4px" }}>
                       {a2aLog.map((entry, i) => (
-                        <div key={i} style={{ padding: "8px 12px", background: "rgba(0,255,136,0.02)", border: "1px solid rgba(0,255,136,0.06)", borderRadius: "3px", fontSize: "11px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                        <div key={i} style={{ padding: "10px 14px", background: "rgba(0,255,136,0.02)", border: "1px solid rgba(0,255,136,0.06)", borderRadius: "3px", fontSize: "13px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                           <span>
                             <span style={{ color: "#00ff88" }}>[{entry.time}]</span>{" "}
                             <span style={{ color: "#c8f0d8" }}>{entry.sender}</span>
@@ -681,21 +687,21 @@ export default function Dashboard() {
                 <button onClick={fetchPaymentHistory} style={btnSmall()}>↻</button>
               </div>
               {payments.length === 0 ? (
-                <div style={{ color: "#3a6a4a", fontSize: "13px", textAlign: "center", padding: "24px 0" }}>NO TRANSACTIONS FOUND</div>
+                <div style={{ color: "#6aaa80", fontSize: "14px", textAlign: "center", padding: "24px 0" }}>NO TRANSACTIONS FOUND</div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                   {payments.slice(0, 12).map((p, i) => {
                     const typeColor = p.type === "a2a" ? "#00ff88" : p.type === "pay" ? "#ffb800" : "#6aaa80";
                     const typeLabel = p.type === "a2a" ? "A2A" : p.type === "pay" ? "PAY" : "REG";
                     return (
-                      <div key={i} onClick={() => openExplorer(p.sig)} style={{ padding: "8px 12px", background: "rgba(0,255,136,0.02)", border: "1px solid rgba(0,255,136,0.06)", borderRadius: "3px", fontSize: "11px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", transition: "border-color 0.15s" }}
+                      <div key={i} onClick={() => openExplorer(p.sig)} style={{ padding: "10px 14px", background: "rgba(0,255,136,0.02)", border: "1px solid rgba(0,255,136,0.06)", borderRadius: "3px", fontSize: "13px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", transition: "border-color 0.15s" }}
                         onMouseOver={e => (e.currentTarget.style.borderColor = "rgba(0,255,136,0.2)")}
                         onMouseOut={e => (e.currentTarget.style.borderColor = "rgba(0,255,136,0.06)")}>
                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <span style={{ fontSize: "9px", color: typeColor, border: `1px solid ${typeColor}40`, padding: "1px 5px", borderRadius: "2px", fontFamily: "'Share Tech Mono', monospace" }}>{typeLabel}</span>
-                          <span style={{ color: "#9aeab0", fontFamily: "'Share Tech Mono', monospace" }}>{p.sig.slice(0, 14)}...</span>
+                          <span style={{ fontSize: "12px", color: typeColor, border: `1px solid ${typeColor}50`, padding: "2px 7px", borderRadius: "2px", fontFamily: "'Share Tech Mono', monospace" }}>{typeLabel}</span>
+                          <span style={{ color: "#c8f0d8", fontFamily: "'Share Tech Mono', monospace" }}>{p.sig.slice(0, 14)}...</span>
                         </div>
-                        <span style={{ color: "#4a7a5a", fontSize: "10px" }}>{p.time}</span>
+                        <span style={{ color: "#9aeab0", fontSize: "12px" }}>{p.time}</span>
                       </div>
                     );
                   })}
@@ -714,10 +720,10 @@ export default function Dashboard() {
                   payments: a.paymentCount,
                   spent: parseFloat((a.totalSpent / 1e9).toFixed(4)),
                 }))} margin={{ top: 0, right: 10, left: -20, bottom: 0 }}>
-                  <XAxis dataKey="name" tick={{ fill: "#6aaa80", fontSize: isMobile ? 9 : 11, fontFamily: "'Share Tech Mono', monospace" }} axisLine={{ stroke: "rgba(0,255,136,0.1)" }} tickLine={false} />
-                  <YAxis yAxisId="left" tick={{ fill: "#6aaa80", fontSize: 10, fontFamily: "'Share Tech Mono', monospace" }} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="right" orientation="right" tick={{ fill: "#ffb800", fontSize: 10, fontFamily: "'Share Tech Mono', monospace" }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ background: "#0d1410", border: "1px solid rgba(0,255,136,0.2)", borderRadius: "3px", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", color: "#00ff88" }} labelStyle={{ color: "#c8f0d8" }} cursor={{ fill: "rgba(0,255,136,0.04)" }} />
+                  <XAxis dataKey="name" tick={{ fill: "#9aeab0", fontSize: isMobile ? 11 : 13, fontFamily: "'Share Tech Mono', monospace" }} axisLine={{ stroke: "rgba(0,255,136,0.1)" }} tickLine={false} />
+                  <YAxis yAxisId="left" tick={{ fill: "#9aeab0", fontSize: 12, fontFamily: "'Share Tech Mono', monospace" }} axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fill: "#ffb800", fontSize: 12, fontFamily: "'Share Tech Mono', monospace" }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ background: "#0d1410", border: "1px solid rgba(0,255,136,0.2)", borderRadius: "3px", fontFamily: "'Share Tech Mono', monospace", fontSize: "14px", color: "#00ff88" }} labelStyle={{ color: "#c8f0d8" }} cursor={{ fill: "rgba(0,255,136,0.04)" }} />
                   <Bar yAxisId="left" dataKey="payments" name="Payments" radius={[2, 2, 0, 0]} maxBarSize={32}>
                     {agents.map((_, i) => <Cell key={`p-${i}`} fill="#00ff88" opacity={0.7} />)}
                   </Bar>
@@ -727,8 +733,8 @@ export default function Dashboard() {
                 </BarChart>
               </ResponsiveContainer>
               <div style={{ display: "flex", justifyContent: "center", gap: "24px", marginTop: "8px" }}>
-                <span style={{ fontSize: "11px", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace" }}>■ <span style={{ color: "#00ff88" }}>PAYMENTS</span></span>
-                <span style={{ fontSize: "11px", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace" }}>■ <span style={{ color: "#ffb800" }}>SOL SPENT</span></span>
+                <span style={{ fontSize: "13px", color: "#9aeab0", fontFamily: "'Share Tech Mono', monospace" }}>■ <span style={{ color: "#00ff88" }}>PAYMENTS</span></span>
+                <span style={{ fontSize: "13px", color: "#9aeab0", fontFamily: "'Share Tech Mono', monospace" }}>■ <span style={{ color: "#ffb800" }}>SOL SPENT</span></span>
               </div>
             </div>
           )}
@@ -737,9 +743,9 @@ export default function Dashboard() {
       )}
 
       {/* Footer */}
-      <div style={{ marginTop: "32px", paddingTop: "12px", borderTop: "1px solid rgba(0,255,136,0.06)", display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#3a6a4a", letterSpacing: "0.08em" }}>
+      <div style={{ marginTop: "32px", paddingTop: "12px", borderTop: "1px solid rgba(0,255,136,0.06)", display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#9aeab0", letterSpacing: "0.08em" }}>
         <span>PAYKIT · ZERO TWO LABS · 2026</span>
-        {!isMobile && <span>{PROGRAM_ID.toBase58().slice(0, 20)}...</span>}
+        {!isMobile && <span style={{ color: "#6aaa80" }}>{PROGRAM_ID.toBase58().slice(0, 20)}...</span>}
       </div>
 
       {/* QR Modal */}
@@ -749,17 +755,17 @@ export default function Dashboard() {
         return (
           <div onClick={() => setQrAgent(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 10000, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div onClick={e => e.stopPropagation()} className="card-corner" style={{ background: "#0d1410", border: "1px solid rgba(0,255,136,0.35)", borderRadius: "4px", padding: "32px", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", minWidth: "280px" }}>
-              <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "13px", color: "#00ff88", letterSpacing: "0.15em" }}>// AGENT WALLET</div>
+              <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "15px", color: "#00ff88", letterSpacing: "0.15em" }}>// AGENT WALLET</div>
               <div style={{ padding: "12px", background: "#ffffff", borderRadius: "3px" }}>
                 <QRCodeSVG value={agent.agentKey} size={180} />
               </div>
-              <div style={{ fontSize: "12px", color: "#9aeab0", fontFamily: "'Share Tech Mono', monospace", textAlign: "center" }}>
+              <div style={{ fontSize: "14px", color: "#c8f0d8", fontFamily: "'Share Tech Mono', monospace", textAlign: "center" }}>
                 <div style={{ color: "#00ff88", marginBottom: "4px" }}>{agent.name}</div>
-                <div style={{ fontSize: "10px", color: "#6aaa80", wordBreak: "break-all", maxWidth: "240px" }}>{agent.agentKey}</div>
+                <div style={{ fontSize: "12px", color: "#9aeab0", wordBreak: "break-all", maxWidth: "240px" }}>{agent.agentKey}</div>
               </div>
               <div style={{ display: "flex", gap: "8px" }}>
-                <button onClick={() => { navigator.clipboard.writeText(agent.agentKey); showToast("Address copied"); }} style={{ padding: "8px 16px", background: "transparent", border: "1px solid rgba(0,255,136,0.25)", color: "#9aeab0", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", borderRadius: "3px", cursor: "pointer", letterSpacing: "0.1em" }}>COPY ADDRESS</button>
-                <button onClick={() => setQrAgent(null)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid rgba(255,60,90,0.25)", color: "#ff3c5a", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", borderRadius: "3px", cursor: "pointer", letterSpacing: "0.1em" }}>CLOSE</button>
+                <button onClick={() => { navigator.clipboard.writeText(agent.agentKey); showToast("Address copied"); }} style={{ padding: "8px 16px", background: "transparent", border: "1px solid rgba(0,255,136,0.25)", color: "#9aeab0", fontFamily: "'Share Tech Mono', monospace", fontSize: "14px", borderRadius: "3px", cursor: "pointer", letterSpacing: "0.1em" }}>COPY ADDRESS</button>
+                <button onClick={() => setQrAgent(null)} style={{ padding: "8px 16px", background: "transparent", border: "1px solid rgba(255,60,90,0.25)", color: "#ff3c5a", fontFamily: "'Share Tech Mono', monospace", fontSize: "14px", borderRadius: "3px", cursor: "pointer", letterSpacing: "0.1em" }}>CLOSE</button>
               </div>
             </div>
           </div>
@@ -769,7 +775,7 @@ export default function Dashboard() {
       {/* Toasts */}
       <div style={{ position: "fixed", bottom: isMobile ? "12px" : "24px", right: isMobile ? "12px" : "24px", left: isMobile ? "12px" : "auto", display: "flex", flexDirection: "column", gap: "8px", zIndex: 9999 }}>
         {toasts.map(t => (
-          <div key={t.id} style={{ padding: "12px 20px", background: t.type === "ok" ? "rgba(0,20,10,0.95)" : "rgba(20,0,5,0.95)", border: `1px solid ${t.type === "ok" ? "rgba(0,255,136,0.4)" : "rgba(255,60,90,0.4)"}`, borderLeft: `3px solid ${t.type === "ok" ? "#00ff88" : "#ff3c5a"}`, borderRadius: "3px", fontFamily: "'Share Tech Mono', monospace", fontSize: "13px", color: t.type === "ok" ? "#00ff88" : "#ff3c5a", letterSpacing: "0.08em", animation: "fade-in-up 0.3s ease forwards" }}>
+          <div key={t.id} style={{ padding: "12px 20px", background: t.type === "ok" ? "rgba(0,20,10,0.95)" : "rgba(20,0,5,0.95)", border: `1px solid ${t.type === "ok" ? "rgba(0,255,136,0.4)" : "rgba(255,60,90,0.4)"}`, borderLeft: `3px solid ${t.type === "ok" ? "#00ff88" : "#ff3c5a"}`, borderRadius: "3px", fontFamily: "'Share Tech Mono', monospace", fontSize: "15px", color: t.type === "ok" ? "#00ff88" : "#ff3c5a", letterSpacing: "0.08em", animation: "fade-in-up 0.3s ease forwards" }}>
             {t.type === "ok" ? "✓ " : "✗ "}{t.message}
           </div>
         ))}
