@@ -153,7 +153,11 @@ export declare class PayKitClient {
     deleteWebhook(webhookId: string, heliusApiKey: string, cluster?: string): Promise<{ deleted: boolean }>;
 }
 
-export declare function createClient(keypairPath: string, cluster?: string, customRpcUrl?: string): PayKitClient;
+export interface PayKitClientOptions {
+    skipPreflight?: boolean;
+}
+
+export declare function createClient(keypairPath: string, cluster?: string, customRpcUrl?: string, options?: PayKitClientOptions): PayKitClient;
 
 export declare function createClientFromWallet(
     walletAdapter: BrowserWalletAdapter,

@@ -102,6 +102,7 @@ class PayKitClient {
         });
         const idl = require("../idl/paykit.json");
         this.program = new anchor.Program(idl, provider);
+        this.skipPreflight = options?.skipPreflight ?? false;
     }
 
     // ─── Get Agent PDA ─────────────────────────────────────────────────────────
@@ -376,7 +377,7 @@ class PayKitClient {
             tx.sign(senderKeypair);
 
             const txId = await this.connection.sendRawTransaction(tx.serialize(), {
-                skipPreflight: true,
+                skipPreflight: this.skipPreflight ?? false,
                 preflightCommitment: "confirmed",
             });
             await this.connection.confirmTransaction(txId, "confirmed");
@@ -434,7 +435,7 @@ class PayKitClient {
             tx.sign(senderKeypair);
 
             const txId = await this.connection.sendRawTransaction(tx.serialize(), {
-                skipPreflight: true,
+                skipPreflight: this.skipPreflight ?? false,
                 preflightCommitment: "confirmed",
             });
             await this.connection.confirmTransaction(txId, "confirmed");
@@ -951,11 +952,11 @@ function loadWalletFromFile(keypairPath) {
     return new anchor.Wallet(keypair);
 }
 
-function createClient(keypairPath, cluster = "devnet", customRpcUrl = null) {
+function createClient(keypairPath, cluster, customRpcUrl, options = {}) {
     const rpcUrl = customRpcUrl || clusterApiUrl(cluster);
     const connection = new Connection(rpcUrl, "confirmed");
     const wallet = loadWalletFromFile(keypairPath);
-    return new PayKitClient(connection, wallet);
+    return new PayKitClient(connection, wallet, options);
 }
 
 function createClientFromWallet(walletAdapter, connection) {
