@@ -143,10 +143,10 @@ function ContextPanel({ title, text, visible }: { title: string; text: string; v
       borderRadius: "3px",
       marginBottom: "24px",
     }}>
-      <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "11px", color: "#00ff88", letterSpacing: "0.2em", marginBottom: "10px" }}>
+      <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "14px", color: "#00ff88", letterSpacing: "0.2em", marginBottom: "12px" }}>
         {title}
       </div>
-      <p style={{ fontSize: "14px", color: "#9aeab0", lineHeight: 1.9, minHeight: "44px" }}>
+      <p style={{ fontSize: "16px", color: "#c8f0d8", lineHeight: 1.9, minHeight: "48px" }}>
         {displayed}<span style={{ animation: "blink 1s step-end infinite", color: "#00ff88" }}>▊</span>
       </p>
       <style>{`@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }`}</style>
@@ -184,9 +184,9 @@ function ProgressBar({ current, completed, onGoTo }: { current: number; complete
                   animation: isCurrent ? "pulse-ring 2s ease-in-out infinite" : "none",
                 }}>
                   {isCompleted && !isCurrent ? (
-                    <span style={{ color: "#00cc6a", fontSize: "12px" }}>✓</span>
+                    <span style={{ color: "#00cc6a", fontSize: "14px" }}>✓</span>
                   ) : (
-                    <span style={{ color: isCurrent ? "#00ff88" : "#3a6a4a", fontSize: "11px", fontFamily: "'Share Tech Mono', monospace" }}>{step.id}</span>
+                    <span style={{ color: isCurrent ? "#00ff88" : "#6aaa80", fontSize: "13px", fontFamily: "'Share Tech Mono', monospace" }}>{step.id}</span>
                   )}
                 </div>
                 <span style={{ display: "none", color: isCurrent ? "#00ff88" : isCompleted ? "#6aaa80" : "#3a6a4a", fontSize: "10px", fontFamily: "'Orbitron', monospace", letterSpacing: "0.1em", whiteSpace: "nowrap" }}>
@@ -1006,16 +1006,28 @@ export default function Demo() {
       <TxBurst show={txBurst} />
 
       {/* Header */}
-      <div style={{ paddingTop: "72px", paddingBottom: "0", maxWidth: "900px", margin: "0 auto", padding: "72px 24px 0" }}>
+      <div style={{ maxWidth: "900px", margin: "0 auto", padding: "80px 24px 0" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "20px", flexWrap: "wrap" }}>
             <a href="/" style={{ textDecoration: "none" }}>
-              <span style={{ fontFamily: "'Orbitron', monospace", fontSize: "20px", fontWeight: 900, color: "#00ff88", textShadow: "0 0 20px rgba(0,255,136,0.4)" }}>PAYKIT</span>
+              <span style={{ fontFamily: "'Orbitron', monospace", fontSize: "22px", fontWeight: 900, color: "#00ff88", textShadow: "0 0 20px rgba(0,255,136,0.4)" }}>PAYKIT</span>
             </a>
-            <span style={{ fontSize: "11px", color: "#00ff88", border: "1px solid rgba(0,255,136,0.3)", padding: "2px 8px", borderRadius: "2px", letterSpacing: "0.15em" }}>INTERACTIVE DEMO</span>
-            <span style={{ fontSize: "12px", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace" }}>
+            <span style={{ fontSize: "14px", color: "#c8f0d8", fontFamily: "'Share Tech Mono', monospace", letterSpacing: "0.1em" }}>
               {STEPS[currentStep - 1]?.short}
             </span>
+            <div style={{ display: "flex", gap: "20px" }}>
+              {[
+                { label: "DASHBOARD", path: "/dashboard" },
+                { label: "NETWORK", path: "/network" },
+                { label: "DOCS", path: "/docs" },
+              ].map(item => (
+                <a key={item.label} href={item.path} style={{ textDecoration: "none", color: "#c8f0d8", fontFamily: "'Share Tech Mono', monospace", fontSize: "14px", letterSpacing: "0.1em", transition: "color 0.2s" }}
+                  onMouseOver={e => ((e.currentTarget as HTMLElement).style.color = "#00ff88")}
+                  onMouseOut={e => ((e.currentTarget as HTMLElement).style.color = "#c8f0d8")}>
+                  {item.label}
+                </a>
+              ))}
+            </div>
           </div>
           {mounted && <WalletMultiButton />}
         </div>
@@ -1026,7 +1038,7 @@ export default function Demo() {
         <div style={{ maxWidth: "900px", margin: "0 auto", padding: "0 24px 16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 14px", background: "rgba(0,255,136,0.02)", border: "1px solid rgba(0,255,136,0.08)", borderLeft: `3px solid ${statusColor}`, borderRadius: "2px" }}>
             <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: statusColor, boxShadow: `0 0 8px ${statusColor}`, animation: statusType === "loading" ? "pulse-green 1s infinite" : "none", flexShrink: 0 }} />
-            <span style={{ fontSize: "13px", color: statusColor, letterSpacing: "0.1em" }}>{statusMsg}</span>
+            <span style={{ fontSize: "15px", color: statusColor, letterSpacing: "0.1em" }}>{statusMsg}</span>
           </div>
         </div>
       )}
@@ -1050,9 +1062,9 @@ export default function Demo() {
               background: "transparent",
               border: "1px solid",
               borderColor: currentStep === 1 ? "rgba(0,255,136,0.1)" : "rgba(0,255,136,0.3)",
-              color: currentStep === 1 ? "#3a6a4a" : "#6aaa80",
+              color: currentStep === 1 ? "#3a6a4a" : "#c8f0d8",
               fontFamily: "'Share Tech Mono', monospace",
-              fontSize: "12px", padding: "8px 20px",
+              fontSize: "14px", padding: "10px 24px",
               borderRadius: "2px", cursor: currentStep === 1 ? "not-allowed" : "pointer",
               letterSpacing: "0.1em", transition: "all 0.2s",
             }}
@@ -1073,7 +1085,7 @@ export default function Demo() {
             ))}
           </div>
 
-          <div style={{ fontSize: "12px", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace" }}>
+          <div style={{ fontSize: "14px", color: "#9aeab0", fontFamily: "'Share Tech Mono', monospace" }}>
             STEP {currentStep} / {STEPS.length}
           </div>
         </div>

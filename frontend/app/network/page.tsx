@@ -247,8 +247,8 @@ export default function NetworkPage() {
     };
 
     const pill = (active: boolean, color = "#00ff88") => ({
-        fontSize: "11px",
-        padding: "3px 8px",
+        fontSize: "13px",
+        padding: "5px 12px",
         borderRadius: "2px",
         fontFamily: "'Share Tech Mono', monospace",
         letterSpacing: "0.05em",
@@ -260,12 +260,12 @@ export default function NetworkPage() {
     });
 
     const btnStyle = {
-        padding: "8px 16px",
+        padding: "9px 18px",
         background: "transparent",
         border: "1px solid rgba(0,255,136,0.25)",
-        color: "#9aeab0",
+        color: "#c8f0d8",
         fontFamily: "'Share Tech Mono', monospace",
-        fontSize: "12px",
+        fontSize: "13px",
         letterSpacing: "0.1em",
         borderRadius: "3px",
         cursor: "pointer",
@@ -279,19 +279,21 @@ export default function NetworkPage() {
             {/* Nav */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "28px", flexWrap: "wrap", gap: "12px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                    <span onClick={() => router.push("/")} style={{ fontFamily: "'Orbitron', monospace", fontSize: "18px", fontWeight: 900, color: "#00ff88", letterSpacing: "0.1em", cursor: "pointer", textShadow: "0 0 20px rgba(0,255,136,0.3)" }}>
+                    <span onClick={() => router.push("/")} style={{ fontFamily: "'Orbitron', monospace", fontSize: "22px", fontWeight: 900, color: "#00ff88", letterSpacing: "0.08em", cursor: "pointer", textShadow: "0 0 20px rgba(0,255,136,0.35)" }}>
                         PAYKIT
                     </span>
-                    <span style={{ color: "rgba(0,255,136,0.3)" }}>·</span>
-                    <span style={{ fontFamily: "'Orbitron', monospace", fontSize: "13px", color: "#9aeab0", letterSpacing: "0.15em" }}>NETWORK</span>
+                    <span style={{ fontFamily: "'Orbitron', monospace", fontSize: "14px", color: "#9aeab0", letterSpacing: "0.15em" }}>NETWORK</span>
                 </div>
-                <div style={{ display: "flex", gap: "10px" }}>
+                <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
                     {[
                         { label: "DEMO", path: "/demo" },
                         { label: "DASHBOARD", path: "/dashboard" },
                         { label: "DOCS", path: "/docs" },
                     ].map(item => (
-                        <button key={item.label} onClick={() => router.push(item.path)} style={btnStyle}>
+                        <button key={item.label} onClick={() => router.push(item.path)}
+                            style={{ background: "transparent", border: "none", color: "#c8f0d8", fontFamily: "'Share Tech Mono', monospace", fontSize: "14px", letterSpacing: "0.1em", cursor: "pointer", transition: "color 0.2s" }}
+                            onMouseOver={e => ((e.currentTarget as HTMLElement).style.color = "#00ff88")}
+                            onMouseOut={e => ((e.currentTarget as HTMLElement).style.color = "#c8f0d8")}>
                             {item.label}
                         </button>
                     ))}
@@ -300,10 +302,10 @@ export default function NetworkPage() {
 
             {/* Header */}
             <div style={{ marginBottom: "24px" }}>
-                <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "22px", fontWeight: 700, color: "#00ff88", letterSpacing: "0.12em", marginBottom: "6px", textShadow: "0 0 24px rgba(0,255,136,0.3)" }}>
+                <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "26px", fontWeight: 700, color: "#00ff88", letterSpacing: "0.12em", marginBottom: "10px", textShadow: "0 0 24px rgba(0,255,136,0.3)" }}>
                     // NETWORK EXPLORER
                 </div>
-                <div style={{ fontSize: "14px", color: "#9aeab0" }}>
+                <div style={{ fontSize: "16px", color: "#c8f0d8" }}>
                     All PayKit agents registered on Solana Devnet · live data
                 </div>
             </div>
@@ -313,28 +315,28 @@ export default function NetworkPage() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                         <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#00ff88", boxShadow: "0 0 8px rgba(0,255,136,0.6)", animation: "pulse-green 2s infinite", display: "inline-block" }} />
-                        <span style={{ fontFamily: "'Orbitron', monospace", fontSize: "11px", color: "#00ff88", letterSpacing: "0.2em" }}>LIVE PROTOCOL ACTIVITY</span>
+                        <span style={{ fontFamily: "'Orbitron', monospace", fontSize: "13px", color: "#00ff88", letterSpacing: "0.2em" }}>LIVE PROTOCOL ACTIVITY</span>
                     </div>
                     <div style={{ display: "flex", gap: "28px", flexWrap: "wrap" }}>
                         <div style={{ textAlign: "center" }}>
-                            <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "22px", fontWeight: 700, color: "#00ff88", textShadow: "0 0 16px rgba(0,255,136,0.4)", lineHeight: 1 }}>
+                            <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "26px", fontWeight: 700, color: "#00ff88", textShadow: "0 0 16px rgba(0,255,136,0.4)", lineHeight: 1 }}>
                                 {activity.loading ? "..." : activity.a2aCount24h}
                             </div>
-                            <div style={{ fontSize: "10px", color: "#6aaa80", letterSpacing: "0.12em", marginTop: "4px" }}>A2A PAYMENTS · 24H</div>
+                            <div style={{ fontSize: "12px", color: "#9aeab0", letterSpacing: "0.12em", marginTop: "6px" }}>A2A PAYMENTS · 24H</div>
                         </div>
                         <div style={{ width: "1px", background: "rgba(0,255,136,0.1)" }} />
                         <div style={{ textAlign: "center" }}>
-                            <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "22px", fontWeight: 700, color: "#ffb800", textShadow: "0 0 16px rgba(255,184,0,0.3)", lineHeight: 1 }}>
+                            <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "26px", fontWeight: 700, color: "#ffb800", textShadow: "0 0 16px rgba(255,184,0,0.3)", lineHeight: 1 }}>
                                 {activity.loading ? "..." : `${fmtSOL(activity.a2aVolume24h)} SOL`}
                             </div>
-                            <div style={{ fontSize: "10px", color: "#6aaa80", letterSpacing: "0.12em", marginTop: "4px" }}>A2A VOLUME · 24H</div>
+                            <div style={{ fontSize: "12px", color: "#9aeab0", letterSpacing: "0.12em", marginTop: "6px" }}>A2A VOLUME · 24H</div>
                         </div>
                         <div style={{ width: "1px", background: "rgba(0,255,136,0.1)" }} />
                         <div style={{ textAlign: "center" }}>
-                            <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "22px", fontWeight: 700, color: "#9aeab0", lineHeight: 1 }}>
+                            <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "26px", fontWeight: 700, color: "#9aeab0", lineHeight: 1 }}>
                                 {activity.loading ? "..." : activity.totalTxCount}
                             </div>
-                            <div style={{ fontSize: "10px", color: "#6aaa80", letterSpacing: "0.12em", marginTop: "4px" }}>RECENT TXS SCANNED</div>
+                            <div style={{ fontSize: "12px", color: "#9aeab0", letterSpacing: "0.12em", marginTop: "6px" }}>RECENT TXS SCANNED</div>
                         </div>
                         {activity.lastA2aTx && (
                             <>
@@ -342,11 +344,11 @@ export default function NetworkPage() {
                                 <div style={{ textAlign: "center" }}>
                                     <button
                                         onClick={() => window.open(`https://explorer.solana.com/tx/${activity.lastA2aTx}?cluster=devnet`, "_blank")}
-                                        style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "11px", color: "#6aaa80", background: "transparent", border: "1px solid rgba(0,255,136,0.15)", padding: "4px 10px", borderRadius: "2px", cursor: "pointer", letterSpacing: "0.08em" }}
+                                        style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "13px", color: "#c8f0d8", background: "transparent", border: "1px solid rgba(0,255,136,0.25)", padding: "6px 12px", borderRadius: "2px", cursor: "pointer", letterSpacing: "0.08em" }}
                                     >
                                         LAST A2A TX ↗
                                     </button>
-                                    <div style={{ fontSize: "10px", color: "#3a6a4a", letterSpacing: "0.1em", marginTop: "4px" }}>VIEW ON EXPLORER</div>
+                                    <div style={{ fontSize: "12px", color: "#6aaa80", letterSpacing: "0.1em", marginTop: "6px" }}>VIEW ON EXPLORER</div>
                                 </div>
                             </>
                         )}
@@ -363,8 +365,8 @@ export default function NetworkPage() {
                     { label: "TOTAL VOLUME", value: loading ? "..." : `${fmtSOL(totalSpent)} SOL`, color: "#ffb800" },
                 ].map(stat => (
                     <div key={stat.label} className="card-corner" style={card}>
-                        <div style={{ fontSize: "11px", color: "#6aaa80", letterSpacing: "0.15em", marginBottom: "8px" }}>{stat.label}</div>
-                        <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "20px", fontWeight: 700, color: stat.color, textShadow: `0 0 16px ${stat.color}40` }}>
+                        <div style={{ fontSize: "13px", color: "#9aeab0", letterSpacing: "0.15em", marginBottom: "10px" }}>{stat.label}</div>
+                        <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "24px", fontWeight: 700, color: stat.color, textShadow: `0 0 16px ${stat.color}40` }}>
                             {stat.value}
                         </div>
                     </div>
@@ -374,44 +376,44 @@ export default function NetworkPage() {
             {/* Filters + refresh */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
                 <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-                    <span style={{ fontSize: "12px", color: "#6aaa80", letterSpacing: "0.1em" }}>TIER:</span>
+                    <span style={{ fontSize: "13px", color: "#9aeab0", letterSpacing: "0.1em" }}>TIER:</span>
                     {(["all", 0, 1, 2] as const).map(t => (
                         <button key={t} onClick={() => setFilterTier(t)} style={pill(filterTier === t)}>
                             {t === "all" ? "ALL" : TIER_LABELS[t]}
                         </button>
                     ))}
-                    <span style={{ fontSize: "12px", color: "#6aaa80", letterSpacing: "0.1em", marginLeft: "8px" }}>STATUS:</span>
+                    <span style={{ fontSize: "13px", color: "#9aeab0", letterSpacing: "0.1em", marginLeft: "8px" }}>STATUS:</span>
                     <button onClick={() => setFilterActive("all")} style={pill(filterActive === "all")}>ALL</button>
                     <button onClick={() => setFilterActive(true)} style={pill(filterActive === true)}>ACTIVE</button>
                     <button onClick={() => setFilterActive(false)} style={pill(filterActive === false, "#ff3c5a")}>INACTIVE</button>
                 </div>
                 <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                    <span style={{ fontSize: "12px", color: "#6aaa80", letterSpacing: "0.1em" }}>SORT:</span>
+                    <span style={{ fontSize: "13px", color: "#9aeab0", letterSpacing: "0.1em" }}>SORT:</span>
                     {(["payments", "spent", "name"] as const).map(s => (
                         <button key={s} onClick={() => setSortBy(s)} style={pill(sortBy === s)}>
                             {s.toUpperCase()}
                         </button>
                     ))}
-                    <button onClick={() => { fetchNetworkAgents(); fetchActivity(); }} style={{ ...btnStyle, marginLeft: "8px" }}>
+                    <button onClick={() => { fetchNetworkAgents(); fetchActivity(); }} style={{ padding: "8px 18px", background: "rgba(0,255,136,0.06)", border: "1px solid rgba(0,255,136,0.3)", color: "#00ff88", fontFamily: "'Share Tech Mono', monospace", fontSize: "13px", letterSpacing: "0.1em", borderRadius: "3px", cursor: "pointer", marginLeft: "8px" }}>
                         ↻ REFRESH
                     </button>
                 </div>
             </div>
 
             {/* Auto-refresh status */}
-            <div style={{ fontSize: "11px", color: "#3a6a4a", letterSpacing: "0.08em", marginBottom: "16px", display: "flex", gap: "16px" }}>
+            <div style={{ fontSize: "13px", color: "#6aaa80", letterSpacing: "0.08em", marginBottom: "16px", display: "flex", gap: "16px" }}>
                 {lastUpdate && <span>LAST UPDATE: {lastUpdate.toLocaleTimeString()}</span>}
-                <span style={{ color: countdown <= 5 ? "#ffb800" : "#3a6a4a" }}>AUTO-REFRESH IN {countdown}s</span>
+                <span style={{ color: countdown <= 5 ? "#ffb800" : "#6aaa80" }}>AUTO-REFRESH IN {countdown}s</span>
                 {error && <span style={{ color: "#ff3c5a" }}>✗ {error}</span>}
             </div>
 
             {/* Agent list */}
             {loading ? (
-                <div style={{ textAlign: "center", padding: "60px", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", letterSpacing: "0.1em" }}>
+                <div style={{ textAlign: "center", padding: "60px", color: "#9aeab0", fontFamily: "'Share Tech Mono', monospace", fontSize: "16px", letterSpacing: "0.1em" }}>
                     SCANNING DEVNET...
                 </div>
             ) : filtered.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "60px", color: "#3a6a4a", fontFamily: "'Share Tech Mono', monospace" }}>
+                <div style={{ textAlign: "center", padding: "60px", color: "#6aaa80", fontFamily: "'Share Tech Mono', monospace", fontSize: "16px" }}>
                     NO AGENTS FOUND
                 </div>
             ) : (
@@ -434,20 +436,20 @@ export default function NetworkPage() {
                                 {/* Row 1: name + tier + status */}
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                        <span style={{ fontFamily: "'Orbitron', monospace", fontSize: "14px", color: "#00ff88", letterSpacing: "0.08em" }}>
+                                        <span style={{ fontFamily: "'Orbitron', monospace", fontSize: "16px", color: "#00ff88", letterSpacing: "0.08em" }}>
                                             {agent.name}
                                         </span>
-                                        <span style={{ fontSize: "10px", color: TIER_COLORS[agent.tier], border: `1px solid ${TIER_COLORS[agent.tier]}40`, padding: "1px 6px", borderRadius: "2px", fontFamily: "'Share Tech Mono', monospace" }}>
+                                        <span style={{ fontSize: "12px", color: TIER_COLORS[agent.tier], border: `1px solid ${TIER_COLORS[agent.tier]}50`, padding: "2px 8px", borderRadius: "2px", fontFamily: "'Share Tech Mono', monospace" }}>
                                             {TIER_LABELS[agent.tier]}
                                         </span>
-                                        <span style={{ fontSize: "11px", color: agent.isActive && !expired ? "#00ff88" : "#ff3c5a" }}>
+                                        <span style={{ fontSize: "14px", color: agent.isActive && !expired ? "#00ff88" : "#ff3c5a" }}>
                                             ● {expired ? "EXPIRED" : agent.isActive ? "ACTIVE" : "INACTIVE"}
                                         </span>
                                     </div>
-                                    <div style={{ display: "flex", gap: "16px", fontSize: "12px", color: "#9aeab0" }}>
-                                        <span>{agent.paymentCount} <span style={{ color: "#6aaa80" }}>TXS</span></span>
-                                        <span style={{ color: "#ffb800" }}>{fmtSOL(agent.totalSpent)} <span style={{ color: "#6aaa80" }}>SOL SPENT</span></span>
-                                        <span>{fmtSOL(agent.spendLimit)} <span style={{ color: "#6aaa80" }}>LIMIT</span></span>
+                                    <div style={{ display: "flex", gap: "16px", fontSize: "14px", color: "#c8f0d8" }}>
+                                        <span>{agent.paymentCount} <span style={{ color: "#9aeab0" }}>TXS</span></span>
+                                        <span style={{ color: "#ffb800" }}>{fmtSOL(agent.totalSpent)} <span style={{ color: "#9aeab0" }}>SOL SPENT</span></span>
+                                        <span>{fmtSOL(agent.spendLimit)} <span style={{ color: "#9aeab0" }}>LIMIT</span></span>
                                     </div>
                                 </div>
 
@@ -463,22 +465,22 @@ export default function NetworkPage() {
                                             boxShadow: `0 0 6px ${spendPct > 80 ? "#ff3c5a" : spendPct > 50 ? "#ffb800" : "#00ff88"}60`,
                                         }} />
                                     </div>
-                                    <div style={{ fontSize: "10px", color: "#3a6a4a", marginTop: "3px", textAlign: "right" }}>
+                                    <div style={{ fontSize: "12px", color: "#6aaa80", marginTop: "4px", textAlign: "right" }}>
                                         {spendPct.toFixed(1)}% of limit used
                                     </div>
                                 </div>
 
                                 {/* Row 2: addresses + caps */}
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "8px" }}>
-                                    <div style={{ display: "flex", gap: "20px", fontSize: "11px", color: "#6aaa80" }}>
-                                        <span>AGENT <span style={{ color: "#9aeab0", fontFamily: "'Share Tech Mono', monospace" }}>{fmtAddr(agent.agentKey)}</span></span>
-                                        <span>OWNER <span style={{ color: "#9aeab0", fontFamily: "'Share Tech Mono', monospace" }}>{fmtAddr(agent.owner)}</span></span>
-                                        <span>DAILY <span style={{ color: "#9aeab0" }}>{(agent.dailyLimitBps / 100).toFixed(0)}%</span></span>
-                                        <span>EXP <span style={{ color: expired ? "#ff3c5a" : "#6aaa80" }}>{new Date(agent.expiresAt * 1000).toLocaleDateString()}</span></span>
+                                    <div style={{ display: "flex", gap: "20px", fontSize: "13px", color: "#9aeab0" }}>
+                                        <span>AGENT <span style={{ color: "#c8f0d8", fontFamily: "'Share Tech Mono', monospace" }}>{fmtAddr(agent.agentKey)}</span></span>
+                                        <span>OWNER <span style={{ color: "#c8f0d8", fontFamily: "'Share Tech Mono', monospace" }}>{fmtAddr(agent.owner)}</span></span>
+                                        <span>DAILY <span style={{ color: "#c8f0d8" }}>{(agent.dailyLimitBps / 100).toFixed(0)}%</span></span>
+                                        <span>EXP <span style={{ color: expired ? "#ff3c5a" : "#9aeab0" }}>{new Date(agent.expiresAt * 1000).toLocaleDateString()}</span></span>
                                     </div>
                                     <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
                                         {caps.map(cap => (
-                                            <span key={cap} style={{ fontSize: "10px", padding: "2px 6px", borderRadius: "2px", background: "rgba(0,255,136,0.06)", border: "1px solid rgba(0,255,136,0.15)", color: "#00ff88", fontFamily: "'Share Tech Mono', monospace" }}>
+                                            <span key={cap} style={{ fontSize: "12px", padding: "3px 8px", borderRadius: "2px", background: "rgba(0,255,136,0.06)", border: "1px solid rgba(0,255,136,0.2)", color: "#00ff88", fontFamily: "'Share Tech Mono', monospace" }}>
                                                 {cap}
                                             </span>
                                         ))}
@@ -491,9 +493,9 @@ export default function NetworkPage() {
             )}
 
             {/* Footer */}
-            <div style={{ marginTop: "32px", paddingTop: "12px", borderTop: "1px solid rgba(0,255,136,0.06)", display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#3a6a4a", letterSpacing: "0.08em" }}>
+            <div style={{ marginTop: "32px", paddingTop: "12px", borderTop: "1px solid rgba(0,255,136,0.06)", display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#9aeab0", letterSpacing: "0.08em" }}>
                 <span>PAYKIT · ZERO TWO LABS · 2026</span>
-                <span>{PROGRAM_ID.toBase58().slice(0, 20)}...</span>
+                <span style={{ color: "#6aaa80" }}>{PROGRAM_ID.toBase58().slice(0, 20)}...</span>
             </div>
 
         </main>
