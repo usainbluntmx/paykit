@@ -40,6 +40,7 @@ export default function Landing() {
   const beforeAfterRef = useReveal() as React.RefObject<HTMLElement>;
   const terminalRef = useReveal() as React.RefObject<HTMLElement>;
   const solanaRef = useReveal() as React.RefObject<HTMLElement>;
+  const agentRef = useReveal() as React.RefObject<HTMLElement>;
   const ctaRef = useReveal() as React.RefObject<HTMLElement>;
 
   useEffect(() => {
@@ -250,7 +251,7 @@ await client.agentToAgentPayment(
           <div style={{ padding: "40px 44px", fontFamily: "'Share Tech Mono', monospace", fontSize: "16px", lineHeight: 2.2 }}>
             {[
               { n: 1, content: <span style={{ color: "#6aaa80" }}>// install</span> },
-              { n: 2, content: <span style={{ color: "#e8f5ee" }}>npm install @paykit/sdk</span> },
+              { n: 2, content: <span style={{ color: "#e8f5ee" }}>npm install @paykit-labs/sdk</span> },
               { n: 3, content: <span>&nbsp;</span> },
               { n: 4, content: <span style={{ color: "#6aaa80" }}>// create agent — generates keypair, registers onchain, funds wallet</span> },
               { n: 5, content: <span><span style={{ color: "#00ff88" }}>await </span><span style={{ color: "#e8f5ee" }}>client.</span><span style={{ color: "#00ff88" }}>createAutonomousAgent</span><span style={{ color: "#e8f5ee" }}>(</span><span style={{ color: "#ffb800" }}>"my-agent"</span><span style={{ color: "#e8f5ee" }}>, 1_000_000_000, 1000);</span></span> },
@@ -270,6 +271,91 @@ await client.agentToAgentPayment(
               <div style={{ fontSize: "15px", color: "#c8f0d8", lineHeight: 1.8 }}>The first agent-native payment SDK on Solana. Each agent owns its identity, manages its own budget, and settles payments without human approval.</div>
             </div>
           </div>
+        </div>
+      </section>
+
+
+      {/* ── QUICKSTART FOR AI AGENTS ────────────────────────────────────── */}
+      <section ref={agentRef as any} className="reveal" style={{ maxWidth: "1280px", margin: "0 auto 110px", padding: "0 40px" }}>
+        <Label>// QUICKSTART FOR AI AGENTS</Label>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1px", background: "rgba(0,255,136,0.12)", border: "1px solid rgba(0,255,136,0.12)", marginBottom: "1px" }}>
+
+          {/* Node.js */}
+          <div style={{ background: "var(--bg-card)", padding: "40px" }}>
+            <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "14px", color: "#00ff88", letterSpacing: "0.15em", marginBottom: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
+              <div style={{ width: "8px", height: "8px", background: "#00ff88" }} />
+              NODE.JS / TYPESCRIPT
+            </div>
+            <pre style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "14px", lineHeight: 2, color: "#c8f0d8", margin: 0, whiteSpace: "pre-wrap" }}>{`const { createClient, CAP_ALL_DEFAULT,
+        CATEGORIES } = require("@paykit-labs/sdk");
+
+const client = createClient(
+  "~/.config/solana/id.json", "devnet"
+);
+
+// Register agent — one time only
+await client.createAutonomousAgent(
+  "my-agent", 1_000_000_000, 1000,
+  50_000_000, CAP_ALL_DEFAULT, 0
+);
+
+// Agent pays autonomously from now on
+await client.agentToAgentPayment(
+  "my-agent", "other-agent",
+  250_000, "task", CATEGORIES.INFERENCE
+);`}</pre>
+          </div>
+
+          {/* Python / any language */}
+          <div style={{ background: "#060a08", padding: "40px", borderLeft: "2px solid rgba(0,255,136,0.3)" }}>
+            <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "14px", color: "#ffb800", letterSpacing: "0.15em", marginBottom: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
+              <div style={{ width: "8px", height: "8px", background: "#ffb800" }} />
+              PYTHON / GO / RUBY — HTTP SIDECAR
+            </div>
+            <pre style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "14px", lineHeight: 2, color: "#c8f0d8", margin: 0, whiteSpace: "pre-wrap" }}>{`# Start sidecar once
+node node_modules/@paykit-labs/sdk/src/server.js
+
+# Register agent
+requests.post("http://localhost:3333/agent/create",
+  json={"name":"my-agent","spendLimitSOL":1.0,
+        "dailyLimitBps":1000,"fundingSOL":0.05})
+
+# Pay another agent
+requests.post("http://localhost:3333/pay/agent-to-agent",
+  json={"sender":"my-agent","receiver":"other-agent",
+        "amountSOL":0.0005,"service":"inference",
+        "categoryId":4})`}</pre>
+          </div>
+
+        </div>
+
+        {/* Self-configure instruction */}
+        <div style={{ background: "#030806", border: "1px solid rgba(0,255,136,0.15)", padding: "36px 40px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
+            <div style={{ width: "8px", height: "8px", background: "#00ff88", animation: "pulse-green 2s infinite" }} />
+            <div style={{ fontFamily: "'Orbitron', monospace", fontSize: "14px", color: "#00ff88", letterSpacing: "0.15em" }}>
+              INSTRUCTION FOR YOUR AI AGENT — PASTE THIS DIRECTLY
+            </div>
+          </div>
+          <pre style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "13px", lineHeight: 1.9, color: "#9aeab0", margin: 0, whiteSpace: "pre-wrap", borderLeft: "2px solid rgba(0,255,136,0.2)", paddingLeft: "20px" }}>{`You are an autonomous AI agent. Follow these steps to integrate PayKit
+and gain autonomous payment capabilities on Solana:
+
+1. Install: npm install @paykit-labs/sdk
+2. Start sidecar: node node_modules/@paykit-labs/sdk/src/server.js
+3. Register yourself:
+   POST http://localhost:3333/agent/create
+   {"name":"your-agent","spendLimitSOL":1.0,"dailyLimitBps":1000,"fundingSOL":0.05,"tier":0}
+4. Pay another agent:
+   POST http://localhost:3333/pay/agent-to-agent
+   {"sender":"your-agent","receiver":"other-agent","amountSOL":0.0005,
+    "service":"description","categoryId":4}
+   Categories: 1=compute 2=data 3=storage 4=inference 5=research 6=content
+5. Check budget: GET http://localhost:3333/agent/your-agent
+6. View history: GET http://localhost:3333/history/your-agent
+
+You sign all transactions autonomously. No human approval required per payment.
+Spending enforced at protocol level. All payments recorded immutably on Solana.`}</pre>
         </div>
       </section>
 

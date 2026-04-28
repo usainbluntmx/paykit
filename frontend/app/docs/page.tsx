@@ -212,12 +212,12 @@ export default function Docs() {
 
         {/* Installation */}
         <SectionTitle id="installation">INSTALLATION</SectionTitle>
-        <Code>{`npm install @paykit/sdk`}</Code>
+        <Code>{`npm install @paykit-labs/sdk`}</Code>
         <P>Requires Node.js 18+. For browser usage, see the <strong style={{ color: "#c8f0d8" }}>Browser Wallet</strong> section.</P>
 
         {/* Quickstart */}
         <SectionTitle id="quickstart">QUICKSTART</SectionTitle>
-        <Code>{`const { createClient, CAP_ALL_DEFAULT, CATEGORIES } = require("@paykit/sdk");
+        <Code>{`const { createClient, CAP_ALL_DEFAULT, CATEGORIES } = require("@paykit-labs/sdk");
 
 const client = createClient("/path/to/owner-keypair.json", "devnet");
 
@@ -270,7 +270,7 @@ const { rentRecovered } = await client.closeAgent("my-agent");
 ~/.paykit/agents/<n>.json
 
 // You can load it manually if needed:
-const { loadAgentKeypair, agentKeypairExists } = require("@paykit/sdk");
+const { loadAgentKeypair, agentKeypairExists } = require("@paykit-labs/sdk");
 const keypair = loadAgentKeypair("my-agent");
 const exists  = agentKeypairExists("my-agent"); // → boolean
 
@@ -291,7 +291,7 @@ const agents = client.listLocalAgents();
 );`}</Code>
         <SubTitle>// EXAMPLE</SubTitle>
         <Code>{`const { PublicKey } = require("@solana/web3.js");
-const { CATEGORIES } = require("@paykit/sdk");
+const { CATEGORIES } = require("@paykit-labs/sdk");
 
 await client.recordPayment(
     "my-agent",
@@ -397,7 +397,7 @@ console.log(\`Agent USDC balance: \${ui}\`);`}</Code>
             ["8–15", "Custom slots", "Owner-defined capabilities (setCustomCapability)"],
           ]}
         />
-        <Code>{`const { CAPABILITIES, CAP_ALL_DEFAULT } = require("@paykit/sdk");
+        <Code>{`const { CAPABILITIES, CAP_ALL_DEFAULT } = require("@paykit-labs/sdk");
 
 // CAP_ALL_DEFAULT = bits 0-6 all set = 0b01111111 = 127
 
@@ -444,7 +444,7 @@ await client.setTier("my-agent", 1); // standard
             ["3", "storage", "8–255", "custom (owner-defined)"],
           ]}
         />
-        <Code>{`const { CATEGORIES } = require("@paykit/sdk");
+        <Code>{`const { CATEGORIES } = require("@paykit-labs/sdk");
 
 // Set a category limit (owner only)
 // Agent can spend at most 0.5 SOL per single inference payment
@@ -551,7 +551,7 @@ console.log(\`Rent recovered: \${rentRecovered}\`); // ~0.003 SOL`}</Code>
         <Callout type="info">
           <strong style={{ color: "#00ff88" }}>Two constructors:</strong> Use <code style={{ color: "#c8f0d8" }}>createClient</code> for Node.js (LangChain, backend services, scripts). Use <code style={{ color: "#c8f0d8" }}>createClientFromWallet</code> for browser apps with wallet adapters.
         </Callout>
-        <Code>{`import { createClientFromWallet } from "@paykit/sdk";
+        <Code>{`import { createClientFromWallet } from "@paykit-labs/sdk";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 
 function MyApp() {
@@ -708,7 +708,7 @@ print(f"TX: {res.json()['tx']}")`}</Code>
             ["WalletNotConnected", "sdk", "Browser wallet not connected"],
           ]}
         />
-        <Code>{`const { PayKitError } = require("@paykit/sdk/errors");
+        <Code>{`const { PayKitError } = require("@paykit-labs/sdk/errors");
 
 try {
     await client.agentToAgentPayment("sender", "executor", 250_000, "task", CATEGORIES.INFERENCE);
@@ -743,8 +743,8 @@ try {
         {/* LangChain */}
         <SectionTitle id="langchain">LANGCHAIN INTEGRATION</SectionTitle>
         <P>Register PayKit methods as LangChain tools. Your agent calls them autonomously to manage budgets, pay for services, and maintain accountability.</P>
-        <Code>{`npm install langchain @langchain/openai @paykit/sdk`}</Code>
-        <Code>{`const { createClient, CATEGORIES } = require("@paykit/sdk");
+        <Code>{`npm install langchain @langchain/openai @paykit-labs/sdk`}</Code>
+        <Code>{`const { createClient, CATEGORIES } = require("@paykit-labs/sdk");
 const { DynamicStructuredTool } = require("langchain/tools");
 const { z } = require("zod");
 
