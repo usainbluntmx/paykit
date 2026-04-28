@@ -246,13 +246,145 @@ pub struct AgentAccount {
 ### Installation
 
 ```bash
-npm install @paykit/sdk
+npm install @paykit-labs/sdk
 ```
+
+## Quickstart for AI Agents
+
+Already have an AI agent built with LangChain, CrewAI, OpenClaw, Hermes, Ollama, or any other framework? Here is how to give it autonomous payment capabilities with PayKit.
+
+### Step-by-step for developers
+
+**Prerequisites:**
+- Node.js 18+
+- A Solana wallet with SOL on Devnet
+- Your wallet keypair at `~/.config/solana/id.json`
+
+**1. Install the SDK**
+```bash
+npm install @paykit-labs/sdk
+```
+
+**2. Register your agent onchain**
+```javascript
+const { createClient, CAP_ALL_DEFAULT } = require("@paykit-labs/sdk");
+
+const client = createClient(
+  `${process.env.HOME}/.config/solana/id.json`,
+  "devnet"
+);
+
+await client.createAutonomousAgent(
+  "my-agent",       // unique name
+  1_000_000_000,    // 1 SOL total spend limit
+  1000,             // 10% daily limit
+  50_000_000,       // 0.05 SOL for transaction fees
+  CAP_ALL_DEFAULT,  // all capabilities enabled
+  0                 // tier: basic
+);
+// Agent keypair saved to ~/.paykit/agents/my-agent.json
+```
+
+**3. Your agent can now pay autonomously**
+```javascript
+const { CATEGORIES } = require("@paykit-labs/sdk");
+
+// Pay another agent — no human approval needed
+await client.agentToAgentPayment(
+  "my-agent",
+  "other-agent",
+  250_000,
+  "inference task",
+  CATEGORIES.INFERENCE
+);
+```
+
+**4. Using Python, Go, Ruby, or any other language? Use the HTTP sidecar**
+```bash
+# Start the sidecar once
+node node_modules/@paykit-labs/sdk/src/server.js
+```
+
+```python
+# Python example
+import requests
+
+# Register your agent
+requests.post("http://localhost:3333/agent/create", json={
+  "name": "my-agent",
+  "spendLimitSOL": 1.0,
+  "dailyLimitBps": 1000,
+  "fundingSOL": 0.05,
+  "tier": 0
+})
+
+# Pay another agent
+requests.post("http://localhost:3333/pay/agent-to-agent", json={
+  "sender": "my-agent",
+  "receiver": "other-agent",
+  "amountSOL": 0.0005,
+  "service": "inference task",
+  "categoryId": 4
+})
+
+# Check remaining budget
+requests.get("http://localhost:3333/agent/my-agent")
+```
+
+---
+
+### Instruction for your AI agent to self-configure
+
+If your agent supports tool use or code execution, paste this instruction directly:
+
+```
+You are an autonomous AI agent. Follow these steps to integrate PayKit and gain autonomous payment capabilities on Solana:
+
+1. Install the SDK:
+   Run: npm install @paykit-labs/sdk
+
+2. Start the PayKit sidecar (HTTP payment server):
+   Run: node node_modules/@paykit-labs/sdk/src/server.js
+   This exposes your payment capabilities at http://localhost:3333
+
+3. Register yourself as an autonomous agent:
+   POST http://localhost:3333/agent/create
+   Body: {
+     "name": "your-agent-name",
+     "spendLimitSOL": 1.0,
+     "dailyLimitBps": 1000,
+     "fundingSOL": 0.05,
+     "tier": 0
+   }
+
+4. To pay another agent for a completed service:
+   POST http://localhost:3333/pay/agent-to-agent
+   Body: {
+     "sender": "your-agent-name",
+     "receiver": "other-agent-name",
+     "amountSOL": 0.0005,
+     "service": "description of service completed",
+     "categoryId": 4
+   }
+   Category IDs: 1=compute, 2=data, 3=storage, 4=inference, 5=research, 6=content
+
+5. To check your remaining budget before making a payment:
+   GET http://localhost:3333/agent/your-agent-name
+
+6. To view your full onchain payment history:
+   GET http://localhost:3333/history/your-agent-name
+
+You sign all transactions with your own keypair — no human approval is required per payment.
+Your spending is enforced at the protocol level — you cannot exceed your configured limits.
+All payments are recorded immutably on Solana and are publicly auditable.
+```
+
+---
 
 ### Quickstart — Agent-Native
 
 ```javascript
-const { createClient, CAPABILITIES, CAP_ALL_DEFAULT, CATEGORIES } = require("@paykit/sdk");
+const { createClient, CAPABILITIES, CAP_ALL_DEFAULT, CATEGORIES } = require("@paykit-labs/sdk");
 
 const client = createClient("/path/to/keypair.json", "devnet");
 
@@ -318,7 +450,7 @@ const { tx, rentRecovered } = await client.closeAgent("my-agent");
 ### Granular Error Handling
 
 ```javascript
-const { PayKitError } = require("@paykit/sdk/errors");
+const { PayKitError } = require("@paykit-labs/sdk/errors");
 
 try {
     await client.agentToAgentPayment("my-agent", "executor", 250_000, "task", CATEGORIES.COMPUTE);
@@ -367,7 +499,7 @@ curl -X POST http://localhost:3333/pay/agent-to-agent \
 ### Browser Wallet Support
 
 ```javascript
-import { createClientFromWallet } from "@paykit/sdk";
+import { createClientFromWallet } from "@paykit-labs/sdk";
 const client = createClientFromWallet(wallet, connection); // Phantom, Backpack, Solflare
 ```
 
@@ -508,15 +640,16 @@ cd ../frontend && npm install && npm run dev
 - Autonomous AI agent demo — Anthropic API + PayKit (agent-native)
 - LangChain and CrewAI integration guides
 - Vercel deployment — live at https://paykit-sigma.vercel.app
+- npm package published — `@paykit-labs/sdk@0.1.0` on npm
 
 ### 🔄 In Progress
 
-- npm package publication (`@paykit/sdk`)
 - Video demo for Colosseum submission
 
 ### 📋 Future
 
 - Mainnet deployment
+- Python SDK (`paykit-labs-py`) — native SDK for LangChain and CrewAI without the HTTP sidecar
 - Native SPL token accounts in the smart contract
 - Multi-sig for high-value agent accounts
 - Agent reputation system
