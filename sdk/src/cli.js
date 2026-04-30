@@ -401,6 +401,107 @@ async function cmdInspect(args) {
     }
 }
 
+// ─── paykit init ──────────────────────────────────────────────────────────────
+
+async function cmdInit() {
+    const os = require("os");
+    const path = require("path");
+    const { Keypair } = require("@solana/web3.js");
+
+    const C = { green: s => `\x1b[32m${s}\x1b[0m`, dim: s => `\x1b[2m${s}\x1b[0m`, yellow: s => `\x1b[33m${s}\x1b[0m`, bold: s => `\x1b[1m${s}\x1b[0m` };
+
+    console.log(`\n  ${C.bold(C.green("⚡ PAYKIT INIT"))}\n`);
+
+    const solanaDefault = path.join(os.homedir(), ".config", "solana", "id.json");
+    const paykitWallet = path.join(os.homedir(), ".paykit", "wallet.json");
+
+    // Check if Solana default keypair already exists
+    if (fs.existsSync(solanaDefault)) {
+        console.log(`  ${C.green("✓")} Wallet found: ${C.dim(solanaDefault)}`);
+        console.log(`  ${C.dim("Run: paykit agent create <name> to deploy your first agent")}\n`);
+        return;
+    }
+
+    // Check if PayKit wallet already exists
+    if (fs.existsSync(paykitWallet)) {
+        console.log(`  ${C.green("✓")} PayKit wallet found: ${C.dim(paykitWallet)}`);
+        console.log(`  ${C.dim("Run: paykit agent create <name> to deploy your first agent")}\n`);
+        return;
+    }
+
+    // Generate new keypair
+    process.stdout.write("  Generating wallet keypair...");
+    const keypair = Keypair.generate();
+    const paykitDir = path.join(os.homedir(), ".paykit");
+    if (!fs.existsSync(paykitDir)) fs.mkdirSync(paykitDir, { recursive: true });
+    fs.writeFileSync(paykitWallet, JSON.stringify(Array.from(keypair.secretKey)));
+    console.log(` ${C.green("✓")}`);
+    console.log(`  Wallet saved: ${C.dim(paykitWallet)}`);
+    console.log(`  Public key:  ${C.green(keypair.publicKey.toBase58())}\n`);
+    console.log(`  ${C.yellow("Next steps:")}`);
+    console.log(`  1. Fund your wallet with Devnet SOL:`);
+    console.log(`     ${C.dim("paykit airdrop " + paykitWallet)}`);
+    console.log(`  2. Deploy your first agent:`);
+    console.log(`     ${C.dim("paykit agent create my-agent " + paykitWallet)}\n`);
+}
+
+// ─── paykit airdrop ───────────────────────────────────────────────────────────
+
+async function cmdAirdrop(args) {
+    const { Connection, Keypair, LAMPORTS_PER_SOL, clusterApiUrl } = require("@solana/web3.js");
+    const os = require("os");
+    const path = require("path");
+
+    const C = { green: s => `\x1b[32m${s}\x1b[0m`, dim: s => `\x1b[2m${s}\x1b[0m`, yellow: s => `\x1b[33m${s}\x1b[0m`, red: s => `\x1b[31m${s}\x1b[0m`, bold: s => `\x1b[1m${s}\x1b[0m` };
+
+    const keypairPath = args[0]
+        || (fs.existsSync(path.join(os.homedir(), ".config", "solana", "id.json")) ? path.join(os.homedir(), ".config", "solana", "id.json") : null)
+        || path.join(os.homedir(), ".paykit", "wallet.json");
+
+    if (!fs.existsSync(keypairPath)) {
+        console.log(`\n  ${C.red("✗")} No wallet found. Run: ${C.dim("paykit init")}\n`);
+        process.exit(1);
+    }
+
+    const raw = JSON.parse(fs.readFileSync(keypairPath));
+    const keypair = Keypair.fromSecretKey(Uint8Array.from(raw));
+    const pubkey = keypair.publicKey.toBase58();
+
+    console.log(`\n  ${C.bold(C.green("⚡ PAYKIT AIRDROP — DEVNET"))}\n`);
+    console.log(`  Wallet: ${C.dim(pubkey)}`);
+
+    const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+    const before = await connection.getBalance(keypair.publicKey);
+    console.log(`  Balance before: ${C.dim((before / LAMPORTS_PER_SOL).toFixed(4) + " SOL")}`);
+
+    const MAX_RETRIES = 3;
+    const DELAY_MS = 8000;
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            process.stdout.write(`  Requesting 1 SOL (attempt ${attempt}/${MAX_RETRIES})...`);
+            const sig = await connection.requestAirdrop(keypair.publicKey, LAMPORTS_PER_SOL);
+            await connection.confirmTransaction(sig, "confirmed");
+            const after = await connection.getBalance(keypair.publicKey);
+            console.log(` ${C.green("✓")}`);
+            console.log(`  Balance after:  ${C.green((after / LAMPORTS_PER_SOL).toFixed(4) + " SOL")}`);
+            console.log(`  TX: ${C.dim(sig)}\n`);
+            console.log(`  ${C.dim("Run: paykit agent create my-agent to deploy your first agent")}\n`);
+            return;
+        } catch (e) {
+            console.log(` ${C.red("✗")} ${e.message?.includes("429") || e.message?.includes("rate") ? "rate limited" : e.message?.slice(0, 40)}`);
+            if (attempt < MAX_RETRIES) {
+                process.stdout.write(`  Waiting ${DELAY_MS / 1000}s before retry...`);
+                await new Promise(r => setTimeout(r, DELAY_MS));
+                console.log(" retrying");
+            }
+        }
+    }
+
+    console.log(`\n  ${C.yellow("⚠")} Devnet faucet rate limited. Try:`);
+    console.log(`  ${C.dim("https://faucet.solana.com")} — paste your public key: ${C.green(pubkey)}\n`);
+}
+
 // ─── Help ─────────────────────────────────────────────────────────────────────
 
 function printHelp() {
@@ -416,6 +517,8 @@ function printHelp() {
     console.log(`  ${C.cyan("paykit agent inspect")} ${C.dim("<name> [keypair-path]")}`);
     console.log(`  ${C.dim("  Inspect a single agent's full details")}`);
     console.log();
+    console.log(`  ${C.cyan("paykit init")} ${C.dim("              — generate a new wallet keypair")}`);
+    console.log(`  ${C.cyan("paykit airdrop")} ${C.dim("[keypair]   — request 1 SOL from Devnet faucet (with retry)")}`);
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -430,13 +533,13 @@ function countBits(n) {
 
 async function main() {
     const [, , cmd, sub, ...args] = process.argv;
-
     if (cmd === "agent") {
         if (sub === "create") return cmdCreateAgent(args);
         if (sub === "list") return cmdListAgents(args);
         if (sub === "inspect") return cmdInspect(args);
     }
-
+    if (cmd === "init") return cmdInit();
+    if (cmd === "airdrop") return cmdAirdrop(args);
     printHelp();
 }
 
