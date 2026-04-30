@@ -5,6 +5,7 @@
 const readline = require("readline");
 const path = require("path");
 const os = require("os");
+const fs = require("fs");
 const {
     createClient,
     CAPABILITIES,

@@ -21,7 +21,7 @@
   },
   "scripts": {
     "test": "jest --testTimeout=30000 --forceExit",
-    "test:integration": "node src/test.js",
+    "test:integration": "node examples/basic-usage.js",
     "patch-idl": "node src/patch-idl.js",
     "build": "cd .. && anchor build && cd sdk && node src/patch-idl.js",
     "server": "node src/server.js",
