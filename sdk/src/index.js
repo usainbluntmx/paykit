@@ -947,15 +947,24 @@ const AgentAccount = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function loadWalletFromFile(keypairPath) {
+    if (!keypairPath) {
+        const defaultPath = require("os").homedir() + "/.config/solana/id.json";
+        const paykitPath = require("os").homedir() + "/.paykit/wallet.json";
+        if (fs.existsSync(defaultPath)) return loadWalletFromFile(defaultPath);
+        if (fs.existsSync(paykitPath)) return loadWalletFromFile(paykitPath);
+        throw new Error("No wallet found. Run: paykit init");
+    }
+    if (!fs.existsSync(keypairPath)) {
+        throw new Error(`Wallet not found at ${keypairPath}. Run: paykit init`);
+    }
     const raw = JSON.parse(fs.readFileSync(keypairPath, "utf8"));
     const keypair = Keypair.fromSecretKey(Uint8Array.from(raw));
     return new anchor.Wallet(keypair);
 }
-
 function createClient(keypairPath, cluster, customRpcUrl, options = {}) {
-    const rpcUrl = customRpcUrl || clusterApiUrl(cluster);
+    const rpcUrl = customRpcUrl || clusterApiUrl(cluster || "devnet");
     const connection = new Connection(rpcUrl, "confirmed");
-    const wallet = loadWalletFromFile(keypairPath);
+    const wallet = loadWalletFromFile(keypairPath || null);
     return new PayKitClient(connection, wallet, options);
 }
 

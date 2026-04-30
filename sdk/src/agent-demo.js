@@ -10,7 +10,7 @@ const {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const KEYPAIR_PATH = "/home/usainbluntmx/.config/solana/id.json";
+const KEYPAIR_PATH = process.env.KEYPAIR_PATH || require("os").homedir() + "/.config/solana/id.json";
 const ORCHESTRATOR = "demo-orchestrator";
 const EXECUTOR = "demo-executor";
 const FUNDING_SOL = 0.05; // SOL to fund each agent wallet
