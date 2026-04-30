@@ -257,15 +257,20 @@ Already have an AI agent built with LangChain, CrewAI, OpenClaw, Hermes, Ollama,
 
 **Prerequisites:**
 - Node.js 18+
-- A Solana wallet with SOL on Devnet
-- Your wallet keypair at `~/.config/solana/id.json`
+- SOL on Devnet (PayKit can request it for you)
 
 **1. Install the SDK**
 ```bash
 npm install @paykit-labs/sdk
 ```
 
-**2. Register your agent onchain**
+**2. Initialize your wallet (if you don't have one)**
+```bash
+npx paykit init        # generates ~/.paykit/wallet.json if no wallet found
+npx paykit airdrop     # requests 1 SOL from Devnet faucet (with auto-retry)
+```
+
+**3. Register your agent onchain**
 ```javascript
 const { createClient, CAP_ALL_DEFAULT } = require("@paykit-labs/sdk");
 
@@ -285,7 +290,7 @@ await client.createAutonomousAgent(
 // Agent keypair saved to ~/.paykit/agents/my-agent.json
 ```
 
-**3. Your agent can now pay autonomously**
+**4. Your agent can now pay autonomously**
 ```javascript
 const { CATEGORIES } = require("@paykit-labs/sdk");
 
@@ -299,7 +304,7 @@ await client.agentToAgentPayment(
 );
 ```
 
-**4. Using Python, Go, Ruby, or any other language? Use the HTTP sidecar**
+**5. Using Python, Go, Ruby, or any other language? Use the HTTP sidecar**
 ```bash
 # Start the sidecar once
 node node_modules/@paykit-labs/sdk/src/server.js
@@ -471,6 +476,13 @@ try {
 ### CLI Wizard
 
 ```bash
+# Initialize wallet — generates keypair if none found
+paykit init
+
+# Request Devnet SOL — auto-retries on rate limit
+paykit airdrop
+paykit airdrop /path/to/keypair.json   # optional: specify keypair
+
 # Interactive agent creation — capabilities, tier, category limits
 paykit agent create my-agent
 
@@ -495,6 +507,8 @@ curl -X POST http://localhost:3333/pay/agent-to-agent \
 ```
 
 **Key endpoints:** `POST /agent/create` · `GET /agent/:name` · `POST /pay/agent-to-agent` · `POST /pay/sol` · `POST /pay/usdc` · `POST /pay/batch` · `GET /balance/:name/sol` · `GET /history/:name` · `POST /agent/:name/capabilities` · `DELETE /agent/:name`
+
+> **Security note:** The sidecar has no authentication by default. It is designed for local use or trusted networks only. Do not expose it to the public internet without a reverse proxy with authentication.
 
 ### Browser Wallet Support
 
@@ -640,7 +654,7 @@ cd ../frontend && npm install && npm run dev
 - Autonomous AI agent demo — Anthropic API + PayKit (agent-native)
 - LangChain and CrewAI integration guides
 - Vercel deployment — live at https://paykit-sigma.vercel.app
-- npm package published — `@paykit-labs/sdk@0.1.0` on npm
+- npm package published — `@paykit-labs/sdk@0.1.1` on npm (`paykit init`, `paykit airdrop`, constructor fix)
 
 ### 🔄 In Progress
 

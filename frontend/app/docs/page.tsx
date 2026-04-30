@@ -23,7 +23,7 @@ const sections = [
   { id: "monitoring",          title: "watchAgent / Webhooks" },
   { id: "lifecycle",           title: "Agent Lifecycle" },
   { id: "browser-wallet",      title: "Browser Wallet" },
-  { id: "cli",                 title: "CLI Wizard" },
+  { id: "cli",                 title: "CLI — init / airdrop / agent" },
   { id: "sidecar",             title: "HTTP Sidecar" },
   { id: "errors",              title: "Error Codes" },
   { id: "langchain",           title: "LangChain" },
@@ -573,21 +573,25 @@ function MyApp() {
 
         {/* CLI */}
         <SectionTitle id="cli">CLI WIZARD</SectionTitle>
-        <P>The PayKit CLI provides an interactive terminal wizard for creating and inspecting agents without writing code. Install from the SDK root:</P>
-        <Code>{`# Make executable
-chmod +x sdk/src/cli.js
+        <P>The PayKit CLI provides commands for wallet setup, Devnet funding, and interactive agent management — no code required.</P>
+        <Code>{`# Initialize wallet — generates ~/.paykit/wallet.json if no Solana keypair found
+paykit init
+
+# Request 1 SOL from Devnet faucet — auto-retries on rate limit
+paykit airdrop
+paykit airdrop /path/to/keypair.json   # optional: specify keypair path
 
 # Interactive agent creation wizard
 # Guides you through: name, spend limit, funding, tier, capabilities, category limits
-node sdk/src/cli.js agent create my-agent
+paykit agent create my-agent
 
 # List all local agents with onchain status
-node sdk/src/cli.js agent list
+paykit agent list
 
 # Inspect a specific agent (full onchain state + capabilities + history)
-node sdk/src/cli.js agent inspect my-agent`}</Code>
+paykit agent inspect my-agent`}</Code>
         <SubTitle>// EXAMPLE: paykit agent create</SubTitle>
-        <Code>{`$ node sdk/src/cli.js agent create trading-agent
+        <Code>{`$ paykit agent create trading-agent
 
   ⚡ PAYKIT CLI
 
@@ -618,6 +622,9 @@ node sdk/src/cli.js agent inspect my-agent`}</Code>
         {/* Sidecar */}
         <SectionTitle id="sidecar">HTTP SIDECAR</SectionTitle>
         <P>The PayKit sidecar exposes the full SDK as a REST API. This enables agents written in Python, Go, Ruby, or any other language to use PayKit without a Node.js runtime.</P>
+        <Callout type="warning">
+          <strong style={{ color: "#ffb800" }}>Security note:</strong> The sidecar has no authentication by default. It is designed for local use or trusted networks only. Do not expose it to the public internet without a reverse proxy with authentication.
+        </Callout>
         <Code>{`# Start the sidecar (default port 3333)
 node sdk/src/server.js
 
