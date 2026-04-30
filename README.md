@@ -306,8 +306,8 @@ await client.agentToAgentPayment(
 
 **5. Using Python, Go, Ruby, or any other language? Use the HTTP sidecar**
 ```bash
-# Start the sidecar once
-node node_modules/@paykit-labs/sdk/src/server.js
+# Start the sidecar — one command, no path needed
+npx @paykit-labs/sdk start
 ```
 
 ```python
@@ -349,7 +349,7 @@ You are an autonomous AI agent. Follow these steps to integrate PayKit and gain 
    Run: npm install @paykit-labs/sdk
 
 2. Start the PayKit sidecar (HTTP payment server):
-   Run: node node_modules/@paykit-labs/sdk/src/server.js
+   Run: npx @paykit-labs/sdk start
    This exposes your payment capabilities at http://localhost:3333
 
 3. Register yourself as an autonomous agent:
@@ -498,13 +498,19 @@ paykit agent inspect my-agent
 For Python, Go, or any non-Node.js environment:
 
 ```bash
-# Start the sidecar
+# Start the sidecar (simplest — no path needed)
+npx @paykit-labs/sdk start
+
+# Or from the SDK directory
 node sdk/src/server.js
+cd sdk && npm run server
 
 # Call from Python/Go/Ruby
 curl -X POST http://localhost:3333/pay/agent-to-agent \
   -d '{"sender":"my-agent","receiver":"executor","amountSOL":0.0005,"service":"analysis","categoryId":4}'
 ```
+
+> **Security note:** The sidecar has no authentication by default. It is designed for local use or trusted networks only. Do not expose it to the public internet without a reverse proxy with authentication.
 
 **Key endpoints:** `POST /agent/create` · `GET /agent/:name` · `POST /pay/agent-to-agent` · `POST /pay/sol` · `POST /pay/usdc` · `POST /pay/batch` · `GET /balance/:name/sol` · `GET /history/:name` · `POST /agent/:name/capabilities` · `DELETE /agent/:name`
 
@@ -642,7 +648,7 @@ cd ../frontend && npm install && npm run dev
 
 - Smart contract — 13 instructions, capabilities bitmask, tier system, category limits, configurable BPS, expiration, renewal, reactivation, `closeAgent` with rent recovery, rich onchain events, 371-byte account
 - SDK — `createAutonomousAgent`, autonomous keypairs, `transferSOL`, `transferSPL`, `transferUSDC`, `setCapabilities`, `setCategoryLimit`, `setTier`, `setCustomCapability`, `decodeCapabilities`, `getAgentHistory`, `watchAgent`, `createWebhook`, `batchPayment`, `closeAgent`, `listLocalAgents`, 45 Jest tests
-- CLI wizard — interactive `paykit agent create` with capabilities, tier, category limit configuration
+- CLI wizard — `paykit init`, `paykit airdrop`, `paykit agent create/list/inspect` with interactive wizard
 - HTTP sidecar — 24 REST endpoints, any-language integration
 - Browser wallet support — Phantom, Backpack, Solflare
 - Granular error handling — `PayKitError` with 16 named codes
@@ -654,7 +660,7 @@ cd ../frontend && npm install && npm run dev
 - Autonomous AI agent demo — Anthropic API + PayKit (agent-native)
 - LangChain and CrewAI integration guides
 - Vercel deployment — live at https://paykit-sigma.vercel.app
-- npm package published — `@paykit-labs/sdk@0.1.1` on npm (`paykit init`, `paykit airdrop`, constructor fix)
+- npm package published — `@paykit-labs/sdk@0.1.2` on npm (`paykit init`, `paykit airdrop`, `createClient(null)` auto-detect wallet, constructor fix, portable paths)
 
 ### 🔄 In Progress
 
