@@ -94,7 +94,7 @@ function agentKeypairExists(agentName) {
 // ─── PayKit Client ────────────────────────────────────────────────────────────
 
 class PayKitClient {
-    constructor(connection, wallet) {
+    constructor(connection, wallet, options = {}) {
         this.connection = connection;
         this.wallet = wallet;
         const provider = new anchor.AnchorProvider(connection, wallet, {

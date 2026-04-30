@@ -47,6 +47,9 @@
   ],
   "author": "Zero Two Labs",
   "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "@coral-xyz/anchor": "0.31.1",
     "@solana/spl-token": "^0.4.14",
