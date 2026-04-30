@@ -1,6 +1,6 @@
 {
   "name": "@paykit-labs/sdk",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "PayKit SDK - Autonomous AI Agent Payments on Solana",
   "main": "src/index.js",
   "types": "src/types.ts",
@@ -27,7 +27,8 @@
     "server": "node src/server.js",
     "server:mainnet": "node src/server.js 3333 ~/.config/solana/id.json mainnet-beta",
     "server:pm2": "pm2 start src/server.js --name paykit-sidecar",
-    "example": "node examples/basic-usage.js"
+    "example": "node examples/basic-usage.js",
+    "start": "node src/server.js"
   },
   "jest": {
     "testMatch": [

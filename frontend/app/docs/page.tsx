@@ -573,11 +573,11 @@ function MyApp() {
 
         {/* CLI */}
         <SectionTitle id="cli">CLI WIZARD</SectionTitle>
-        <P>The PayKit CLI provides commands for wallet setup, Devnet funding, and interactive agent management — no code required.</P>
+        <P>The PayKit CLI provides commands for wallet setup, Devnet funding, and interactive agent management — no code required. Requires Node.js 18+.</P>
         <Code>{`# Initialize wallet — generates ~/.paykit/wallet.json if no Solana keypair found
 paykit init
 
-# Request 1 SOL from Devnet faucet — auto-retries on rate limit
+# Request 1 SOL from Devnet faucet — auto-retries on rate limit (3 attempts)
 paykit airdrop
 paykit airdrop /path/to/keypair.json   # optional: specify keypair path
 
@@ -625,13 +625,13 @@ paykit agent inspect my-agent`}</Code>
         <Callout type="warning">
           <strong style={{ color: "#ffb800" }}>Security note:</strong> The sidecar has no authentication by default. It is designed for local use or trusted networks only. Do not expose it to the public internet without a reverse proxy with authentication.
         </Callout>
-        <Code>{`# Start the sidecar (default port 3333)
-node sdk/src/server.js
+        <Code>{`# Simplest — no path needed
+npx @paykit-labs/sdk start
 
 # Custom port and keypair
 node sdk/src/server.js 4000 /path/to/keypair.json devnet
 
-# Or use the npm script
+# Or from the SDK directory
 cd sdk && npm run server`}</Code>
         <SubTitle>// KEY ENDPOINTS</SubTitle>
         <Table
@@ -801,7 +801,7 @@ const checkBudgetTool = new DynamicStructuredTool({
         <SectionTitle id="crewai">CREWAI INTEGRATION</SectionTitle>
         <P>Run the PayKit sidecar alongside your CrewAI Python process. Python tools call the sidecar via HTTP.</P>
         <Code>{`# terminal 1 — start the PayKit sidecar
-node sdk/src/server.js`}</Code>
+npx @paykit-labs/sdk start`}</Code>
         <Code>{`# terminal 2 — your CrewAI agent
 pip install crewai requests`}</Code>
         <Code>{`import requests
