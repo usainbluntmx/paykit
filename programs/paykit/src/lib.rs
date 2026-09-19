@@ -5,35 +5,39 @@ declare_id!("F27DrerUQGnkmVhqkEy9m46zDkni2m37Df4ogxkoDhUF");
 
 // ─── Capability Bits ──────────────────────────────────────────────────────────
 
-pub const CAP_PAY_AGENTS:      u16 = 1 << 0;  // bit 0
-pub const CAP_HIRE_BASIC:      u16 = 1 << 1;  // bit 1
-pub const CAP_HIRE_STANDARD:   u16 = 1 << 2;  // bit 2
-pub const CAP_HIRE_PREMIUM:    u16 = 1 << 3;  // bit 3
-pub const CAP_TRANSFER_SOL:    u16 = 1 << 4;  // bit 4
-pub const CAP_TRANSFER_SPL:    u16 = 1 << 5;  // bit 5
-pub const CAP_BATCH_PAY:       u16 = 1 << 6;  // bit 6
-pub const CAP_CUSTOM_1:        u16 = 1 << 8;  // bit 8  — custom slot 1
-pub const CAP_CUSTOM_2:        u16 = 1 << 9;  // bit 9  — custom slot 2
-pub const CAP_CUSTOM_3:        u16 = 1 << 10; // bit 10 — custom slot 3
-pub const CAP_CUSTOM_4:        u16 = 1 << 11; // bit 11 — custom slot 4
-pub const CAP_CUSTOM_5:        u16 = 1 << 12; // bit 12 — custom slot 5
-pub const CAP_CUSTOM_6:        u16 = 1 << 13; // bit 13 — custom slot 6
-pub const CAP_CUSTOM_7:        u16 = 1 << 14; // bit 14 — custom slot 7
-pub const CAP_CUSTOM_8:        u16 = 1 << 15; // bit 15 — custom slot 8
+pub const CAP_PAY_AGENTS: u16 = 1 << 0; // bit 0
+pub const CAP_HIRE_BASIC: u16 = 1 << 1; // bit 1
+pub const CAP_HIRE_STANDARD: u16 = 1 << 2; // bit 2
+pub const CAP_HIRE_PREMIUM: u16 = 1 << 3; // bit 3
+pub const CAP_TRANSFER_SOL: u16 = 1 << 4; // bit 4
+pub const CAP_TRANSFER_SPL: u16 = 1 << 5; // bit 5
+pub const CAP_BATCH_PAY: u16 = 1 << 6; // bit 6
+pub const CAP_CUSTOM_1: u16 = 1 << 8; // bit 8  — custom slot 1
+pub const CAP_CUSTOM_2: u16 = 1 << 9; // bit 9  — custom slot 2
+pub const CAP_CUSTOM_3: u16 = 1 << 10; // bit 10 — custom slot 3
+pub const CAP_CUSTOM_4: u16 = 1 << 11; // bit 11 — custom slot 4
+pub const CAP_CUSTOM_5: u16 = 1 << 12; // bit 12 — custom slot 5
+pub const CAP_CUSTOM_6: u16 = 1 << 13; // bit 13 — custom slot 6
+pub const CAP_CUSTOM_7: u16 = 1 << 14; // bit 14 — custom slot 7
+pub const CAP_CUSTOM_8: u16 = 1 << 15; // bit 15 — custom slot 8
 
-pub const CAP_ALL_DEFAULT: u16 =
-    CAP_PAY_AGENTS | CAP_HIRE_BASIC | CAP_HIRE_STANDARD |
-    CAP_HIRE_PREMIUM | CAP_TRANSFER_SOL | CAP_TRANSFER_SPL | CAP_BATCH_PAY;
+pub const CAP_ALL_DEFAULT: u16 = CAP_PAY_AGENTS
+    | CAP_HIRE_BASIC
+    | CAP_HIRE_STANDARD
+    | CAP_HIRE_PREMIUM
+    | CAP_TRANSFER_SOL
+    | CAP_TRANSFER_SPL
+    | CAP_BATCH_PAY;
 
 // ─── Category IDs ─────────────────────────────────────────────────────────────
 
-pub const CAT_NONE:      u8 = 0;
-pub const CAT_COMPUTE:   u8 = 1;
-pub const CAT_DATA:      u8 = 2;
-pub const CAT_STORAGE:   u8 = 3;
+pub const CAT_NONE: u8 = 0;
+pub const CAT_COMPUTE: u8 = 1;
+pub const CAT_DATA: u8 = 2;
+pub const CAT_STORAGE: u8 = 3;
 pub const CAT_INFERENCE: u8 = 4;
-pub const CAT_RESEARCH:  u8 = 5;
-pub const CAT_CONTENT:   u8 = 6;
+pub const CAT_RESEARCH: u8 = 5;
+pub const CAT_CONTENT: u8 = 6;
 // IDs 7 reserved, 8–255 custom
 
 #[program]
@@ -51,7 +55,10 @@ pub mod paykit {
     ) -> Result<()> {
         require!(name.len() <= 32, PaykitError::NameTooLong);
         require!(spend_limit > 0, PaykitError::InvalidSpendLimit);
-        require!(daily_limit_bps >= 1 && daily_limit_bps <= 10000, PaykitError::InvalidDailyLimit);
+        require!(
+            daily_limit_bps >= 1 && daily_limit_bps <= 10000,
+            PaykitError::InvalidDailyLimit
+        );
         require!(tier <= 2, PaykitError::InvalidTier);
 
         let clock = Clock::get()?;
@@ -185,9 +192,18 @@ pub mod paykit {
             PaykitError::CapabilityDenied
         );
         match receiver.tier {
-            0 => require!(sender.capabilities & CAP_HIRE_BASIC != 0, PaykitError::TierNotAllowed),
-            1 => require!(sender.capabilities & CAP_HIRE_STANDARD != 0, PaykitError::TierNotAllowed),
-            2 => require!(sender.capabilities & CAP_HIRE_PREMIUM != 0, PaykitError::TierNotAllowed),
+            0 => require!(
+                sender.capabilities & CAP_HIRE_BASIC != 0,
+                PaykitError::TierNotAllowed
+            ),
+            1 => require!(
+                sender.capabilities & CAP_HIRE_STANDARD != 0,
+                PaykitError::TierNotAllowed
+            ),
+            2 => require!(
+                sender.capabilities & CAP_HIRE_PREMIUM != 0,
+                PaykitError::TierNotAllowed
+            ),
             _ => return Err(PaykitError::InvalidTier.into()),
         }
 
@@ -243,10 +259,7 @@ pub mod paykit {
         Ok(())
     }
 
-    pub fn set_capabilities(
-        ctx: Context<OwnerSigns>,
-        capabilities: u16,
-    ) -> Result<()> {
+    pub fn set_capabilities(ctx: Context<OwnerSigns>, capabilities: u16) -> Result<()> {
         ctx.accounts.agent.capabilities = capabilities;
         emit!(CapabilitiesUpdated {
             agent: ctx.accounts.agent.key(),
@@ -256,10 +269,7 @@ pub mod paykit {
         Ok(())
     }
 
-    pub fn set_tier(
-        ctx: Context<OwnerSigns>,
-        tier: u8,
-    ) -> Result<()> {
+    pub fn set_tier(ctx: Context<OwnerSigns>, tier: u8) -> Result<()> {
         require!(tier <= 2, PaykitError::InvalidTier);
         ctx.accounts.agent.tier = tier;
         Ok(())
@@ -277,11 +287,17 @@ pub mod paykit {
         // Find existing slot or empty slot
         let mut slot: Option<usize> = None;
         for (i, &(id, _)) in agent.category_limits.iter().enumerate() {
-            if id == category_id { slot = Some(i); break; }
+            if id == category_id {
+                slot = Some(i);
+                break;
+            }
         }
         if slot.is_none() {
             for (i, &(id, _)) in agent.category_limits.iter().enumerate() {
-                if id == 0 { slot = Some(i); break; }
+                if id == 0 {
+                    slot = Some(i);
+                    break;
+                }
             }
         }
         require!(slot.is_some(), PaykitError::CategorySlotsFull);
@@ -367,22 +383,22 @@ pub mod paykit {
     }
 
     pub fn close_agent(ctx: Context<CloseAgent>) -> Result<()> {
-    emit!(AgentClosed {
-        agent: ctx.accounts.agent.key(),
-        agent_name: ctx.accounts.agent.name.clone(),
-        owner: ctx.accounts.agent.owner,
-    });
-    Ok(())
-}
+        emit!(AgentClosed {
+            agent: ctx.accounts.agent.key(),
+            agent_name: ctx.accounts.agent.name.clone(),
+            owner: ctx.accounts.agent.owner,
+        });
+        Ok(())
+    }
 }
 
 // ─── Account Struct ───────────────────────────────────────────────────────────
 
 #[account]
 pub struct AgentAccount {
-    pub agent_key: Pubkey,                    // Agent's own keypair
-    pub owner: Pubkey,                        // Developer wallet
-    pub name: String,                         // max 32 chars
+    pub agent_key: Pubkey, // Agent's own keypair
+    pub owner: Pubkey,     // Developer wallet
+    pub name: String,      // max 32 chars
     pub spend_limit: u64,
     pub total_spent: u64,
     pub payment_count: u64,
@@ -393,9 +409,9 @@ pub struct AgentAccount {
     pub daily_reset_at: i64,
     pub expires_at: i64,
     pub daily_limit_bps: u16,
-    pub capabilities: u16,                    // bitmask
-    pub tier: u8,                             // 0=basic, 1=standard, 2=premium
-    pub category_limits: [(u8, u64); 8],      // (category_id, max_lamports)
+    pub capabilities: u16,                      // bitmask
+    pub tier: u8,                               // 0=basic, 1=standard, 2=premium
+    pub category_limits: [(u8, u64); 8],        // (category_id, max_lamports)
     pub custom_capability_names: [[u8; 16]; 8], // names for custom cap bits 8-15
 }
 
@@ -417,11 +433,13 @@ impl AgentAccount {
         + 2                       // capabilities
         + 1                       // tier
         + (1 + 8) * 8             // category_limits: 8 × (u8 + u64)
-        + 16 * 8;                 // custom_capability_names: 8 × [u8; 16]
+        + 16 * 8; // custom_capability_names: 8 × [u8; 16]
 
     pub fn get_category_limit(&self, category_id: u8) -> u64 {
         for &(id, limit) in &self.category_limits {
-            if id == category_id { return limit; }
+            if id == category_id {
+                return limit;
+            }
         }
         0
     }
@@ -457,6 +475,7 @@ pub struct AgentSigns<'info> {
         mut,
         seeds = [b"agent", agent.agent_key.as_ref(), agent.name.as_bytes()],
         bump = agent.bump,
+        constraint = agent.agent_key == agent_signer.key() @ PaykitError::UnauthorizedSigner,
     )]
     pub agent: Account<'info, AgentAccount>,
 
@@ -469,6 +488,7 @@ pub struct AgentToAgentSigns<'info> {
         mut,
         seeds = [b"agent", sender_agent.agent_key.as_ref(), sender_agent.name.as_bytes()],
         bump = sender_agent.bump,
+        constraint = sender_agent.agent_key == agent_signer.key() @ PaykitError::UnauthorizedSigner,
     )]
     pub sender_agent: Account<'info, AgentAccount>,
 
@@ -601,4 +621,6 @@ pub enum PaykitError {
     CategorySlotsFull,
     #[msg("Invalid capability slot — must be 0-7")]
     InvalidCapabilitySlot,
+    #[msg("Signer does not match this agent's registered key")]
+    UnauthorizedSigner,
 }
