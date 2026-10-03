@@ -122,8 +122,14 @@ describe("PayKit SDK", () => {
 
     test("checkAgentExpiry returns expiry info for existing agent", async () => {
         const expiry = await client.checkAgentExpiry("agent-cap-01");
+        // El agente se registra con expires_at = ahora + 365 días (lib.rs:71), así que
+        // daysRemaining decrece con el tiempo desde su creación — un valor fijo tipo
+        // "> 300" asume que el test corre justo después de registrar el agente, y
+        // falla apenas pasan ~65 días. Lo que realmente queremos probar es que el
+        // agente sigue dentro de su ventana de vida (0, 365], no un número exacto.
         expect(expiry.expired).toBe(false);
-        expect(expiry.daysRemaining).toBeGreaterThan(300);
+        expect(expiry.daysRemaining).toBeGreaterThan(0);
+        expect(expiry.daysRemaining).toBeLessThanOrEqual(365);
         expect(expiry.expiresAt).toBeInstanceOf(Date);
     }, 30000);
 

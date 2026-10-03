@@ -6,6 +6,7 @@ const {
     CAP_ALL_DEFAULT,
     CATEGORIES,
     agentKeypairExists,
+    solToLamports,
 } = require("./index");
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -14,6 +15,34 @@ const KEYPAIR_PATH = process.env.KEYPAIR_PATH || require("os").homedir() + "/.co
 const ORCHESTRATOR = "demo-orchestrator";
 const EXECUTOR = "demo-executor";
 const FUNDING_SOL = 0.05; // SOL to fund each agent wallet
+
+// ─── Guardrails (enforced in code, not just in the prompt) ────────────────────
+// The model's tool calls are untrusted input — it can be steered by anything it
+// reads back from executeTool results (agent names, memos, history entries are
+// all onchain data anyone can write). These limits are the actual boundary;
+// the prompt below is a hint for the model, not the enforcement mechanism.
+
+const ALLOWED_RECIPIENTS = [EXECUTOR]; // the only agent this demo is allowed to pay
+const MAX_PAYMENT_LAMPORTS = 500_000; // 0.0005 SOL — matches the ceiling stated in the prompt
+const MAX_PAYMENTS_PER_RUN = 10; // hard stop even if every individual call is within limits
+let paymentsThisRun = 0;
+
+function assertAllowedPayment(receiver, amountLamports) {
+    if (!ALLOWED_RECIPIENTS.includes(receiver)) {
+        throw new Error(
+            `Blocked: "${receiver}" is not in the allowlist for this demo (allowed: ${ALLOWED_RECIPIENTS.join(", ")}).`
+        );
+    }
+    if (!Number.isFinite(amountLamports) || amountLamports <= 0 || amountLamports > MAX_PAYMENT_LAMPORTS) {
+        throw new Error(
+            `Blocked: amount ${amountLamports} lamports is outside the allowed range (0, ${MAX_PAYMENT_LAMPORTS}].`
+        );
+    }
+    if (paymentsThisRun >= MAX_PAYMENTS_PER_RUN) {
+        throw new Error(`Blocked: this demo run already made ${MAX_PAYMENTS_PER_RUN} payments — hard stop reached.`);
+    }
+    paymentsThisRun++;
+}
 
 // ─── Clients ──────────────────────────────────────────────────────────────────
 
@@ -32,7 +61,7 @@ async function bootstrapAgents() {
             ORCHESTRATOR,
             1_000_000_000,      // 1 SOL spend limit
             1000,               // 10% daily limit
-            Math.floor(FUNDING_SOL * 1_000_000_000),
+            solToLamports(FUNDING_SOL),
             CAP_ALL_DEFAULT,
             1                   // tier: standard
         );
@@ -47,7 +76,7 @@ async function bootstrapAgents() {
             EXECUTOR,
             500_000_000,        // 0.5 SOL spend limit
             2000,               // 20% daily limit
-            Math.floor(FUNDING_SOL * 1_000_000_000),
+            solToLamports(FUNDING_SOL),
             CAP_ALL_DEFAULT,
             0                   // tier: basic
         );
@@ -133,6 +162,7 @@ async function executeTool(name, input) {
 
     if (name === "pay_agent") {
         const { sender, receiver, amount_lamports, service, category } = input;
+        assertAllowedPayment(receiver, amount_lamports);
         const categoryId = CATEGORIES[category.toUpperCase()] || 0;
 
         const { tx } = await paykit.agentToAgentPayment(
@@ -188,6 +218,7 @@ async function executeTool(name, input) {
 
     if (name === "transfer_sol") {
         const { sender, receiver, amount_sol, memo } = input;
+        assertAllowedPayment(receiver, solToLamports(amount_sol));
         const { tx } = await paykit.transferSOL(sender, receiver, amount_sol, memo);
         console.log(`  ${C.green("✓")} SOL transfer TX: ${C.dim(tx.slice(0, 24))}...`);
         return { success: true, tx, sender, receiver, amount_sol, memo };
@@ -233,12 +264,12 @@ Available agents:
 
 Your workflow:
 1. Check your SOL wallet balance and agent status before starting
-2. Delegate the task to ${EXECUTOR} 
+2. Delegate the task to ${EXECUTOR}
 3. Pay ${EXECUTOR} for completed work using pay_agent — always specify the category
 4. Verify the payment with get_agent_history
 5. Report a clear summary with TX signatures
 
-Payment amounts: 100000–500000 lamports (0.0001–0.0005 SOL) per service.
+Payment amounts: 100000–${MAX_PAYMENT_LAMPORTS} lamports (0.0001–${MAX_PAYMENT_LAMPORTS / 1e9} SOL) per service. This is a hard limit enforced in code — a call outside this range or to any agent other than ${EXECUTOR} will be rejected before it reaches the blockchain.
 Always use the most specific category for each payment.
 You sign payments autonomously — no owner approval needed. This is agent-native architecture.`;
 

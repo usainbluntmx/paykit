@@ -13,6 +13,7 @@ const {
     CATEGORIES,
     CATEGORY_NAMES,
     agentKeypairExists,
+    solToLamports,
 } = require("./index");
 
 // ─── Colors ───────────────────────────────────────────────────────────────────
@@ -145,7 +146,7 @@ async function categoryWizard(rl) {
             if (!limitStr.trim()) continue;
             const limitSOL = parseFloat(limitStr);
             if (isNaN(limitSOL) || limitSOL <= 0) continue;
-            const limitLamports = Math.floor(limitSOL * 1_000_000_000);
+            const limitLamports = solToLamports(limitSOL);
             categoryLimits.push({ categoryId: catMap[cat], limitLamports, name: cat });
             console.log(`  ${C.green("✓")} ${cat}: ${C.cyan(limitSOL + " SOL")} max per payment`);
         }
@@ -161,7 +162,7 @@ async function categoryWizard(rl) {
                 const limitStr = await ask(rl, C.yellow(`  ${catName} limit in SOL: `));
                 const limitSOL = parseFloat(limitStr);
                 if (isNaN(limitSOL) || limitSOL <= 0) { customId++; continue; }
-                const limitLamports = Math.floor(limitSOL * 1_000_000_000);
+                const limitLamports = solToLamports(limitSOL);
                 categoryLimits.push({ categoryId: customId, limitLamports, name: catName.trim() });
                 console.log(`  ${C.green("✓")} ${catName}: ${C.cyan(limitSOL + " SOL")} max per payment`);
                 customId++;
@@ -220,7 +221,7 @@ async function cmdCreateAgent(args) {
     // Spend limit
     const spendStr = await ask(rl, C.yellow("\n  Spend limit in SOL (default 1): "));
     const spendSOL = parseFloat(spendStr.trim()) || 1;
-    const spendLimitLamports = Math.floor(spendSOL * 1_000_000_000);
+    const spendLimitLamports = solToLamports(spendSOL);
 
     // Daily limit BPS
     const bpsStr = await ask(rl, C.yellow("  Daily limit BPS 1-10000 (default 1000 = 10%): "));
@@ -229,7 +230,7 @@ async function cmdCreateAgent(args) {
     // Funding
     const fundStr = await ask(rl, C.yellow("  Fund agent wallet in SOL (default 0.01): "));
     const fundSOL = parseFloat(fundStr.trim()) || 0.01;
-    const fundingLamports = Math.floor(fundSOL * 1_000_000_000);
+    const fundingLamports = solToLamports(fundSOL);
 
     // Tier
     const tier = await tierWizard(rl);
@@ -434,8 +435,9 @@ async function cmdInit() {
     process.stdout.write("  Generating wallet keypair...");
     const keypair = Keypair.generate();
     const paykitDir = path.join(os.homedir(), ".paykit");
-    if (!fs.existsSync(paykitDir)) fs.mkdirSync(paykitDir, { recursive: true });
-    fs.writeFileSync(paykitWallet, JSON.stringify(Array.from(keypair.secretKey)));
+    if (!fs.existsSync(paykitDir)) fs.mkdirSync(paykitDir, { recursive: true, mode: 0o700 });
+    fs.writeFileSync(paykitWallet, JSON.stringify(Array.from(keypair.secretKey)), { mode: 0o600 });
+    fs.chmodSync(paykitWallet, 0o600); // por si el archivo ya existía con permisos abiertos
     console.log(` ${C.green("✓")}`);
     console.log(`  Wallet saved: ${C.dim(paykitWallet)}`);
     console.log(`  Public key:  ${C.green(keypair.publicKey.toBase58())}\n`);

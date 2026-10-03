@@ -1,3 +1,4 @@
+require("dotenv").config(); // no-op si no hay .env — seguro llamarlo aquí aunque el caller ya lo haya hecho
 const anchor = require("@coral-xyz/anchor");
 const { Connection, PublicKey, Keypair, clusterApiUrl } = require("@solana/web3.js");
 const fs = require("fs");
@@ -70,12 +71,15 @@ function getAgentKeypairPath(agentName) {
 
 function saveAgentKeypair(agentName, keypair) {
     if (!fs.existsSync(AGENTS_DIR)) {
-        fs.mkdirSync(AGENTS_DIR, { recursive: true });
+        fs.mkdirSync(AGENTS_DIR, { recursive: true, mode: 0o700 });
     }
     fs.writeFileSync(
         getAgentKeypairPath(agentName),
-        JSON.stringify(Array.from(keypair.secretKey))
+        JSON.stringify(Array.from(keypair.secretKey)),
+        { mode: 0o600 }
     );
+    // Por si el archivo ya existía con permisos abiertos de una versión anterior
+    fs.chmodSync(getAgentKeypairPath(agentName), 0o600);
 }
 
 function loadAgentKeypair(agentName) {
@@ -287,7 +291,7 @@ class PayKitClient {
      * The sender agent signs with its own keypair — no owner involvement.
      * Also records the payment onchain for accountability.
      * @param {string} fromAgentName - Sender agent name
-     * @param {string} toAgentName - Receiver agent name  
+     * @param {string} toAgentName - Receiver agent name
      * @param {number} amountUSDC - Amount in USDC (e.g. 1.5 = 1.5 USDC)
      * @param {string} memo - Payment description
      * @returns {Promise<{tx: string, amount: number, mint: string}>}
@@ -401,7 +405,7 @@ class PayKitClient {
             const senderKeypair = loadAgentKeypair(fromAgentName);
             const receiverKeypair = loadAgentKeypair(toAgentName);
 
-            const lamports = Math.floor(amountSOL * 1_000_000_000);
+            const lamports = solToLamports(amountSOL);
             const senderPDA = this.getAgentPDA(senderKeypair.publicKey, fromAgentName);
 
             const tx = new anchor.web3.Transaction();
@@ -961,8 +965,25 @@ function loadWalletFromFile(keypairPath) {
     const keypair = Keypair.fromSecretKey(Uint8Array.from(raw));
     return new anchor.Wallet(keypair);
 }
+// ─── RPC resolution ───────────────────────────────────────────────────────────
+// Prioridad: 1) URL explícita del caller, 2) Helius si hay HELIUS_API_KEY en el
+// entorno (mucho mayor límite de tasa que el RPC público), 3) RPC público de
+// Solana como último recurso. El RPC público de devnet tiene un rate limit muy
+// agresivo (429 frecuentes bajo cualquier carga real de tests o uso normal).
+function resolveRpcUrl(cluster, customRpcUrl) {
+    if (customRpcUrl) return customRpcUrl;
+
+    const heliusKey = process.env.HELIUS_API_KEY;
+    if (heliusKey) {
+        const heliusCluster = cluster === "mainnet-beta" ? "mainnet" : (cluster || "devnet");
+        return `https://${heliusCluster}.helius-rpc.com/?api-key=${heliusKey}`;
+    }
+
+    return clusterApiUrl(cluster || "devnet");
+}
+
 function createClient(keypairPath, cluster, customRpcUrl, options = {}) {
-    const rpcUrl = customRpcUrl || clusterApiUrl(cluster || "devnet");
+    const rpcUrl = resolveRpcUrl(cluster, customRpcUrl);
     const connection = new Connection(rpcUrl, "confirmed");
     const wallet = loadWalletFromFile(keypairPath || null);
     return new PayKitClient(connection, wallet, options);
@@ -974,6 +995,24 @@ function createClientFromWallet(walletAdapter, connection) {
     return new PayKitClient(connection, walletAdapter);
 }
 
+// ─── Unit Conversion ────────────────────────────────────────────────────────
+// Math.floor(amountSOL * 1_000_000_000) is unsafe: binary floating point can't
+// represent most decimals exactly, so e.g. 0.29 * 1e9 === 289999999.9999998,
+// and Math.floor silently truncates to 289999999 lamports — one lamport short
+// of what the caller asked for. toFixed(9) rounds at the decimal-string level
+// first (SOL has exactly 9 decimals, same as a lamport), which sidesteps the
+// representation error; Math.round then absorbs whatever sub-lamport epsilon
+// remains from the final multiplication.
+function solToLamports(amountSOL) {
+    if (typeof amountSOL !== "number" || !Number.isFinite(amountSOL)) {
+        throw new Error(`Invalid SOL amount: ${amountSOL}`);
+    }
+    if (amountSOL < 0) {
+        throw new Error(`SOL amount cannot be negative: ${amountSOL}`);
+    }
+    return Math.round(Number(amountSOL.toFixed(9)) * 1_000_000_000);
+}
+
 module.exports = {
     PayKitClient,
     loadWalletFromFile,
@@ -981,6 +1020,7 @@ module.exports = {
     createClientFromWallet,
     loadAgentKeypair,
     agentKeypairExists,
+    solToLamports,
     PROGRAM_ID,
     AGENTS_DIR,
     CAPABILITIES,

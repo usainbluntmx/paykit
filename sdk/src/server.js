@@ -14,6 +14,7 @@ const {
     CATEGORIES,
     CATEGORY_NAMES,
     agentKeypairExists,
+    solToLamports,
 } = require("./index");
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -73,11 +74,44 @@ function matchRoute(method, url) {
 
 // ─── Request helpers ──────────────────────────────────────────────────────────
 
+// CORS allowlist — empty by default. Non-browser clients (curl, the CLI, a
+// Python script) never send an Origin header, so they are unaffected either
+// way; this only matters for requests made from inside a browser tab. Set
+// PAYKIT_SIDECAR_ALLOWED_ORIGINS="http://localhost:3000,http://localhost:5173"
+// if you need a local frontend dev server to call this sidecar directly.
+const ALLOWED_ORIGINS = new Set(
+    (process.env.PAYKIT_SIDECAR_ALLOWED_ORIGINS || "")
+        .split(",")
+        .map(s => s.trim())
+        .filter(Boolean)
+);
+
+function corsOriginFor(req) {
+    const origin = req.headers.origin;
+    if (!origin) return null; // no Origin header — not a CORS request
+    return ALLOWED_ORIGINS.has(origin) ? origin : null;
+}
+
+const MAX_BODY_BYTES = 1_000_000; // 1 MB — see PAYKIT-SEC-002
+
 function readBody(req) {
     return new Promise((resolve, reject) => {
         let data = "";
-        req.on("data", chunk => data += chunk);
+        let bytes = 0;
+        let aborted = false;
+        req.on("data", chunk => {
+            if (aborted) return;
+            bytes += chunk.length;
+            if (bytes > MAX_BODY_BYTES) {
+                aborted = true;
+                req.destroy();
+                reject(new Error(`Request body exceeds ${MAX_BODY_BYTES} bytes`));
+                return;
+            }
+            data += chunk;
+        });
         req.on("end", () => {
+            if (aborted) return;
             try { resolve(data ? JSON.parse(data) : {}); }
             catch { reject(new Error("Invalid JSON body")); }
         });
@@ -85,21 +119,23 @@ function readBody(req) {
     });
 }
 
-function send(res, status, body) {
+function send(res, status, body, corsOrigin) {
     const json = JSON.stringify(body, (_, v) =>
         typeof v === "bigint" ? v.toString() : v
     );
-    res.writeHead(status, {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-    });
+    const headers = { "Content-Type": "application/json" };
+    if (corsOrigin) {
+        headers["Access-Control-Allow-Origin"] = corsOrigin;
+        headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS";
+        headers["Access-Control-Allow-Headers"] = "Content-Type";
+        headers["Vary"] = "Origin";
+    }
+    res.writeHead(status, headers);
     res.end(json);
 }
 
-function ok(res, body) { send(res, 200, body); }
-function err(res, msg, status = 400) { send(res, status, { error: msg }); }
+function ok(res, body, corsOrigin) { send(res, 200, body, corsOrigin); }
+function err(res, msg, status = 400, corsOrigin) { send(res, status, { error: msg }, corsOrigin); }
 
 // ─── Logging ──────────────────────────────────────────────────────────────────
 
@@ -122,9 +158,9 @@ route("POST", "/agent/create", async (req, body) => {
 
     const result = await client.createAutonomousAgent(
         name,
-        Math.floor(spendLimitSOL * 1_000_000_000),
+        solToLamports(spendLimitSOL),
         dailyLimitBps,
-        Math.floor(fundingSOL * 1_000_000_000),
+        solToLamports(fundingSOL),
         capabilities,
         tier
     );
@@ -199,7 +235,7 @@ route("POST", "/pay", async (req, body) => {
     const { PublicKey } = require("@solana/web3.js");
     const { tx } = await client.recordPayment(
         sender,
-        Math.floor(amountSOL * 1_000_000_000),
+        solToLamports(amountSOL),
         new PublicKey(recipient),
         memo,
         categoryId
@@ -217,7 +253,7 @@ route("POST", "/pay/agent-to-agent", async (req, body) => {
     const { tx } = await client.agentToAgentPayment(
         sender,
         receiver,
-        Math.floor(amountSOL * 1_000_000_000),
+        solToLamports(amountSOL),
         service,
         categoryId
     );
@@ -231,7 +267,7 @@ route("POST", "/pay/batch", async (req, body) => {
 
     const normalized = payments.map(p => ({
         receiverName: p.receiverName || p.receiver,
-        amountLamports: Math.floor((p.amountSOL || 0) * 1_000_000_000),
+        amountLamports: solToLamports(p.amountSOL || 0),
         service: p.service,
     }));
 
@@ -327,7 +363,7 @@ route("POST", "/agent/:name/category-limit", async (req, body, params) => {
     const { categoryId, limitSOL, customName } = body;
     if (categoryId === undefined) throw new Error("categoryId is required");
     if (!limitSOL) throw new Error("limitSOL is required");
-    const limitLamports = Math.floor(limitSOL * 1_000_000_000);
+    const limitLamports = solToLamports(limitSOL);
     const { tx } = await client.setCategoryLimit(params.name, categoryId, limitLamports, customName);
     return { tx, agent: params.name, categoryId, limitSOL };
 });
@@ -362,7 +398,7 @@ route("POST", "/agent/:name/renew", async (req, body, params) => {
 route("POST", "/agent/:name/spend-limit", async (req, body, params) => {
     const { limitSOL } = body;
     if (!limitSOL) throw new Error("limitSOL is required");
-    const { tx } = await client.updateSpendLimit(params.name, Math.floor(limitSOL * 1_000_000_000));
+    const { tx } = await client.updateSpendLimit(params.name, solToLamports(limitSOL));
     return { tx, agent: params.name, limitSOL };
 });
 
@@ -387,38 +423,46 @@ route("GET", "/capabilities", async () => ({
 const server = http.createServer(async (req, res) => {
     const start = Date.now();
     const url = req.url.split("?")[0];
+    const corsOrigin = corsOriginFor(req); // computed once per request — no shared mutable state
 
     // CORS preflight
     if (req.method === "OPTIONS") {
-        send(res, 204, {});
+        send(res, 204, {}, corsOrigin);
         return;
     }
 
     const match = matchRoute(req.method, url);
     if (!match) {
         log(req.method, url, 404, Date.now() - start);
-        return err(res, `Route not found: ${req.method} ${url}`, 404);
+        return err(res, `Route not found: ${req.method} ${url}`, 404, corsOrigin);
     }
 
     try {
         const body = req.method !== "GET" ? await readBody(req) : {};
         const result = await match.handler(req, body, match.params);
         log(req.method, url, 200, Date.now() - start);
-        ok(res, result);
+        ok(res, result, corsOrigin);
     } catch (e) {
         log(req.method, url, 400, Date.now() - start);
-        err(res, e.message || e.code || "Unknown error");
+        err(res, e.message || e.code || "Unknown error", 400, corsOrigin);
     }
 });
 
-server.listen(PORT, () => {
+// Loopback only — this sidecar signs transactions with the owner's keypair and
+// has no authentication. Binding to 0.0.0.0 would expose it to the local network
+// (and, on a misconfigured firewall/router, beyond it). See PAYKIT-SEC-002.
+const HOST = "127.0.0.1";
+
+server.listen(PORT, HOST, () => {
     console.log();
     console.log(C.green(C.bold("  ⚡ PAYKIT SIDECAR")));
     console.log(C.dim("  Autonomous AI Agent Payment Protocol · Solana"));
     console.log();
     console.log(`  ${C.dim("Port:")}    ${C.cyan(PORT)}`);
+    console.log(`  ${C.dim("Host:")}    ${C.cyan(HOST)} ${C.dim("(loopback only — not reachable from other devices)")}`);
     console.log(`  ${C.dim("Cluster:")} ${C.cyan(CLUSTER)}`);
     console.log(`  ${C.dim("Owner:")}   ${C.cyan(client.wallet.publicKey.toBase58())}`);
+    console.log(`  ${C.dim("CORS:")}    ${ALLOWED_ORIGINS.size ? C.cyan([...ALLOWED_ORIGINS].join(", ")) : C.dim("no origins allowed (browser requests will be blocked)")}`);
     console.log();
     console.log(C.dim("  ─────────────────────────────────────────────────────────"));
     console.log(C.dim("  ENDPOINTS"));
