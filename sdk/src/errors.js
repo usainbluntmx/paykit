@@ -17,6 +17,7 @@ const PAYKIT_ERRORS = {
     6013: { code: "InvalidCategory", message: "Invalid category ID." },
     6014: { code: "CategorySlotsFull", message: "All category limit slots are in use (max 8)." },
     6015: { code: "InvalidCapabilitySlot", message: "Invalid capability slot — must be 0-7." },
+    6016: { code: "UnauthorizedSigner", message: "The signer does not match this agent's registered key." },
 };
 
 // ─── PayKit Error Class ───────────────────────────────────────────────────────
