@@ -1,6 +1,6 @@
 {
   "name": "@zero-two-labs/paykit",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "PayKit SDK - Autonomous AI Agent Payments on Solana",
   "main": "src/index.js",
   "types": "src/types.ts",
