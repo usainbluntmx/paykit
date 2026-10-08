@@ -27,14 +27,15 @@
     }
   },
   "scripts": {
-    "test": "jest --testTimeout=30000 --forceExit",
-    "test:integration": "node examples/basic-usage.js",
+    "test": "jest src/__tests__/unit.test.js --forceExit",
+    "test:integration": "jest src/__tests__/integration.test.js --testTimeout=30000 --forceExit",
     "patch-idl": "node src/patch-idl.js",
     "build": "cd .. && anchor build && cd sdk && node src/patch-idl.js",
     "server": "node src/server.js",
     "server:pm2": "pm2 start src/server.js --name paykit-sidecar",
     "example": "node examples/basic-usage.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "check:pack": "node scripts/check-pack.js"
   },
   "jest": {
     "testMatch": [
