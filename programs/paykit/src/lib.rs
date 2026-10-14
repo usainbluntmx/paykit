@@ -122,6 +122,12 @@ pub mod paykit {
 
         require!(agent.is_active, PaykitError::AgentInactive);
 
+        // Recording a payment out of the agent requires a transfer capability
+        require!(
+            agent.capabilities & (CAP_TRANSFER_SOL | CAP_TRANSFER_SPL) != 0,
+            PaykitError::CapabilityDenied
+        );
+
         let clock = Clock::get()?;
         let now = clock.unix_timestamp;
 
