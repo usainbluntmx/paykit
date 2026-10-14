@@ -9,6 +9,9 @@ skip-lint = false
 [programs.devnet]
 paykit = "F27DrerUQGnkmVhqkEy9m46zDkni2m37Df4ogxkoDhUF"
 
+[programs.localnet]
+paykit = "F27DrerUQGnkmVhqkEy9m46zDkni2m37Df4ogxkoDhUF"
+
 [registry]
 url = "https://api.apr.dev"
 
