@@ -357,6 +357,11 @@ pub mod paykit {
 
     pub fn update_spend_limit(ctx: Context<OwnerSigns>, new_limit: u64) -> Result<()> {
         require!(new_limit > 0, PaykitError::InvalidSpendLimit);
+        // The limit cannot be lowered below what the agent has already spent
+        require!(
+            new_limit >= ctx.accounts.agent.total_spent,
+            PaykitError::SpendLimitBelowSpent
+        );
         ctx.accounts.agent.spend_limit = new_limit;
         Ok(())
     }
@@ -629,4 +634,6 @@ pub enum PaykitError {
     InvalidCapabilitySlot,
     #[msg("Signer does not match this agent's registered key")]
     UnauthorizedSigner,
+    #[msg("New spend limit cannot be lower than the amount already spent")]
+    SpendLimitBelowSpent,
 }

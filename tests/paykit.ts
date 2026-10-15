@@ -403,6 +403,20 @@ describe("paykit contract", () => {
       );
     });
 
+    it("update_spend_limit cannot go below total_spent (SpendLimitBelowSpent)", async () => {
+      const a = await register("limit-floor", { spendLimit: 10_000 });
+      await pay(a, 8_000);
+      await expectError(
+        program.methods.updateSpendLimit(new BN(7_999)).accountsPartial({ agent: a.pda, owner }).rpc(),
+        "SpendLimitBelowSpent"
+      );
+      // exactly total_spent is allowed (boundary inclusive)
+      await program.methods.updateSpendLimit(new BN(8_000)).accountsPartial({ agent: a.pda, owner }).rpc();
+      const acc = await fetch(a.pda);
+      assert.equal(acc.spendLimit.toNumber(), 8_000);
+      await expectError(pay(a, 1), "SpendLimitExceeded");
+    });
+
     it("set_custom_capability toggles bits 8-15 and validates the slot", async () => {
       const a = await register("custom", { caps: 0 });
       await program.methods
@@ -474,15 +488,6 @@ describe("paykit contract", () => {
   const knownBug = process.env.KNOWN_BUGS === "1" ? it : it.skip;
 
   describe("known bugs (KNOWN_BUGS=1)", () => {
-    knownBug("update_spend_limit should not allow a limit below total_spent", async () => {
-      const a = await register("bug-limit", { spendLimit: 10_000 });
-      await pay(a, 8_000);
-      await expectAnyError(
-        program.methods.updateSpendLimit(new BN(1_000)).accountsPartial({ agent: a.pda, owner }).rpc(),
-        "limit below total_spent"
-      );
-    });
-
     knownBug("agent_to_agent_payment should reject paying itself", async () => {
       const a = await register("bug-self");
       await expectAnyError(a2a(a, a, 1000), "self-payment");

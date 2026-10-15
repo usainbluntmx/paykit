@@ -906,6 +906,11 @@
       "code": 6016,
       "name": "UnauthorizedSigner",
       "msg": "Signer does not match this agent's registered key"
+    },
+    {
+      "code": 6017,
+      "name": "SpendLimitBelowSpent",
+      "msg": "New spend limit cannot be lower than the amount already spent"
     }
   ],
   "types": [
