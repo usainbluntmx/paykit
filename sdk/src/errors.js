@@ -19,6 +19,8 @@ const PAYKIT_ERRORS = {
     6015: { code: "InvalidCapabilitySlot", message: "Invalid capability slot — must be 0-7." },
     6016: { code: "UnauthorizedSigner", message: "The signer does not match this agent's registered key." },
     6017: { code: "SpendLimitBelowSpent", message: "New spend limit cannot be lower than the amount already spent." },
+    6018: { code: "SelfPayment", message: "An agent cannot pay itself." },
+    6019: { code: "MathOverflow", message: "Arithmetic overflow while processing the payment." },
 };
 
 // ─── PayKit Error Class ───────────────────────────────────────────────────────

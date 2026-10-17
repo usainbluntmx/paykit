@@ -340,6 +340,14 @@ describe("paykit contract", () => {
       await expectError(a2a(s2, basic, 1000), "TierNotAllowed");
     });
 
+    it("rejects paying itself (SelfPayment)", async () => {
+      const a = await register("self");
+      await expectError(a2a(a, a, 1000), "SelfPayment");
+      const acc = await fetch(a.pda);
+      assert.equal(acc.totalSpent.toNumber(), 0);
+      assert.equal(acc.paymentCount.toNumber(), 0);
+    });
+
     it("rejects an inactive receiver", async () => {
       const s = await register("inrcv-s");
       const r = await register("inrcv-r");
@@ -456,6 +464,17 @@ describe("paykit contract", () => {
       );
     });
 
+    it("renew_agent rejects an extension that overflows the expiry (MathOverflow)", async () => {
+      const a = await register("renew-ovf");
+      await expectError(
+        program.methods
+          .renewAgent(new BN("9223372036854775807"))
+          .accountsPartial({ agent: a.pda, owner })
+          .rpc(),
+        "MathOverflow"
+      );
+    });
+
     it("close_agent returns the rent to the owner and deletes the account", async () => {
       const a = await register("close");
       const before = await provider.connection.getBalance(owner);
@@ -487,10 +506,5 @@ describe("paykit contract", () => {
 
   const knownBug = process.env.KNOWN_BUGS === "1" ? it : it.skip;
 
-  describe("known bugs (KNOWN_BUGS=1)", () => {
-    knownBug("agent_to_agent_payment should reject paying itself", async () => {
-      const a = await register("bug-self");
-      await expectAnyError(a2a(a, a, 1000), "self-payment");
-    });
-  });
+  // (no known bugs at the moment — add them here as `knownBug(...)` tests)
 });

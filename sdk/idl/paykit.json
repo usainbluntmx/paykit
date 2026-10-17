@@ -911,6 +911,16 @@
       "code": 6017,
       "name": "SpendLimitBelowSpent",
       "msg": "New spend limit cannot be lower than the amount already spent"
+    },
+    {
+      "code": 6018,
+      "name": "SelfPayment",
+      "msg": "An agent cannot pay itself"
+    },
+    {
+      "code": 6019,
+      "name": "MathOverflow",
+      "msg": "Arithmetic overflow"
     }
   ],
   "types": [

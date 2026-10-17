@@ -133,19 +133,28 @@ pub mod paykit {
 
         require!(now < agent.expires_at, PaykitError::AgentExpired);
         require!(
-            agent.total_spent.checked_add(amount).unwrap() <= agent.spend_limit,
+            agent
+                .total_spent
+                .checked_add(amount)
+                .ok_or(PaykitError::MathOverflow)?
+                <= agent.spend_limit,
             PaykitError::SpendLimitExceeded
         );
 
         // Daily limit
         let one_day: i64 = 86_400;
-        if now - agent.daily_reset_at > one_day {
+        if now - agent.daily_reset_at >= one_day {
             agent.daily_spent = 0;
             agent.daily_reset_at = now;
         }
-        let daily_limit = agent.spend_limit * agent.daily_limit_bps as u64 / 10000;
+        let daily_limit =
+            ((agent.spend_limit as u128 * agent.daily_limit_bps as u128) / 10_000) as u64;
         require!(
-            agent.daily_spent.checked_add(amount).unwrap() <= daily_limit,
+            agent
+                .daily_spent
+                .checked_add(amount)
+                .ok_or(PaykitError::MathOverflow)?
+                <= daily_limit,
             PaykitError::DailyLimitExceeded
         );
 
@@ -158,9 +167,18 @@ pub mod paykit {
         }
 
         agent.last_payment_at = now;
-        agent.daily_spent = agent.daily_spent.checked_add(amount).unwrap();
-        agent.total_spent = agent.total_spent.checked_add(amount).unwrap();
-        agent.payment_count = agent.payment_count.checked_add(1).unwrap();
+        agent.daily_spent = agent
+            .daily_spent
+            .checked_add(amount)
+            .ok_or(PaykitError::MathOverflow)?;
+        agent.total_spent = agent
+            .total_spent
+            .checked_add(amount)
+            .ok_or(PaykitError::MathOverflow)?;
+        agent.payment_count = agent
+            .payment_count
+            .checked_add(1)
+            .ok_or(PaykitError::MathOverflow)?;
 
         emit!(PaymentRecorded {
             agent: agent.key(),
@@ -185,6 +203,10 @@ pub mod paykit {
     ) -> Result<()> {
         require!(service.len() <= 64, PaykitError::MemoTooLong);
         require!(amount > 0, PaykitError::InvalidAmount);
+        require!(
+            ctx.accounts.sender_agent.key() != ctx.accounts.receiver_agent.key(),
+            PaykitError::SelfPayment
+        );
 
         let sender = &mut ctx.accounts.sender_agent;
         let receiver = &ctx.accounts.receiver_agent;
@@ -219,19 +241,28 @@ pub mod paykit {
         require!(now < sender.expires_at, PaykitError::AgentExpired);
         require!(now < receiver.expires_at, PaykitError::AgentExpired);
         require!(
-            sender.total_spent.checked_add(amount).unwrap() <= sender.spend_limit,
+            sender
+                .total_spent
+                .checked_add(amount)
+                .ok_or(PaykitError::MathOverflow)?
+                <= sender.spend_limit,
             PaykitError::SpendLimitExceeded
         );
 
         // Daily limit
         let one_day: i64 = 86_400;
-        if now - sender.daily_reset_at > one_day {
+        if now - sender.daily_reset_at >= one_day {
             sender.daily_spent = 0;
             sender.daily_reset_at = now;
         }
-        let daily_limit = sender.spend_limit * sender.daily_limit_bps as u64 / 10000;
+        let daily_limit =
+            ((sender.spend_limit as u128 * sender.daily_limit_bps as u128) / 10_000) as u64;
         require!(
-            sender.daily_spent.checked_add(amount).unwrap() <= daily_limit,
+            sender
+                .daily_spent
+                .checked_add(amount)
+                .ok_or(PaykitError::MathOverflow)?
+                <= daily_limit,
             PaykitError::DailyLimitExceeded
         );
 
@@ -244,12 +275,24 @@ pub mod paykit {
         }
 
         sender.last_payment_at = now;
-        sender.daily_spent = sender.daily_spent.checked_add(amount).unwrap();
-        sender.total_spent = sender.total_spent.checked_add(amount).unwrap();
-        sender.payment_count = sender.payment_count.checked_add(1).unwrap();
+        sender.daily_spent = sender
+            .daily_spent
+            .checked_add(amount)
+            .ok_or(PaykitError::MathOverflow)?;
+        sender.total_spent = sender
+            .total_spent
+            .checked_add(amount)
+            .ok_or(PaykitError::MathOverflow)?;
+        sender.payment_count = sender
+            .payment_count
+            .checked_add(1)
+            .ok_or(PaykitError::MathOverflow)?;
 
         let receiver = &mut ctx.accounts.receiver_agent;
-        receiver.payment_count = receiver.payment_count.checked_add(1).unwrap();
+        receiver.payment_count = receiver
+            .payment_count
+            .checked_add(1)
+            .ok_or(PaykitError::MathOverflow)?;
 
         emit!(AgentPaymentSent {
             sender: ctx.accounts.sender_agent.key(),
@@ -385,11 +428,14 @@ pub mod paykit {
         require!(extension_seconds > 0, PaykitError::InvalidSpendLimit);
         let clock = Clock::get()?;
         let agent = &mut ctx.accounts.agent;
-        if clock.unix_timestamp >= agent.expires_at {
-            agent.expires_at = clock.unix_timestamp + extension_seconds;
+        let base = if clock.unix_timestamp >= agent.expires_at {
+            clock.unix_timestamp
         } else {
-            agent.expires_at += extension_seconds;
-        }
+            agent.expires_at
+        };
+        agent.expires_at = base
+            .checked_add(extension_seconds)
+            .ok_or(PaykitError::MathOverflow)?;
         Ok(())
     }
 
@@ -636,4 +682,8 @@ pub enum PaykitError {
     UnauthorizedSigner,
     #[msg("New spend limit cannot be lower than the amount already spent")]
     SpendLimitBelowSpent,
+    #[msg("An agent cannot pay itself")]
+    SelfPayment,
+    #[msg("Arithmetic overflow")]
+    MathOverflow,
 }
